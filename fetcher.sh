@@ -45,7 +45,7 @@ if [ "$kernel" = "Linux" ]; then
 	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
 
 cat << EOF
-Copy and paste the command below in the server
+Copy and paste the command below in the server. You can also attach an image to the message, be it your screenshot or wallpaper.
 
 .setfetch
 Distro: $NAME
