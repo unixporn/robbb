@@ -61,27 +61,27 @@ EOF
 fi
 
 if [ "$kernel"  = "Darwin" ]; then
-    distro="macOS"
-    cpu="$(sysctl -n machdep.cpu.brand_string)"
-    de="Aqua"
-    ps_line=$(ps -e | grep -o \
-        -e "[S]pectacle" \
-        -e "[A]methyst" \
-        -e "[k]wm" \
-        -e "[c]hun[k]wm" \
-        -e "[y]abai" \
-        -e "[R]ectangle")
+	distro="macOS"
+	cpu="$(sysctl -n machdep.cpu.brand_string)"
+	de="Aqua"
+	ps_line=$(ps -e | grep -o \
+		-e "[S]pectacle" \
+		-e "[A]methyst" \
+		-e "[k]wm" \
+		-e "[c]hun[k]wm" \
+		-e "[y]abai" \
+		-e "[R]ectangle")
 
-    case $ps_line in
-        *chunkwm*)   wm=chunkwm ;;
-        *kwm*)       wm=Kwm ;;
-        *yabai*)     wm=yabai ;;
-        *Amethyst*)  wm=Amethyst ;;
-        *Spectacle*) wm=Spectacle ;;
-        *Rectangle*) wm=Rectangle ;;
-        *)           wm="Quartz Compositor" ;;
-    esac
-    ram="$(sysctl -n hw.memsize)"
+	case $ps_line in
+		*chunkwm*)	wm=chunkwm ;;
+		*kwm*)		wm=Kwm ;;
+		*yabai*)	wm=yabai ;;
+		*Amethyst*)	wm=Amethyst ;;
+		*Spectacle*)	wm=Spectacle ;;
+		*Rectangle*)	wm=Rectangle ;;
+		*)		wm="Quartz Compositor" ;;
+	esac
+	ram="$(sysctl -n hw.memsize)"
 	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
 
 
