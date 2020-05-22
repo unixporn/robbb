@@ -59,3 +59,43 @@ CPU: $cpu
 Memory: $ram
 EOF
 fi
+
+if [ "$kernel"  = "Darwin" ]; then
+    distro="macOS"
+    cpu=$(sysctl -n machdep.cpu.brand_string)
+    de="Aqua"
+    ps_line=$(ps -e | grep -o \
+        -e "[S]pectacle" \
+        -e "[A]methyst" \
+        -e "[k]wm" \
+        -e "[c]hun[k]wm" \
+        -e "[y]abai" \
+        -e "[R]ectangle")
+
+    case $ps_line in
+        *chunkwm*)   wm=chunkwm ;;
+        *kwm*)       wm=Kwm ;;
+        *yabai*)     wm=yabai ;;
+        *Amethyst*)  wm=Amethyst ;;
+        *Spectacle*) wm=Spectacle ;;
+        *Rectangle*) wm=Rectangle ;;
+        *)           wm="Quartz Compositor" ;;
+    esac
+    ram="$(($(sysctl -n hw.memsize) / 1024))"
+    ram="$ram kB"
+	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
+
+
+cat << EOF
+Copy and paste the command below in the server. You can also attach an image to the message, be it your screenshot or wallpaper.
+
+!setfetch
+Distro: $distro
+Kernel: $kernelnv
+Terminal: ${TERM%-*color*}
+DE/WM: $de/$wm
+Editor: ${EDITOR:-unknown}
+CPU: $cpu
+Memory: $ram
+EOF
+fi
