@@ -62,7 +62,7 @@ fi
 
 if [ "$kernel"  = "Darwin" ]; then
     distro="macOS"
-    cpu=$(sysctl -n machdep.cpu.brand_string)
+    cpu="$(sysctl -n machdep.cpu.brand_string)"
     de="Aqua"
     ps_line=$(ps -e | grep -o \
         -e "[S]pectacle" \
@@ -81,8 +81,7 @@ if [ "$kernel"  = "Darwin" ]; then
         *Rectangle*) wm=Rectangle ;;
         *)           wm="Quartz Compositor" ;;
     esac
-    ram="$(($(sysctl -n hw.memsize) / 1024))"
-    ram="$ram kB"
+    ram="$(sysctl -n hw.memsize)"
 	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
 
 
