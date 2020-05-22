@@ -82,12 +82,11 @@ if [ "$kernel"  = "Darwin" ]; then
 		*)		wm="Quartz Compositor" ;;
 	esac
 
-    ver="$(awk '/ProductVersion/{getline; print}' /System/Library/CoreServices/SystemVersion.plist)"
-    # example ver = <string>10.15.4</string>
-    # not sure best way to remove <string></string>
-    ver="${ver#*>}"
-    ver="${ver%<*}"
-
+	ver="$(awk '/ProductVersion/{getline; print}' /System/Library/CoreServices/SystemVersion.plist)"
+	# example ver = <string>10.15.4</string>
+	# not sure best way to remove <string></string>
+	ver="${ver#*>}"
+	ver="${ver%<*}"
 
 	ram="$(sysctl -n hw.memsize)"
 	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
