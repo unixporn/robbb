@@ -81,6 +81,14 @@ if [ "$kernel"  = "Darwin" ]; then
 		*Rectangle*)	wm=Rectangle ;;
 		*)		wm="Quartz Compositor" ;;
 	esac
+
+    ver="$(awk '/ProductVersion/{getline; print}' /System/Library/CoreServices/SystemVersion.plist)"
+    # example ver = <string>10.15.4</string>
+    # not sure best way to remove <string></string>
+    ver="${ver#*>}"
+    ver="${ver%<*}"
+
+
 	ram="$(sysctl -n hw.memsize)"
 	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
 
@@ -89,7 +97,7 @@ cat << EOF
 Copy and paste the command below in the server. You can also attach an image to the message, be it your screenshot or wallpaper.
 
 !setfetch
-Distro: $distro
+Distro: $distro $ver
 Kernel: $kernelnv
 Terminal: ${TERM%-*color*}
 DE/WM: $de/$wm
