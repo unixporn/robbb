@@ -103,7 +103,7 @@ elif [ "$kernel"  = "Darwin" ]; then
 
 
 	case $TERM_PROGRAM in
-		"Terminal.app") term="Apple Terminal";;
+		"Terminal.app" | "Apple_Terminal") term="Apple Terminal";;
 		"iTerm.app")    term="iTerm2";;
 		*)              term="${TERM_PROGRAM%.app}";;
 	esac
