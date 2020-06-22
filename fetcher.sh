@@ -10,7 +10,7 @@ You can also attach an image to the message, be it your screenshot or wallpaper.
 !setfetch
 Distro: $NAME $ver
 Kernel: $(uname -sr)
-Terminal: $term
+Terminal:$term
 $([ "$wm" ] && echo "DE/WM: $wm" || echo "Display protocol: $displayprot")
 Editor: $EDITOR
 GTK3 Theme: $theme
@@ -69,25 +69,26 @@ if [ "$kernel" = "Linux" ]; then
 
 	# terminal, remove declaration of color support from the name
 	term=$(ps -e | grep -m 1 -o \
-		-e "alacritty$" \
-		-e "kitty$" \
-		-e "xterm$" \
-		-e "urxvt$" \
-		-e "xfce4-terminal$" \
-		-e "gnome-terminal$" \
-		-e "mate-terminal$" \
-		-e "cool-retro-term$" \
-		-e "konsole$" \
-		-e "termite$" \
-		-e "rxvt$" \
-		-e "tilix$" \
-		-e "sakura$" \
-		-e "terminator$" \
-		-e "qterminal$" \
-		-e "termonad$" \
-		-e "lxterminal$" \
+		-e " alacritty$" \
+		-e " kitty$" \
+		-e " xterm$" \
+		-e " urxvt$" \
+		-e " xfce4-terminal$" \
+		-e " gnome-terminal$" \
+		-e " mate-terminal$" \
+		-e " cool-retro-term$" \
+		-e " konsole$" \
+		-e " termite$" \
+		-e " rxvt$" \
+		-e " tilix$" \
+		-e " sakura$" \
+		-e " terminator$" \
+		-e " qterminal$" \
+		-e " termonad$" \
+		-e " lxterminal$" \
 		-e " st$" \
-		-e "tilda$")
+		-e " xst$" \
+		-e " tilda$")
 
 	print
 elif [ "$kernel"  = "Darwin" ]; then
