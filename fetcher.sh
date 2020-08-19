@@ -6,12 +6,15 @@ print() {
 cat << EOF
 Copy and paste the command below in the server.
 You can also attach an image to the message, be it your screenshot or wallpaper.
+Note that '!setfetch' without 'update' overwrites almost everything,
+including the image, but not !git or !dotfiles
 
 !setfetch
-Distro: $NAME $ver
+Distro: ${NAME:-$DISTRIB_ID} $ver
 Kernel: $(uname -sr)
 Terminal:$term
-$([ "$wm" ] && echo "DE/WM: $wm" || echo "Display protocol: $displayprot")
+DE/WM: $wm
+Display protocol: $displayprot
 Editor: $EDITOR
 GTK3 Theme: $theme
 GTK Icon Theme: $icons
@@ -24,7 +27,10 @@ EOF
 if [ "$kernel" = "Linux" ]; then
 	# get distro
 	# name is saved in the $NAME variable
-	. "/etc/os-release"
+	for i in /etc/os-release /etc/lsb-release /etc/artix-release; do
+		# POSIX shells exit if you try to . a file that doesn't exist
+		[ -f "$i" ] && . "$i" && break
+	done
 
 	# get display protocol
 	[ "$DISPLAY" ] && displayprot="x11"
@@ -33,15 +39,20 @@ if [ "$kernel" = "Linux" ]; then
 	[ ! "$displayprot" ] && displayprot="tty"
 
 	# get gtk theme
-	gtkrc="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
-	theme="$(test -f "$gtkrc" && awk -F'=' '/gtk-theme-name/ {print $2} ' "$gtkrc")" &&
-	icons="$(awk -F'=' '/gtk-icon-theme-name/ {print $2} ' "$gtkrc")"
+	while read -r line; do
+		case $line in
+			gtk-theme*) theme=${line##*=};;
+			gtk-icon-theme*) icons=${line##*=}
+		esac
+	done < "${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
 
-	# TODO: Support for detecting Wayland Compositors
-	# check for wm on X11
-	[ "$DISPLAY" ] && {
-		# for standard WMs
-		command -v xprop >/dev/null 2>&1 && {
+	# for standard WMs/DEs
+	if [ "$XDG_CURRENT_DESKTOP" ]; then
+		wm="$XDG_CURRENT_DESKTOP"
+	elif [ "$DESKTOP_SESSION" ]; then
+		wm="$DESKTOP_SESSION"
+	else
+		[ "$DISPLAY" ] && command -v xprop >/dev/null 2>&1 && {
 			id=$(xprop -root -notype _NET_SUPPORTING_WM_CHECK)
 			id=${id##* }
 			wm="$(xprop -id "$id" -notype -len 100 -f _NET_WM_NAME 8t | \
@@ -51,32 +62,50 @@ if [ "$kernel" = "Linux" ]; then
 		# Fallback for non-EWMH WMs
 		[ "$wm" ] ||
 			wm=$(ps -e | grep -m 1 -o \
-				-e "[s]owm" \
-				-e "[c]atwm" \
-				-e "[f]vwm" \
-				-e "[d]wm" \
-				-e "[2]bwm" \
-				-e "[m]onsterwm" \
-				-e "[t]inywm" \
-				-e "[x]monad")
-	}
-
-	# hardware
-	cpu="$(awk -F': ' '/model name\t: /{print $2;exit} ' "/proc/cpuinfo")"
-	ram="$(awk '/[^0-9]* / {print $2" "$3;exit} ' "/proc/meminfo")"
-
-	# gpu
-	if command -v lspci >/dev/null; then
-		gpu="$(lspci -mm | grep -i 'vga\|display' | grep -o '\[[^"]*' | tr -d '[]' \
-		  | grep -iv 'ali\|amd/ati' | sed -e 's#[a-zA-Z0-9]\+/.* ##' -e 's#[a-zA-Z0-9]\+/.*##' -e 's/(.*//')"
-           	# intel iGPU fallback
-		[ ! "$gpu" ] && gpu="$(lspci -mm | grep -i 'vga' \
-		  | grep -io 'intel.*ion" "[^"]*' | sed -e 's/Corp.*"//' -e 's/Control.*//')"
+				-e "sway" \
+				-e "kiwmi" \
+				-e "wayfire" \
+				-e "sowm" \
+				-e "catwm" \
+				-e "fvwm" \
+				-e "dwm" \
+				-e "2bwm" \
+				-e "monsterwm" \
+				-e "tinywm" \
+				-e "xmonad")
 	fi
 
+	# hardware
+	while read -r line; do
+		case $line in
+			model\ name*) set -- $line; shift 3; cpu=$*; break
+		esac
+	done < /proc/cpuinfo
+
+	read -r ram < /proc/meminfo
+	set -- $ram; shift; ram=$*
+
+
+	# GPU
+	# other option was 'lspci | grep | grep | tr | grep | sed' then
+	# if that failed 'lspci | grep | grep | sed' (for iGPUs)
+	command -v lspci |: && {
+		gpu=$(lspci -mm | grep -i 'vga\|display')
+		gpu=${gpu##*Corporation\"}
+		gpu=${gpu#*\[AMD/ATI\]}
+		gpu=${gpu%%\]*}
+		gpu=${gpu##*\[}
+		gpu=${gpu#*\"}
+		set -- ${gpu%%\"*}
+		case $* in
+			*/*Mobile*) gpu="$1 $2 Mobile";;
+			*/*) gpu="$1 $2";;
+			*) gpu="$*";;
+		esac
+	}
 
 	# editor, remove the file path
-	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
+	EDITOR="${EDITOR##*/}"
 
 	# terminal, remove declaration of color support from the name
 	term=$(ps -e | grep -m 1 -o \
@@ -106,12 +135,8 @@ elif [ "$kernel"  = "Darwin" ]; then
 	NAME="macOS"
 
 	# get MacOS version
-	# example output: <string>10.15.4</string>
-	ver="$(awk '/ProductVersion/{getline; print}' /System/Library/CoreServices/SystemVersion.plist)"
-	# remove <string>
-	ver="${ver#*>}"
-	# remove </string>
-	ver="${ver%<*}"
+	ver=$(defaults read /System/Library/CoreServices/SystemVersion.plist \
+		ProductUserVisibleVersion)
 
 	# get WM
 	wm="$(ps -e | grep -o \
@@ -130,13 +155,12 @@ elif [ "$kernel"  = "Darwin" ]; then
 	ram="$(sysctl -n hw.memsize)"
 
 	# editor, remove the file path
-	[ "$EDITOR" ] && EDITOR="${EDITOR##*/}"
-
+	EDITOR="${EDITOR##*/}"
 
 	case $TERM_PROGRAM in
 		"Terminal.app" | "Apple_Terminal") term="Apple Terminal";;
-		"iTerm.app")    term="iTerm2";;
-		*)              term="${TERM_PROGRAM%.app}";;
+		"iTerm.app") term="iTerm2";;
+		*) term="${TERM_PROGRAM%.app}";;
 	esac
 
 	print
