@@ -27,7 +27,7 @@ EOF
 if [ "$kernel" = "Linux" ]; then
 	# get distro
 	# name is saved in the $NAME variable
-	for i in /etc/os-release /etc/lsb-release /etc/artix-release; do
+	for i in /etc/os-release /etc/lsb-release; do
 		# POSIX shells exit if you try to . a file that doesn't exist
 		[ -f "$i" ] && . "$i" && break
 	done
