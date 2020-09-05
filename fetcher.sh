@@ -10,12 +10,12 @@ Note that '!setfetch' without 'update' overwrites almost everything,
 including the image, but not !git or !dotfiles
 
 !setfetch
-Distro: ${NAME:-$DISTRIB_ID} $ver
+Distro: $NAME $ver
 Kernel: $(uname -sr)
-Terminal:$term
+Terminal: $term
 DE/WM: $wm
 Display protocol: $displayprot
-Editor: $EDITOR
+Editor: ${EDITOR##*/}
 GTK3 Theme: $theme
 GTK Icon Theme: $icons
 CPU: $cpu
@@ -26,11 +26,12 @@ EOF
 
 if [ "$kernel" = "Linux" ]; then
 	# get distro
-	# name is saved in the $NAME variable
-	for i in /etc/os-release /etc/lsb-release; do
-		# POSIX shells exit if you try to . a file that doesn't exist
-		[ -f "$i" ] && . "$i" && break
-	done
+	if [ -f /etc/os-release  ]; then
+		. /etc/os-release
+	elif [ -f /etc/lsb-release ]; then
+		. /etc/lsb-release
+		NAME=$DISTRIB_ID
+	fi
 
 	# get display protocol
 	[ "$DISPLAY" ] && displayprot="x11"
@@ -46,50 +47,47 @@ if [ "$kernel" = "Linux" ]; then
 		esac
 	done < "${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
 
-	# for standard WMs/DEs
-	if [ "$XDG_CURRENT_DESKTOP" ]; then
-		wm="$XDG_CURRENT_DESKTOP"
-	elif [ "$DESKTOP_SESSION" ]; then
-		wm="$DESKTOP_SESSION"
-	else
-		[ "$DISPLAY" ] && command -v xprop >/dev/null 2>&1 && {
-			id=$(xprop -root -notype _NET_SUPPORTING_WM_CHECK)
-			id=${id##* }
-			wm="$(xprop -id "$id" -notype -len 100 -f _NET_WM_NAME 8t | \
-				grep WM_NAME | cut -d' ' -f 3 | tr -d '"')"
-		}
+	# WMs/DEs
+	# usually set by GUI display managers and DEs
+	wm="$DESKTOP_SESSION"
+	[ "$wm" ] || wm="$XDG_CURRENT_DESKTOP"
 
-		# Fallback for non-EWMH WMs
-		[ "$wm" ] ||
-			wm=$(ps -e | grep -m 1 -o \
-				-e "sway" \
-				-e "kiwmi" \
-				-e "wayfire" \
-				-e "sowm" \
-				-e "catwm" \
-				-e "fvwm" \
-				-e "dwm" \
-				-e "2bwm" \
-				-e "monsterwm" \
-				-e "tinywm" \
-				-e "xmonad")
-	fi
+	# for most WMs
+	[ ! "$wm" ] && [ "$DISPLAY" ] && command -v xprop >/dev/null && {
+		id=$(xprop -root -notype _NET_SUPPORTING_WM_CHECK)
+		id=${id##* }
+		wm=$(xprop -id "$id" -notype -len 100 -f _NET_WM_NAME 8t \
+			| grep '^_NET_WM_NAME' | cut -d\" -f 2)
+	}
+
+	# for non-EWMH WMs
+	[ ! "$wm" ] || [ "$wm" = "LG3D" ] &&
+		wm=$(ps -e | grep -m 1 -o \
+			-e "sway" \
+			-e "kiwmi" \
+			-e "wayfire" \
+			-e "sowm" \
+			-e "catwm" \
+			-e "fvwm" \
+			-e "dwm" \
+			-e "2bwm" \
+			-e "monsterwm" \
+			-e "tinywm" \
+			-e "xmonad")
 
 	# hardware
-	while read -r line; do
-		case $line in
-			model\ name*) set -- $line; shift 3; cpu=$*; break
+	while read -r a b _ model; do
+		case "$a $b" in
+			"model name") cpu=$model; break
 		esac
 	done < /proc/cpuinfo
 
-	read -r ram < /proc/meminfo
-	set -- $ram; shift; ram=$*
-
+	read -r _ ram < /proc/meminfo
 
 	# GPU
 	# other option was 'lspci | grep | grep | tr | grep | sed' then
 	# if that failed 'lspci | grep | grep | sed' (for iGPUs)
-	command -v lspci |: && {
+	command -v lspci >/dev/null && {
 		gpu=$(lspci -mm | grep -i 'vga\|display')
 		gpu=${gpu##*Corporation\"}
 		gpu=${gpu#*\[AMD/ATI\]}
@@ -104,31 +102,25 @@ if [ "$kernel" = "Linux" ]; then
 		esac
 	}
 
-	# editor, remove the file path
-	EDITOR="${EDITOR##*/}"
-
-	# terminal, remove declaration of color support from the name
+	# Terminal, list running processes and check for common terms
 	term=$(ps -e | grep -m 1 -o \
 		-e " alacritty$" \
 		-e " kitty$" \
 		-e " xterm$" \
-		-e " urxvt$" \
-		-e " xfce4-terminal$" \
-		-e " gnome-terminal$" \
-		-e " mate-terminal$" \
+		-e " u*rxvt[dc]*$" \
+		-e " [a-z0-9-]*terminal$" \
 		-e " cool-retro-term$" \
 		-e " konsole$" \
 		-e " termite$" \
-		-e " rxvt$" \
 		-e " tilix$" \
 		-e " sakura$" \
 		-e " terminator$" \
-		-e " qterminal$" \
 		-e " termonad$" \
-		-e " lxterminal$" \
-		-e " st$" \
-		-e " xst$" \
+		-e " x*st$" \
 		-e " tilda$")
+
+	# remove leading space
+	term=${term# }
 
 	print
 elif [ "$kernel"  = "Darwin" ]; then
@@ -153,9 +145,6 @@ elif [ "$kernel"  = "Darwin" ]; then
 	# hardware
 	cpu="$(sysctl -n machdep.cpu.brand_string)"
 	ram="$(sysctl -n hw.memsize)"
-
-	# editor, remove the file path
-	EDITOR="${EDITOR##*/}"
 
 	case $TERM_PROGRAM in
 		"Terminal.app" | "Apple_Terminal") term="Apple Terminal";;
