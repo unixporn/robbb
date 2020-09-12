@@ -49,8 +49,8 @@ if [ "$kernel" = "Linux" ]; then
 
 	# WMs/DEs
 	# usually set by GUI display managers and DEs
-	wm="$DESKTOP_SESSION"
-	[ "$wm" ] || wm="$XDG_CURRENT_DESKTOP"
+	wm="$XDG_CURRENT_DESKTOP"
+	[ "$wm" ] || wm="$DESKTOP_SESSION"
 
 	# for most WMs
 	[ ! "$wm" ] && [ "$DISPLAY" ] && command -v xprop >/dev/null && {
