@@ -13,6 +13,7 @@ including the image, but not !git or !dotfiles
 Distro: $NAME $ver
 Kernel: $(uname -sr)
 Terminal: $term
+Bar: $bar
 DE/WM: $wm
 Resolution: $resolution
 Display Protocol: $displayprot
@@ -132,6 +133,20 @@ if [ "$kernel" = "Linux" ]; then
 		done
 		resolution=${resolution%, }
 	}
+
+	# bar
+	bar=$(ps -e | grep -m 1 -o \
+		-e " i3bar$" \
+		-e " dzen2$" \
+		-e " tint2$" \
+		-e " xmobar$"   \
+		-e " swaybar$"  \
+		-e " polybar$"  \
+		-e " lemonbar$" \
+		-e " taffybar$"
+	)
+
+	bar=${bar# }
 
 	print
 elif [ "$kernel"  = "Darwin" ]; then
