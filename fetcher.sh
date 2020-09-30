@@ -14,6 +14,7 @@ Distro: $NAME $ver
 Kernel: $(uname -sr)
 Terminal: $term
 DE/WM: $wm
+Resolution: $resolution
 Display Protocol: $displayprot
 Editor: ${EDITOR##*/}
 GTK3 Theme: $theme
@@ -121,6 +122,16 @@ if [ "$kernel" = "Linux" ]; then
 
 	# remove leading space
 	term=${term# }
+
+	# Screen resolution
+	unset i resolution
+
+	command -v xrandr >/dev/null && {
+		for i in $(xrandr --current | grep ' connected' | grep -o '[0-9]\+x[0-9]\+'); do
+			resolution="$resolution$i, "
+		done
+		resolution=${resolution%, }
+	}
 
 	print
 elif [ "$kernel"  = "Darwin" ]; then
