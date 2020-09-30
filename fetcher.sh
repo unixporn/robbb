@@ -13,11 +13,11 @@ including the image, but not !git or !dotfiles
 Distro: $NAME $ver
 Kernel: $(uname -sr)
 Terminal: $term
-Bar: $bar
+Editor: ${EDITOR##*/}
 DE/WM: $wm
+Bar: $bar
 Resolution: $resolution
 Display Protocol: $displayprot
-Editor: ${EDITOR##*/}
 GTK3 Theme: $theme
 GTK Icon Theme: $icons
 CPU: $cpu
