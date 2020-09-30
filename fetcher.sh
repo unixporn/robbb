@@ -14,7 +14,7 @@ Distro: $NAME $ver
 Kernel: $(uname -sr)
 Terminal: $term
 DE/WM: $wm
-Display protocol: $displayprot
+Display Protocol: $displayprot
 Editor: ${EDITOR##*/}
 GTK3 Theme: $theme
 GTK Icon Theme: $icons
