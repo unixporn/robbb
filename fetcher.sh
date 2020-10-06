@@ -41,14 +41,6 @@ if [ "$kernel" = "Linux" ]; then
 	# fallback to tty if none is detected
 	[ ! "$displayprot" ] && displayprot="tty"
 
-	# get gtk theme
-	while read -r line; do
-		case $line in
-			gtk-theme*) theme=${line##*=};;
-			gtk-icon-theme*) icons=${line##*=}
-		esac
-	done < "${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
-
 	# WMs/DEs
 	# usually set by GUI display managers and DEs
 	wm="$XDG_CURRENT_DESKTOP"
@@ -76,6 +68,21 @@ if [ "$kernel" = "Linux" ]; then
 			-e "monsterwm" \
 			-e "tinywm" \
 			-e "xmonad")
+
+	# get gtk theme
+	case $wm in
+		*GNOME*)
+			theme=$(dconf read /org/gnome/desktop/interface/gtk-theme  | tr -d "'")
+			icons=$(dconf read /org/gnome/desktop/interface/icon-theme | tr -d "'")
+		;;
+		*)
+			while read -r line; do
+				case $line in
+					gtk-theme*) theme=${line##*=};;
+					gtk-icon-theme*) icons=${line##*=}
+				esac
+			done < "${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
+	esac
 
 	# hardware
 	while read -r a b _ model; do
