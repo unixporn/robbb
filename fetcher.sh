@@ -62,18 +62,20 @@ if [ "$kernel" = "Linux" ]; then
 
   # for non-EWMH WMs
   [ ! "$wm" ] || [ "$wm" = "LG3D" ] &&
-    wm=$(ps -e | grep -m 1 -o \
-      -e "sway" \
-      -e "kiwmi" \
-      -e "wayfire" \
-      -e "sowm" \
-      -e "catwm" \
-      -e "fvwm" \
-      -e "dwm" \
-      -e "2bwm" \
-      -e "monsterwm" \
-      -e "tinywm" \
-      -e "xmonad")
+    wm=$(
+      ps -e | grep -m 1 -o \
+        -e "sway" \
+        -e "kiwmi" \
+        -e "wayfire" \
+        -e "sowm" \
+        -e "catwm" \
+        -e "fvwm" \
+        -e "dwm" \
+        -e "2bwm" \
+        -e "monsterwm" \
+        -e "tinywm" \
+        -e "xmonad"
+    )
 
   # get gtk theme
   case $wm in
@@ -122,21 +124,23 @@ if [ "$kernel" = "Linux" ]; then
   }
 
   # Terminal, list running processes and check for common terms
-  term=$(ps -e | grep -m 1 -o \
-    -e " alacritty$" \
-    -e " kitty$" \
-    -e " xterm$" \
-    -e " u*rxvt[dc]*$" \
-    -e " [a-z0-9-]*terminal$" \
-    -e " cool-retro-term$" \
-    -e " konsole$" \
-    -e " termite$" \
-    -e " tilix$" \
-    -e " sakura$" \
-    -e " terminator$" \
-    -e " termonad$" \
-    -e " x*st$" \
-    -e " tilda$")
+  term=$(
+    ps -e | grep -m 1 -o \
+      -e " alacritty$" \
+      -e " kitty$" \
+      -e " xterm$" \
+      -e " u*rxvt[dc]*$" \
+      -e " [a-z0-9-]*terminal$" \
+      -e " cool-retro-term$" \
+      -e " konsole$" \
+      -e " termite$" \
+      -e " tilix$" \
+      -e " sakura$" \
+      -e " terminator$" \
+      -e " termonad$" \
+      -e " x*st$" \
+      -e " tilda$"
+  )
 
   # remove leading space
   term=${term# }
@@ -171,17 +175,21 @@ elif [ "$kernel" = "Darwin" ]; then
   NAME="macOS"
 
   # get MacOS version
-  ver=$(defaults read /System/Library/CoreServices/SystemVersion.plist \
-    ProductUserVisibleVersion)
+  ver=$(
+    defaults read /System/Library/CoreServices/SystemVersion.plist \
+      ProductUserVisibleVersion
+  )
 
   # get WM
-  wm="$(ps -e | grep -o \
-    -e "[S]pectacle" \
-    -e "[A]methyst" \
-    -e "[k]wm" \
-    -e "[c]hun[k]wm" \
-    -e "[y]abai" \
-    -e "[R]ectangle" | head -n1)"
+  wm="$(
+    ps -e | grep -o \
+      -e "[S]pectacle" \
+      -e "[A]methyst" \
+      -e "[k]wm" \
+      -e "[c]hun[k]wm" \
+      -e "[y]abai" \
+      -e "[R]ectangle" | head -n1
+  )"
 
   # if the current WM isn't on this list, assume default DE
   wm="${wm:-Aqua}"
