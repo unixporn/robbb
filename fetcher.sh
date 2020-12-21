@@ -127,6 +127,7 @@ if [ "$kernel" = "Linux" ]; then
   term=$(
     ps -e | grep -m 1 -o \
       -e " alacritty$" \
+      -e " gnome-terminal$" \
       -e " kitty$" \
       -e " xterm$" \
       -e " u*rxvt[dc]*$" \
