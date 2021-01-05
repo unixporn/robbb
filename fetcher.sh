@@ -29,7 +29,9 @@ EOF
 
 if [ "$kernel" = "Linux" ]; then
   # get distro
-  if [ -f /etc/os-release ]; then
+  if [ -f /bedrock/etc/os-release ]; then
+    . /bedrock/etc/os-release
+  elif [ -f /etc/os-release ]; then
     . /etc/os-release
   elif [ -f /etc/lsb-release ]; then
     . /etc/lsb-release
