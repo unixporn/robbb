@@ -52,7 +52,7 @@ if [ "$kernel" = "Linux" ]; then
   done <"${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
   # WMs/DEs
   # usually set by GUI display managers and DEs
-  wm="$XDG_CURRENT_DESKTOP"
+  wm="${XDG_CURRENT_DESKTOP#*:}"  # ex: ubuntu:GNOME
   [ "$wm" ] || wm="$DESKTOP_SESSION"
 
   # for most WMs
