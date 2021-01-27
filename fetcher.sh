@@ -15,6 +15,7 @@ Distro: $NAME $ver
 Kernel: $(uname -sr)
 Terminal: $term
 Editor: ${EDITOR##*/}
+Shell: ${SHELL##*/}
 DE/WM: $wm
 Bar: $bar
 Resolution: $resolution
