@@ -1,0 +1,16 @@
+[package]
+name = "trup-rs"
+version = "0.1.0"
+authors = ["elkowar <5300871+elkowar@users.noreply.github.com>"]
+edition = "2018"
+
+
+[dependencies]
+serenity = "0.10"
+anyhow = "1.0"
+chrono = "0.4"
+chrono-humanize = "0.1"
+itertools = "0.10"
+indoc = "1.0"
+
+tokio = { version = "1.2", features = ["full"]}
