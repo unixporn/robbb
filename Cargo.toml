@@ -6,11 +6,12 @@ edition = "2018"
 
 
 [dependencies]
-serenity = "0.10"
+serenity = { version = "0.10", features = ["collector"]}
 anyhow = "1.0"
 chrono = "0.4"
 chrono-humanize = "0.1"
 itertools = "0.10"
 indoc = "1.0"
+lazy_static = "1.4"
 
 tokio = { version = "1.2", features = ["full"]}

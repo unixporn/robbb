@@ -117,3 +117,74 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     Ok(())
 }
+
+pub async fn disambiguate_user_mention<Fut: std::future::Future<Output = Result<()>>>(
+    ctx: &client::Context,
+    guild: Guild,
+    msg: Message,
+    name: &str,
+) -> Result<UserId> {
+    lazy_static::lazy_static! {
+        static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+    }
+
+    if let Ok(user_id) = name.parse::<UserId>() {
+        Ok(user_id)
+    } else if let Some(member) =
+        async { Some(guild.member(&ctx, name.parse::<u64>().ok()?).await.ok()?) }.await
+    {
+        Ok(member.user.id)
+    } else {
+        let matching_members: Vec<(&Member, String)> =
+            guild.members_containing(name, false, true).await;
+        if matching_members.is_empty() {
+            anyhow::bail!("REEE");
+        }
+
+        let members = matching_members
+            .iter()
+            .zip(SELECTION_EMOJI.iter())
+            .map(|((m, _), emoji)| format!("{} - {}", emoji, m.user.name))
+            .join("\n");
+
+        let disambiguate_message: Message = msg
+            .channel_id
+            .send_message(&ctx, |m| {
+                m.embed(|e| {
+                    e.title("Ambiguous user mention");
+                    e.description(members)
+                })
+            })
+            .await
+            .unwrap();
+
+        let selection = disambiguate_message
+            .await_reaction(&ctx)
+            .author_id(msg.author.id)
+            .timeout(std::time::Duration::from_secs(30))
+            .filter(move |x| match &x.emoji {
+                ReactionType::Unicode(x) => SELECTION_EMOJI.contains(&x.as_str()),
+                _ => false,
+            })
+            .await;
+        match selection {
+            Some(action) => match action.as_ref() {
+                serenity::collector::reaction_collector::ReactionAction::Added(react) => {
+                    match &react.emoji {
+                        ReactionType::Unicode(emoji) => {
+                            let index = SELECTION_EMOJI
+                                .iter()
+                                .position(|x| x == &emoji.as_str())
+                                .unwrap();
+                            Ok(matching_members[index].0.user.id)
+                        }
+                        _ => unreachable!("previously verified in filter"),
+                    }
+                }
+
+                _ => unreachable!("previously verified in filter"),
+            },
+            None => Err(anyhow!("No selection")),
+        }
+    }
+}
