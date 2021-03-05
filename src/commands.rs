@@ -1,22 +1,22 @@
+use crate::{
+    extensions::{MessageExt, UserExt},
+    log_errors, util, Config,
+};
+
 use super::checks::*;
-use super::Config;
+//use super::Config;
 use anyhow::{anyhow, Context, Result};
 use chrono_humanize::*;
 use itertools::Itertools;
 use reaction_collector::ReactionAction;
-use serenity::builder::CreateMessage;
-use serenity::framework::standard::macros::{check, group, help};
+use serenity::framework::standard::CommandGroup;
 use serenity::framework::standard::{
-    help_commands, Args, CommandError, CommandGroup, CommandOptions, HelpOptions, Reason,
+    help_commands,
+    macros::{group, help},
 };
 use serenity::framework::standard::{macros::command, CommandResult};
-use serenity::model::prelude::*;
-use serenity::utils::EmbedMessageBuilding;
-use serenity::utils::MessageBuilder;
-use serenity::{
-    client,
-    collector::{self, reaction_collector},
-};
+use serenity::framework::standard::{Args, CommandOptions, HelpOptions};
+use serenity::{client, collector::reaction_collector, model::prelude::*};
 use std::collections::HashSet;
 
 lazy_static::lazy_static! {
@@ -24,13 +24,13 @@ lazy_static::lazy_static! {
 }
 #[group]
 #[only_in(guilds)]
-#[commands(restart)]
+#[commands(restart, mute)]
 #[checks(moderator)]
 struct Moderator;
 
 #[group]
 #[only_in(guilds)]
-#[commands(info, modping)]
+#[commands(info, modping, pfp, move_users)]
 struct General;
 
 #[command]
@@ -52,17 +52,19 @@ pub async fn restart(ctx: &client::Context, msg: &Message) -> CommandResult {
 async fn my_help(
     ctx: &client::Context,
     msg: &Message,
-    args: Args,
-    help_options: &'static HelpOptions,
+    _args: Args,
+    _help_options: &'static HelpOptions,
     groups: &[&'static CommandGroup],
-    owners: HashSet<UserId>,
+    _owners: HashSet<UserId>,
 ) -> CommandResult {
-    // let _ = help_commands::with_embeds(ctx, msg, args, help_options, groups, owners).await;
-
-    let commands: Vec<&CommandOptions> = groups
-        .iter()
-        .flat_map(|group| group.options.commands.iter().map(|cmd| cmd.options))
-        .collect_vec();
+    let mut commands = Vec::new();
+    for group in groups {
+        for command in group.options.commands {
+            if help_commands::has_all_requirements(&ctx, command.options, msg).await {
+                commands.push(command.options)
+            }
+        }
+    }
 
     let result = msg
         .channel_id
@@ -71,12 +73,17 @@ async fn my_help(
                 e.title("Help");
                 for command in commands {
                     let command_name = command.names.first().expect("Command had no name");
-                    let name = if let Some(usage) = command.usage {
-                        format!("**{}** - {}", command_name, usage)
-                    } else {
-                        format!("**{}**", command_name)
+                    let name = match command.usage {
+                        Some(usage) => format!("**{}** - {}", command_name, usage),
+                        None => format!("**{}**", command_name),
                     };
-                    e.field(name, command.desc.unwrap_or("No description"), false);
+                    let description = command.desc.unwrap_or("").to_string();
+                    let description = if !command.examples.is_empty() {
+                        format!("{}\n{}", description, command.examples.join("\n"))
+                    } else {
+                        description
+                    };
+                    e.field(name, description, false);
                 }
                 e
             })
@@ -113,30 +120,18 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     msg.channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| {
-                e.title(format!(
-                    "{}#{}",
-                    member.user.name, member.user.discriminator
-                ));
-                e.thumbnail(
-                    member
-                        .user
-                        .avatar_url()
-                        .unwrap_or(member.user.default_avatar_url()),
-                );
+                e.title(member.user.name_with_disc());
+                e.thumbnail(member.user.avatar_or_default());
                 if let Some(color) = color {
                     e.color(color);
                 }
                 e.field("ID/Snowflake", mentioned_user_id.to_string(), false);
                 e.field(
                     "Account creation date",
-                    HumanTime::from(created_at).to_text_en(Accuracy::Precise, Tense::Present),
+                    util::format_date(created_at),
                     false,
                 );
-                e.field(
-                    "Join Date",
-                    HumanTime::from(join_date).to_text_en(Accuracy::Precise, Tense::Present),
-                    false,
-                );
+                e.field("Join Date", util::format_date(join_date), false);
                 if !member.roles.is_empty() {
                     e.field(
                         "Roles",
@@ -149,6 +144,36 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         })
         .await?;
 
+    Ok(())
+}
+
+/// Show the profile-picture of a user.
+#[command]
+#[usage("pfp [user]")]
+pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
+        match disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await? {
+            Some(mention) => mention,
+            None => {
+                let _ = msg.reply(&ctx, "Couldn't find anyone with this name :/");
+                return Ok(());
+            }
+        }
+    } else {
+        msg.author.id
+    };
+
+    let user = mentioned_user_id.to_user(&ctx).await?;
+
+    let result = msg
+        .reply_embed(&ctx, |e| {
+            e.title(format!("{}'s profile picture", user.name_with_disc()));
+            // TODO embed color
+            e.image(user.avatar_or_default());
+        })
+        .await;
+    util::log_error_value(result);
     Ok(())
 }
 
@@ -180,6 +205,75 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
         })
         .await?;
 
+    Ok(())
+}
+
+#[command("move")]
+#[usage("move <#channel> [<user> ...]")]
+pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let channel = args.single::<ChannelId>()?;
+    let rest = args.remains().unwrap_or_default();
+    let continuation_msg = channel
+        .send_message(&ctx, |m| {
+            m.content(format!(
+                "{} {}\nContinuation from {}\n({})",
+                msg.author.mention(),
+                rest,
+                msg.channel_id.mention(),
+                msg.link()
+            ))
+        })
+        .await?;
+    let _ = msg
+        .reply_embed(&ctx, |e| {
+            e.description(format!(
+                "Continued at {}\n{}",
+                channel.mention(),
+                continuation_msg.link()
+            ));
+        })
+        .await?;
+    Ok(())
+}
+
+#[command]
+#[usage("mute <user> <duration> [reason]")]
+pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
+        match disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await? {
+            Some(mention) => mention,
+            None => {
+                let _ = msg.reply(&ctx, "Couldn't find anyone with this name :/");
+                return Ok(());
+            }
+        }
+    } else {
+        reply_wrong_usage(&ctx, &msg, &MUTE_COMMAND_OPTIONS).await;
+        return Ok(());
+    };
+
+    let duration = match args.single::<humantime::Duration>() {
+        Ok(duration) => duration,
+        Err(err) => {
+            reply_wrong_usage(&ctx, &msg, &MUTE_COMMAND_OPTIONS).await;
+            return Ok(());
+        }
+    };
+
+    let reason = args.single::<String>().unwrap_or_default();
+
+    let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
+    let mut member = guild.member(&ctx, mentioned_user_id).await?;
+    member.add_role(&ctx, config.role_mute).await?;
+    // TODO db stuff
+
+    msg.reply(
+        &ctx,
+        format!("{} has been muted for {}", member.mention(), duration,),
+    )
+    .await?;
     Ok(())
 }
 
@@ -234,8 +328,8 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
     }
     let options = SELECTION_EMOJI
         .iter()
+        .map(|a| a.to_string())
         .zip(options.into_iter())
-        .map(|(a, b)| (a.to_string(), b))
         .collect_vec();
 
     let description = options
@@ -243,17 +337,26 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
         .map(|(emoji, value)| format!("{} - {}", emoji, show(&value)))
         .join("\n");
 
-    let reactions = options
-        .iter()
-        .map(|(react, _)| ReactionType::Unicode(react.to_string()));
-
     let selection_message = channel_id
         .send_message(&ctx, |m| {
-            m.embed(|e| e.title(title).description(description));
-            m.reactions(reactions)
+            m.embed(|e| e.title(title).description(description))
         })
         .await
         .context("Failed to send selection message")?;
+
+    // asynchronously add the reactions
+    tokio::spawn({
+        let selection_message = selection_message.clone();
+        let ctx = ctx.clone();
+        let options = options.clone();
+        async move {
+            for (emoji, _) in options {
+                let _ = selection_message
+                    .react(&ctx, ReactionType::Unicode(emoji.to_string()))
+                    .await;
+            }
+        }
+    });
 
     let selection = {
         let options = options.clone();

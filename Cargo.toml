@@ -13,5 +13,7 @@ chrono-humanize = "0.1"
 itertools = "0.10"
 indoc = "1.0"
 lazy_static = "1.4"
+rand = "0.8"
+humantime = "2"
 
 tokio = { version = "1.2", features = ["full"]}

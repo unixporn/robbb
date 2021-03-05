@@ -1,5 +1,5 @@
 use super::checks::*;
-use super::Config;
+//use super::Config;
 use anyhow::{anyhow, Context, Result};
 use chrono_humanize::*;
 use itertools::Itertools;
@@ -12,17 +12,10 @@ use serenity::framework::standard::{
     help_commands, Args, CommandGroup, CommandOptions, HelpOptions, Reason,
 };
 use serenity::framework::standard::{macros::command, CommandResult};
-use serenity::http::CacheHttp;
-use serenity::model::prelude::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use serenity::utils::EmbedMessageBuilding;
-use serenity::utils::MessageBuilder;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::sync::Arc;
 
-use crate::log_errors;
+use crate::{extensions::UserExt, log_errors, Config};
 use indoc::indoc;
 
 pub struct Handler;
@@ -94,11 +87,10 @@ impl EventHandler for Handler {
                             a.icon_url(
                                 new_member
                                     .user
-                                    .avatar_url()
-                                    .unwrap_or(new_member.user.default_avatar_url()),
+                                    .avatar_or_default()
                             )
                         });
-                        e.title(format!("{}#{}({})", new_member.user.name, new_member.user.discriminator, new_member.user.id));
+                        e.title(new_member.user.name_with_disc_and_id());
                         e.field("Account Creation Date", HumanTime::from(new_member.user.created_at()).to_text_en(Accuracy::Precise, Tense::Past), false);
                         if let Some(join_date) = new_member.joined_at {
                             e.field("Join Date", HumanTime::from(join_date).to_text_en(Accuracy::Precise, Tense::Past), false);
@@ -129,13 +121,9 @@ impl EventHandler for Handler {
                     m.embed(|e| {
                         e.author(|a| {
                             a.name("Member Leave");
-                            a.icon_url(
-                                user
-                                    .avatar_url()
-                                    .unwrap_or(user.default_avatar_url()),
-                            )
+                            a.icon_url(user.avatar_or_default())
                         });
-                        e.title(format!("{}#{}({})", user.name, user.discriminator, user.id));
+                        e.title(user.name_with_disc_and_id());
                         e.field("Leave Date", HumanTime::from(chrono::Utc::now()).to_text_en(Accuracy::Precise, Tense::Past), false);
                         //e.field("Account Creation Date", HumanTime::from(user.created_at()).to_text_en(Accuracy::Precise, Tense::Past), false);
                         e
@@ -175,13 +163,9 @@ impl EventHandler for Handler {
                 .send_message(&ctx, |m| {
                     m.embed(|e| {
                         e.author(|a| {
-                            a.name("Message Edit");
-                            a.icon_url(msg.author.avatar_url().unwrap_or(msg.author.default_avatar_url()))
+                            a.name("Message Edit").icon_url(msg.author.avatar_or_default())
                         });
-                        e.title(format!(
-                            "{}#{}({})",
-                            msg.author.name, msg.author.discriminator, msg.author.id
-                        ));
+                        e.title(msg.author.name_with_disc_and_id());
                         e.description(indoc::formatdoc!("
                                 **Before:**
                                 {}

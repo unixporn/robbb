@@ -1,13 +1,13 @@
 #![feature(try_blocks)]
 #![feature(label_break_value)]
+#[allow(unused_imports)]
 use serenity::client::{self, Client};
 use serenity::framework::standard::macros::hook;
 use serenity::framework::standard::DispatchError;
 use serenity::framework::standard::StandardFramework;
-use serenity::http::CacheHttp;
-use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::{async_trait, client::bridge::gateway::GatewayIntents};
+use serenity::{http::CacheHttp, model::prelude::*};
 use std::sync::Arc;
 
 use crate::util::*;
@@ -16,6 +16,7 @@ use anyhow::{anyhow, Context, Result};
 pub mod checks;
 pub mod commands;
 pub mod events;
+pub mod extensions;
 pub mod util;
 
 use commands::*;
