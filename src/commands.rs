@@ -93,7 +93,13 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
     let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
-        disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await?
+        match disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await? {
+            Some(mention) => mention,
+            None => {
+                let _ = msg.reply(&ctx, "Couldn't find anyone with this name :/");
+                return Ok(());
+            }
+        }
     } else {
         msg.author.id
     };
@@ -158,25 +164,6 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
     }
 
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
-
-    // let mods = {
-    //     let mut members: Vec<Member> = Vec::new();
-    //     loop {
-    //         let mut new_members = guild
-    //             .members(&ctx, Some(1000), members.last().map(|m| m.user.id))
-    //             .await?;
-    //         if new_members.is_empty() {
-    //             members.append(&mut new_members);
-    //             break;
-    //         }
-    //         members.append(&mut new_members);
-    //     }
-    //     members
-    //         .into_iter()
-    //         .filter(|member| member.roles.contains(&config.role_mod))
-    //         .collect_vec()
-    // };
-    //
     let mods = guild
         .members
         .values()
@@ -201,44 +188,37 @@ pub async fn disambiguate_user_mention(
     guild: &Guild,
     msg: &Message,
     name: &str,
-) -> Result<UserId> {
+) -> Result<Option<UserId>> {
     if let Ok(user_id) = name.parse::<UserId>() {
-        return Ok(user_id);
-    }
-    if let Some(member) =
+        Ok(Some(user_id))
+    } else if let Some(member) =
         async { Some(guild.member(&ctx, name.parse::<u64>().ok()?).await.ok()?) }.await
     {
-        return Ok(member.user.id);
+        Ok(Some(member.user.id))
+    } else {
+        let member_options = guild
+            .members_containing(name, false, true)
+            .await
+            .into_iter()
+            .map(|(mem, _)| mem.clone())
+            .collect_vec();
+
+        if member_options.len() == 1 {
+            Ok(Some(member_options.first().unwrap().user.id))
+        } else {
+            Ok(await_reaction_selection(
+                &ctx,
+                msg.channel_id,
+                msg.author.id,
+                member_options.clone(),
+                "Ambiguous user mention",
+                |m| format!("{}", m.mention()),
+            )
+            .await
+            .context("Failed to request user selection")?
+            .map(|member| member.user.id))
+        }
     }
-
-    let member_options = guild
-        .members_containing(name, false, true)
-        .await
-        .into_iter()
-        .map(|(mem, _)| mem.clone())
-        .collect_vec();
-
-    if member_options.is_empty() {
-        let _ = msg
-            .reply(&ctx, "Couldn't find anyone with this name :/")
-            .await;
-        return Err(anyhow!("No user found"));
-    } else if member_options.len() == 1 {
-        return Ok(member_options.first().unwrap().user.id);
-    }
-
-    await_reaction_selection(
-        &ctx,
-        msg.channel_id,
-        msg.author.id,
-        member_options.clone(),
-        "Ambiguous user mention".to_string(),
-        |m| format!("{}", m.mention()),
-    )
-    .await
-    .context("Failed to request selection")?
-    .context("Nothing selected")
-    .map(|x| x.user.id)
 }
 
 pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
@@ -246,37 +226,39 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
     channel_id: ChannelId,
     by: UserId,
     options: Vec<T>,
-    title: String,
+    title: &str,
     show: impl Fn(&T) -> String,
 ) -> Result<Option<T>> {
+    if options.is_empty() {
+        return Ok(None);
+    }
     let options = SELECTION_EMOJI
         .iter()
         .zip(options.into_iter())
         .map(|(a, b)| (a.to_string(), b))
         .collect_vec();
-    let msg = channel_id
+
+    let description = options
+        .iter()
+        .map(|(emoji, value)| format!("{} - {}", emoji, show(&value)))
+        .join("\n");
+
+    let reactions = options
+        .iter()
+        .map(|(react, _)| ReactionType::Unicode(react.to_string()));
+
+    let selection_message = channel_id
         .send_message(&ctx, |m| {
-            m.embed(|e| {
-                e.title(title);
-                e.description(
-                    options
-                        .iter()
-                        .map(|(emoji, value)| format!("{} - {}", emoji, show(&value)))
-                        .join("\n"),
-                )
-            });
-            m.reactions(
-                options
-                    .iter()
-                    .map(|(react, _)| ReactionType::Unicode(react.to_string())),
-            )
+            m.embed(|e| e.title(title).description(description));
+            m.reactions(reactions)
         })
         .await
         .context("Failed to send selection message")?;
 
     let selection = {
         let options = options.clone();
-        msg.await_reaction(&ctx)
+        selection_message
+            .await_reaction(&ctx)
             .author_id(by)
             .timeout(std::time::Duration::from_secs(30))
             .filter(move |x| match &x.emoji {
@@ -286,7 +268,7 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
             .await
     };
 
-    let _ = msg.delete(&ctx).await;
+    let _ = selection_message.delete(&ctx).await;
 
     let selection = match selection {
         Some(selection) => selection,
