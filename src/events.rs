@@ -149,70 +149,80 @@ impl EventHandler for Handler {
         &self,
         ctx: client::Context,
         old_if_available: Option<Message>,
-        new: Option<Message>,
+        _new: Option<Message>,
         event: MessageUpdateEvent,
     ) {
         let config = ctx.data.read().await.get::<Config>().unwrap().clone();
-        if Some(config.guild) != event.guild_id {
-            return;
-        }
-        //let msg = match new {
-        //Some(x) => x,
-        //None => {
-        //println!("Got message_update event without getting a new message 🤔");
-        //return;
-        //}
-        //};
 
-        let author = match event.author.clone() {
-            Some(x) => x,
-            None => {
-                println!("Got message_update event without getting an author 🤔");
-                return;
-            }
+        if Some(config.guild) != event.guild_id
+            || event.edited_timestamp.is_none()
+            || event.author.as_ref().map(|x| x.bot).unwrap_or(false)
+        {
+            return;
         };
 
-        let channel_name = event
-            .channel_id
-            .name(&ctx)
-            .await
-            .unwrap_or("unknown".to_string());
+        log_errors! {
+            let msg = event.channel_id.message(&ctx, event.id).await?;
 
-        crate::util::log_error_value(
+            let channel_name = event
+                .channel_id
+                .name(&ctx)
+                .await
+                .unwrap_or("unknown".to_string());
+
             event
                 .channel_id
                 .send_message(&ctx, |m| {
                     m.embed(|e| {
                         e.author(|a| {
                             a.name("Message Edit");
-                            a.icon_url(author.avatar_url().unwrap_or(author.default_avatar_url()))
+                            a.icon_url(msg.author.avatar_url().unwrap_or(msg.author.default_avatar_url()))
                         });
                         e.title(format!(
                             "{}#{}({})",
-                            author.name, author.discriminator, author.id
+                            msg.author.name, msg.author.discriminator, msg.author.id
                         ));
-                        e.description(indoc::formatdoc!(
-                            "
-                        **Before:**
-                        {}
+                        e.description(indoc::formatdoc!("
+                                **Before:**
+                                {}
 
-                        **Now:**
-                        {}
+                                **Now:**
+                                {}
 
-                        [(context)]({})
-                    ",
+                                [(context)]({})
+                            ",
                             old_if_available
-                                .map(|old| old.content)
-                                .unwrap_or("<Unavailable>".to_string()),
-                            event.content.clone().unwrap_or_default(),
-                            "TODO link" //event.link()
+                                    .map(|old| old.content)
+                                    .unwrap_or("<Unavailable>".to_string()),
+                                event.content.clone().unwrap_or("<Unavailable>".to_string()),
+                                msg.link()
                         ));
-                        // TODO timestamp
-                        //e.timestamp(msg.timestamp);
+                        if let Some(edited_timestamp) = event.edited_timestamp {
+                            e.timestamp(&edited_timestamp);
+                        }
                         e.footer(|f| f.text(format!("#{}", channel_name)))
                     })
                 })
-                .await,
-        );
+                .await?;
+
+        };
     }
+
+    //async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
+    //if event.user(&ctx).await.unwrap().bot {
+    //return;
+    //}
+    //// todo user disambiguation
+
+    //let message = event.message(&ctx).await.unwrap();
+
+    //if message.author.bot
+    //&& message
+    //.embeds
+    //.iter()
+    //.any(|embed| embed.title.unwrap_or_default().starts_with("Poll:"))
+    //{
+    //let channel = message.channel(&ctx).await.unwrap();
+    //}
+    //}
 }

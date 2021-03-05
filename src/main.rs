@@ -1,11 +1,13 @@
 #![feature(try_blocks)]
-use serenity::async_trait;
-use serenity::cache::Cache;
-use serenity::client::{self, Client, EventHandler};
+#![feature(label_break_value)]
+use serenity::client::{self, Client};
+use serenity::framework::standard::macros::hook;
+use serenity::framework::standard::DispatchError;
 use serenity::framework::standard::StandardFramework;
 use serenity::http::CacheHttp;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use serenity::{async_trait, client::bridge::gateway::GatewayIntents};
 use std::sync::Arc;
 
 use crate::util::*;
@@ -68,6 +70,7 @@ async fn main() {
     let config = Config::from_environment().expect("Failed to load experiment");
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("!"))
+        .on_dispatch_error(dispatch_error_hook)
         .group(&MODERATOR_GROUP)
         .group(&GENERAL_GROUP)
         .help(&MY_HELP);
@@ -75,8 +78,11 @@ async fn main() {
     let mut client = Client::builder(&config.discord_token)
         .event_handler(events::Handler)
         .framework(framework)
+        .intents(GatewayIntents::all())
         .await
         .expect("Error creating client");
+
+    client.cache_and_http.cache.set_max_messages(500).await;
 
     {
         let mut data = client.data.write().await;
@@ -86,4 +92,9 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
+}
+
+#[hook]
+async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError) {
+    dbg!(&error);
 }
