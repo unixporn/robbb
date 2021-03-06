@@ -16,5 +16,6 @@ lazy_static = "1.4"
 rand = "0.8"
 humantime = "2"
 thiserror = "1.0"
+sqlx = { version ="0.5", features = ["runtime-tokio-rustls", "all", "any", "chrono"] }
 
 tokio = { version = "1.2", features = ["full"]}

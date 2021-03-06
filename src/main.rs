@@ -1,12 +1,15 @@
 #![feature(try_blocks)]
 #![feature(label_break_value)]
+use chrono::{DateTime, Utc};
+use db::Db;
+use extensions::GuildExt;
 #[allow(unused_imports)]
 use serenity::client::{self, Client};
-use serenity::framework::standard::StandardFramework;
 use serenity::framework::standard::{macros::hook, CommandResult};
 use serenity::framework::standard::{ArgError, DispatchError};
 use serenity::prelude::*;
 use serenity::{async_trait, client::bridge::gateway::GatewayIntents};
+use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
 use serenity::{http::CacheHttp, model::prelude::*};
 use std::{any::Any, sync::Arc};
 
@@ -15,6 +18,7 @@ use anyhow::{anyhow, Context, Result};
 
 pub mod checks;
 pub mod commands;
+pub mod db;
 pub mod events;
 pub mod extensions;
 pub mod util;
@@ -60,6 +64,25 @@ impl Config {
             channel_bot_traffic: ChannelId(parse_required_env_var("CHANNEL_BOT_TRAFFIC")?),
         })
     }
+
+    async fn log_bot_action(&self, ctx: &client::Context, build_embed: impl Fn(&mut CreateEmbed)) {
+        let emoji = self.guild.random_stare_emoji(&ctx).await;
+        let result = self
+            .channel_modlog
+            .send_message(&ctx, |m| {
+                m.embed(|e| {
+                    build_embed(e);
+                    e.footer(|f| {
+                        if let Some(emoji) = emoji {
+                            f.icon_url(emoji.url());
+                        }
+                        f.text(format!("{}", Utc::now()))
+                    })
+                })
+            })
+            .await;
+        util::log_error_value(result);
+    }
 }
 
 impl TypeMapKey for Config {
@@ -69,13 +92,16 @@ impl TypeMapKey for Config {
 #[tokio::main]
 async fn main() {
     let config = Config::from_environment().expect("Failed to load experiment");
+
+    let db = Db::new().await.unwrap();
+
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("!"))
         .on_dispatch_error(dispatch_error_hook)
         .after(after)
         .group(&MODERATOR_GROUP)
         .group(&GENERAL_GROUP)
-        .help(&MY_HELP);
+        .help(&help::MY_HELP);
 
     let mut client = Client::builder(&config.discord_token)
         .event_handler(events::Handler)
@@ -89,6 +115,8 @@ async fn main() {
     {
         let mut data = client.data.write().await;
         data.insert::<Config>(Arc::new(config));
+
+        data.insert::<Db>(Arc::new(db));
     };
 
     if let Err(why) = client.start().await {

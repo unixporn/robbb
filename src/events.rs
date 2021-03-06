@@ -16,7 +16,7 @@ use serenity::model::prelude::*;
 use serenity::prelude::*;
 use util::log_error_value;
 
-use crate::{extensions::UserExt, log_errors, util, Config};
+use crate::{db::Db, extensions::UserExt, log_errors, util, Config};
 use indoc::indoc;
 
 pub struct Handler;
@@ -52,8 +52,9 @@ async fn handle_feedback_post(ctx: client::Context, msg: Message) {
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, _ctx: client::Context, _data_about_bot: Ready) {
+    async fn ready(&self, ctx: client::Context, _data_about_bot: Ready) {
         println!("Trup is ready!");
+        start_mute_handler(ctx).await;
     }
     async fn message(&self, ctx: client::Context, msg: Message) {
         let config = ctx.data.read().await.get::<Config>().unwrap().clone();
@@ -256,4 +257,39 @@ impl EventHandler for Handler {
     //let channel = message.channel(&ctx).await.unwrap();
     //}
     //}
+}
+
+async fn start_mute_handler(ctx: client::Context) {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            let data = ctx.data.read().await;
+            let config = data.get::<Config>().unwrap().clone();
+            let db = data.get::<Db>().unwrap().clone();
+            match db.get_newly_expired_mutes().await {
+                Ok(mutes) => {
+                    for mute in mutes {
+                        let result: Result<_> = try {
+                            println!("Unmuting {:?}", mute);
+                            let mut member = config.guild.member(&ctx, mute.user).await?;
+                            member.remove_roles(&ctx, &[config.role_mute]).await?;
+                            db.set_mute_inactive(mute.id).await?;
+                            config
+                                .log_bot_action(&ctx, |e| {
+                                    e.description(format!(
+                                        "{} is now unmuted",
+                                        mute.user.mention()
+                                    ));
+                                })
+                                .await;
+                        };
+                        if let Err(err) = result {
+                            eprintln!("Error handling mute removal: {}", err);
+                        }
+                    }
+                }
+                Err(err) => eprintln!("Failed to request expired mutes: {}", err),
+            }
+        }
+    });
 }

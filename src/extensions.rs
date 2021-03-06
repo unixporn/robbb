@@ -35,27 +35,28 @@ impl UserExt for User {
 
 #[async_trait]
 pub trait GuildExt {
-    async fn stare_emoji(&self, ctx: &client::Context) -> Vec<Emoji>;
+    async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji>;
 }
 
 #[async_trait]
 impl GuildExt for Guild {
-    async fn stare_emoji(&self, ctx: &client::Context) -> Vec<Emoji> {
-        self.id.stare_emoji(&ctx).await
+    async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji> {
+        self.id.random_stare_emoji(&ctx).await
     }
 }
 #[async_trait]
 impl GuildExt for GuildId {
-    async fn stare_emoji(&self, ctx: &client::Context) -> Vec<Emoji> {
+    async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji> {
         self.emojis(&ctx)
             .await
             .map(|emoji| {
+                let mut rng = rand::thread_rng();
                 emoji
                     .into_iter()
                     .filter(|e| e.name.starts_with("stare"))
-                    .collect()
+                    .choose(&mut rng)
             })
-            .unwrap_or_else(|_| Vec::new())
+            .unwrap_or(None)
     }
 }
 
@@ -74,9 +75,9 @@ impl MessageExt for Message {
     {
         let guild = self.guild(&ctx).await;
         let emoji = if let Some(guild) = guild {
-            guild.stare_emoji(&ctx).await
+            guild.random_stare_emoji(&ctx).await
         } else {
-            Vec::new()
+            None
         };
 
         self.channel_id
@@ -85,8 +86,6 @@ impl MessageExt for Message {
                 m.embed(move |e| {
                     build(e);
                     e.footer(|f| {
-                        let mut rng = rand::thread_rng();
-                        let emoji = emoji.into_iter().choose(&mut rng);
                         if let Some(emoji) = emoji {
                             f.icon_url(emoji.url());
                         }

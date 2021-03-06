@@ -73,3 +73,12 @@ pub fn format_date(date: chrono::DateTime<chrono::Utc>) -> String {
         chrono_humanize::Tense::Present,
     )
 }
+
+pub fn format_count(num: i32) -> String {
+    match num {
+        1 => "1st".to_string(),
+        2 => "2nd".to_string(),
+        3 => "3rd".to_string(),
+        _ => format!("{}th", num),
+    }
+}
