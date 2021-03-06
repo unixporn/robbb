@@ -2,13 +2,13 @@
 #![feature(label_break_value)]
 #[allow(unused_imports)]
 use serenity::client::{self, Client};
-use serenity::framework::standard::macros::hook;
-use serenity::framework::standard::DispatchError;
 use serenity::framework::standard::StandardFramework;
+use serenity::framework::standard::{macros::hook, CommandResult};
+use serenity::framework::standard::{ArgError, DispatchError};
 use serenity::prelude::*;
 use serenity::{async_trait, client::bridge::gateway::GatewayIntents};
 use serenity::{http::CacheHttp, model::prelude::*};
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use crate::util::*;
 use anyhow::{anyhow, Context, Result};
@@ -72,6 +72,7 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("!"))
         .on_dispatch_error(dispatch_error_hook)
+        .after(after)
         .group(&MODERATOR_GROUP)
         .group(&GENERAL_GROUP)
         .help(&MY_HELP);
@@ -96,6 +97,30 @@ async fn main() {
 }
 
 #[hook]
-async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError) {
+async fn dispatch_error_hook(_ctx: &client::Context, _msg: &Message, error: DispatchError) {
     dbg!(&error);
+}
+
+#[hook]
+async fn after(ctx: &client::Context, msg: &Message, _command_name: &str, result: CommandResult) {
+    match result {
+        Err(err) => match err.downcast_ref::<UserErr>() {
+            Some(err) => match err {
+                UserErr::MentionedUserNotFound => {
+                    let _ = msg.reply(&ctx, "No user found with that name").await;
+                }
+                UserErr::InvalidUsage(usage) => {
+                    let _ = msg.reply(&ctx, format!("Usage: {}", usage)).await;
+                }
+                UserErr::Other(issue) => {
+                    let _ = msg.reply(&ctx, format!("Error: {}", issue)).await;
+                }
+            },
+            None => {
+                let _ = msg.reply(&ctx, format!("something went wrong")).await;
+                eprintln!("Internal error: {:?}", &err);
+            }
+        },
+        Ok(()) => {}
+    }
 }

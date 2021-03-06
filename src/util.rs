@@ -42,6 +42,13 @@ macro_rules! log_errors {
     };
 }
 
+#[macro_export]
+macro_rules! error_out {
+    ($err:expr) => {
+        Err($err)?;
+    };
+}
+
 pub fn log_error_value<T, E: std::fmt::Debug>(result: Result<T, E>) {
     if let Err(e) = result {
         eprintln!("{:?}", e);

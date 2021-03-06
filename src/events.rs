@@ -14,8 +14,9 @@ use serenity::framework::standard::{
 use serenity::framework::standard::{macros::command, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use util::log_error_value;
 
-use crate::{extensions::UserExt, log_errors, Config};
+use crate::{extensions::UserExt, log_errors, util, Config};
 use indoc::indoc;
 
 pub struct Handler;
@@ -114,7 +115,7 @@ impl EventHandler for Handler {
             return;
         }
 
-        log_errors! {
+        log_error_value(
             config
                 .channel_bot_traffic
                 .send_message(&ctx, |m| {
@@ -124,13 +125,60 @@ impl EventHandler for Handler {
                             a.icon_url(user.avatar_or_default())
                         });
                         e.title(user.name_with_disc_and_id());
-                        e.field("Leave Date", HumanTime::from(chrono::Utc::now()).to_text_en(Accuracy::Precise, Tense::Past), false);
+                        e.field(
+                            "Leave Date",
+                            HumanTime::from(chrono::Utc::now())
+                                .to_text_en(Accuracy::Precise, Tense::Past),
+                            false,
+                        )
                         //e.field("Account Creation Date", HumanTime::from(user.created_at()).to_text_en(Accuracy::Precise, Tense::Past), false);
-                        e
                     })
                 })
-                .await?;
+                .await,
+        );
+    }
+
+    async fn message_delete(
+        &self,
+        ctx: client::Context,
+        channel_id: ChannelId,
+        deleted_message_id: MessageId,
+        guild_id: Option<GuildId>,
+    ) {
+        let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+        let message = ctx.cache.message(channel_id, deleted_message_id).await;
+
+        if Some(config.guild) != guild_id {
+            return;
         };
+        let msg = if let Some(message) = message {
+            message
+        } else {
+            return;
+        };
+        let channel_name = msg
+            .channel_id
+            .name(&ctx)
+            .await
+            .unwrap_or("unknown".to_string());
+
+        util::log_error_value(
+            config
+                .channel_bot_messages
+                .send_message(&ctx, |m| {
+                    m.embed(|e| {
+                        e.author(|a| {
+                            a.name("Message Deleted");
+                            a.icon_url(msg.author.avatar_or_default())
+                        });
+                        e.title(msg.author.name_with_disc_and_id());
+                        e.description(format!("{}\n\n[(context)]({})", msg.content, msg.link()));
+                        e.timestamp(&chrono::Utc::now());
+                        e.footer(|f| f.text(format!("#{}", channel_name)))
+                    })
+                })
+                .await,
+        );
     }
 
     async fn message_update(
@@ -158,8 +206,7 @@ impl EventHandler for Handler {
                 .await
                 .unwrap_or("unknown".to_string());
 
-            event
-                .channel_id
+            config.channel_bot_messages
                 .send_message(&ctx, |m| {
                     m.embed(|e| {
                         e.author(|a| {

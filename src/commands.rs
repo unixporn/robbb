@@ -1,27 +1,67 @@
 use crate::{
+    error_out,
     extensions::{MessageExt, UserExt},
     log_errors, util, Config,
 };
 
 use super::checks::*;
 //use super::Config;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use chrono_humanize::*;
 use itertools::Itertools;
 use reaction_collector::ReactionAction;
-use serenity::framework::standard::CommandGroup;
 use serenity::framework::standard::{
     help_commands,
     macros::{group, help},
 };
 use serenity::framework::standard::{macros::command, CommandResult};
 use serenity::framework::standard::{Args, CommandOptions, HelpOptions};
+use serenity::framework::standard::{CommandError, CommandGroup};
 use serenity::{client, collector::reaction_collector, model::prelude::*};
 use std::collections::HashSet;
+use thiserror::Error;
 
 lazy_static::lazy_static! {
     static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
 }
+
+#[derive(Error, Debug)]
+pub enum UserErr {
+    #[error("Couldn't find any user with that name")]
+    MentionedUserNotFound,
+
+    #[error("Usage: {0}")]
+    InvalidUsage(&'static str),
+
+    #[error("{0}")]
+    Other(String),
+}
+
+impl UserErr {
+    fn invalid_usage(opts: &CommandOptions) -> Self {
+        Self::InvalidUsage(
+            opts.usage
+                .unwrap_or("RTFM, this is not how you use this command"),
+        )
+    }
+}
+
+pub trait ResultExt<T> {
+    fn invalid_usage(self, opts: &CommandOptions) -> Result<T, UserErr>;
+}
+
+impl<T, E: Into<anyhow::Error>> ResultExt<T> for Result<T, E> {
+    fn invalid_usage(self, opts: &CommandOptions) -> Result<T, UserErr> {
+        self.map_err(|_| UserErr::InvalidUsage(opts.usage.unwrap_or("")))
+    }
+}
+
+impl<T> ResultExt<T> for Option<T> {
+    fn invalid_usage(self, opts: &CommandOptions) -> Result<T, UserErr> {
+        self.ok_or_else(|| UserErr::InvalidUsage(opts.usage.unwrap_or("")))
+    }
+}
+
 #[group]
 #[only_in(guilds)]
 #[commands(restart, mute)]
@@ -33,6 +73,7 @@ struct Moderator;
 #[commands(info, modping, pfp, move_users)]
 struct General;
 
+/// Restart the bot.
 #[command]
 pub async fn restart(ctx: &client::Context, msg: &Message) -> CommandResult {
     let _ = msg.reply(&ctx, "Shutting down").await;
@@ -66,30 +107,24 @@ async fn my_help(
         }
     }
 
-    let result = msg
-        .channel_id
-        .send_message(&ctx, move |m| {
-            m.embed(move |e| {
-                e.title("Help");
-                for command in commands {
-                    let command_name = command.names.first().expect("Command had no name");
-                    let name = match command.usage {
-                        Some(usage) => format!("**{}** - {}", command_name, usage),
-                        None => format!("**{}**", command_name),
-                    };
-                    let description = command.desc.unwrap_or("").to_string();
-                    let description = if !command.examples.is_empty() {
-                        format!("{}\n{}", description, command.examples.join("\n"))
-                    } else {
-                        description
-                    };
-                    e.field(name, description, false);
-                }
-                e
-            })
-        })
-        .await;
-    crate::log_error_value(result);
+    msg.reply_embed(&ctx, move |e| {
+        e.title("Help");
+        for command in commands {
+            let command_name = command.names.first().expect("Command had no name");
+            let name = match command.usage {
+                Some(usage) => format!("**{}** - {}", command_name, usage),
+                None => format!("**{}**", command_name),
+            };
+            let description = command.desc.unwrap_or("No description").to_string();
+            let description = if !command.examples.is_empty() {
+                format!("{}\n{}", description, command.examples.join("\n"))
+            } else {
+                description
+            };
+            e.field(name, description, false);
+        }
+    })
+    .await?;
     Ok(())
 }
 
@@ -100,13 +135,9 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
     let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
-        match disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await? {
-            Some(mention) => mention,
-            None => {
-                let _ = msg.reply(&ctx, "Couldn't find anyone with this name :/");
-                return Ok(());
-            }
-        }
+        disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
+            .await?
+            .ok_or(UserErr::MentionedUserNotFound)?
     } else {
         msg.author.id
     };
@@ -117,32 +148,28 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let color = member.colour(&ctx).await;
 
-    msg.channel_id
-        .send_message(&ctx, |m| {
-            m.embed(|e| {
-                e.title(member.user.name_with_disc());
-                e.thumbnail(member.user.avatar_or_default());
-                if let Some(color) = color {
-                    e.color(color);
-                }
-                e.field("ID/Snowflake", mentioned_user_id.to_string(), false);
-                e.field(
-                    "Account creation date",
-                    util::format_date(created_at),
-                    false,
-                );
-                e.field("Join Date", util::format_date(join_date), false);
-                if !member.roles.is_empty() {
-                    e.field(
-                        "Roles",
-                        member.roles.iter().map(|x| x.mention()).join(" "),
-                        false,
-                    );
-                }
-                e
-            })
-        })
-        .await?;
+    msg.reply_embed(&ctx, |e| {
+        e.title(member.user.name_with_disc());
+        e.thumbnail(member.user.avatar_or_default());
+        if let Some(color) = color {
+            e.color(color);
+        }
+        e.field("ID/Snowflake", mentioned_user_id.to_string(), false);
+        e.field(
+            "Account creation date",
+            util::format_date(created_at),
+            false,
+        );
+        e.field("Join Date", util::format_date(join_date), false);
+        if !member.roles.is_empty() {
+            e.field(
+                "Roles",
+                member.roles.iter().map(|x| x.mention()).join(" "),
+                false,
+            );
+        }
+    })
+    .await?;
 
     Ok(())
 }
@@ -152,28 +179,22 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 #[usage("pfp [user]")]
 pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
-        match disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await? {
-            Some(mention) => mention,
-            None => {
-                let _ = msg.reply(&ctx, "Couldn't find anyone with this name :/");
-                return Ok(());
-            }
-        }
-    } else {
-        msg.author.id
+
+    let mentioned_user_id = match args.single::<String>() {
+        Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
+            .await?
+            .ok_or(UserErr::MentionedUserNotFound)?,
+        Err(_) => msg.author.id,
     };
 
     let user = mentioned_user_id.to_user(&ctx).await?;
 
-    let result = msg
-        .reply_embed(&ctx, |e| {
-            e.title(format!("{}'s profile picture", user.name_with_disc()));
-            // TODO embed color
-            e.image(user.avatar_or_default());
-        })
-        .await;
-    util::log_error_value(result);
+    msg.reply_embed(&ctx, |e| {
+        e.title(format!("{}'s profile picture", user.name_with_disc()));
+        // TODO embed color
+        e.image(user.avatar_or_default());
+    })
+    .await?;
     Ok(())
 }
 
@@ -184,8 +205,7 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
     let config = ctx.data.read().await.get::<Config>().unwrap().clone();
     let reason = args.message();
     if reason.trim().is_empty() {
-        reply_wrong_usage(ctx, msg, &MODPING_COMMAND_OPTIONS).await;
-        return Ok(());
+        error_out!(UserErr::invalid_usage(&MODPING_COMMAND_OPTIONS));
     }
 
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
@@ -208,15 +228,18 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
     Ok(())
 }
 
+/// Move a conversation to a different channel.
 #[command("move")]
 #[usage("move <#channel> [<user> ...]")]
 pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let channel = args.single::<ChannelId>()?;
+    let channel = args
+        .single::<ChannelId>()
+        .invalid_usage(&MOVE_USERS_COMMAND_OPTIONS)?;
     let rest = args.remains().unwrap_or_default();
     let continuation_msg = channel
         .send_message(&ctx, |m| {
             m.content(format!(
-                "{} {}\nContinuation from {}\n({})",
+                "{} {}\nContinuation from {}\n(<{}>)",
                 msg.author.mention(),
                 rest,
                 msg.channel_id.mention(),
@@ -241,26 +264,17 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let config = ctx.data.read().await.get::<Config>().unwrap().clone();
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
-        match disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await? {
-            Some(mention) => mention,
-            None => {
-                let _ = msg.reply(&ctx, "Couldn't find anyone with this name :/");
-                return Ok(());
-            }
-        }
-    } else {
-        reply_wrong_usage(&ctx, &msg, &MUTE_COMMAND_OPTIONS).await;
-        return Ok(());
+
+    let mentioned_user_id = match args.single::<String>() {
+        Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
+            .await?
+            .ok_or(UserErr::MentionedUserNotFound)?,
+        Err(_) => msg.author.id,
     };
 
-    let duration = match args.single::<humantime::Duration>() {
-        Ok(duration) => duration,
-        Err(err) => {
-            reply_wrong_usage(&ctx, &msg, &MUTE_COMMAND_OPTIONS).await;
-            return Ok(());
-        }
-    };
+    let duration = args
+        .single::<humantime::Duration>()
+        .map_err(|e| UserErr::Other(format!("Invalid format: {}", e)))?;
 
     let reason = args.single::<String>().unwrap_or_default();
 
@@ -344,19 +358,14 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
         .await
         .context("Failed to send selection message")?;
 
-    // asynchronously add the reactions
-    tokio::spawn({
-        let selection_message = selection_message.clone();
-        let ctx = ctx.clone();
-        let options = options.clone();
-        async move {
-            for (emoji, _) in options {
-                let _ = selection_message
-                    .react(&ctx, ReactionType::Unicode(emoji.to_string()))
-                    .await;
-            }
-        }
-    });
+    react_async(
+        &ctx,
+        &selection_message,
+        options
+            .iter()
+            .map(|(emoji, _)| ReactionType::Unicode(emoji.to_string()))
+            .collect_vec(),
+    );
 
     let selection = {
         let options = options.clone();
@@ -390,14 +399,12 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
     }
 }
 
-pub async fn reply_wrong_usage(ctx: &client::Context, msg: &Message, opts: &CommandOptions) {
-    let error_message = if let Some(usage) = opts.usage {
-        format!("Usage: {}", usage)
-    } else {
-        format!("RTFM, this is not how you use this!")
-    };
-    let _ = msg.reply(&ctx, error_message).await;
-    let _ = msg
-        .react(&ctx, ReactionType::Unicode("🤔".to_string()))
-        .await;
+pub fn react_async(ctx: &client::Context, msg: &Message, reactions: Vec<ReactionType>) {
+    let msg = msg.clone();
+    let ctx = ctx.clone();
+    tokio::spawn(async move {
+        for emoji in reactions {
+            let _ = msg.react(&ctx, emoji).await;
+        }
+    });
 }
