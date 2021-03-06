@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use chrono::Utc;
 use chrono_humanize::Humanize;
 use rand::prelude::IteratorRandom;
 use serenity::{
@@ -89,7 +90,7 @@ impl MessageExt for Message {
                         if let Some(emoji) = emoji {
                             f.icon_url(emoji.url());
                         }
-                        f.text("TODO put time here LMAO")
+                        f.text(format!("{}", Utc::now()))
                     })
                 })
             })
