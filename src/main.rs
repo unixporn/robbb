@@ -65,21 +65,13 @@ impl Config {
         })
     }
 
-    async fn log_bot_action(&self, ctx: &client::Context, build_embed: impl Fn(&mut CreateEmbed)) {
-        let emoji = self.guild.random_stare_emoji(&ctx).await;
+    async fn log_bot_action<F>(&self, ctx: &client::Context, build_embed: F)
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync,
+    {
         let result = self
-            .channel_modlog
-            .send_message(&ctx, |m| {
-                m.embed(|e| {
-                    build_embed(e);
-                    e.footer(|f| {
-                        if let Some(emoji) = emoji {
-                            f.icon_url(emoji.url());
-                        }
-                        f.text(format!("{}", Utc::now()))
-                    })
-                })
-            })
+            .guild
+            .send_embed(&ctx, self.channel_modlog, build_embed)
             .await;
         util::log_error_value(result);
     }
@@ -145,7 +137,7 @@ async fn after(ctx: &client::Context, msg: &Message, _command_name: &str, result
                 }
             },
             None => {
-                let _ = msg.reply(&ctx, format!("something went wrong")).await;
+                let _ = msg.reply(&ctx, format!("Something went wrong")).await;
                 eprintln!("Internal error: {:?}", &err);
             }
         },

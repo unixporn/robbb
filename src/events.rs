@@ -1,4 +1,5 @@
 use super::checks::*;
+use crate::extensions::*;
 //use super::Config;
 use anyhow::{anyhow, Context, Result};
 use chrono_humanize::*;
@@ -157,6 +158,11 @@ impl EventHandler for Handler {
         } else {
             return;
         };
+
+        if msg.author.bot {
+            return;
+        }
+
         let channel_name = msg
             .channel_id
             .name(&ctx)
@@ -207,35 +213,33 @@ impl EventHandler for Handler {
                 .await
                 .unwrap_or("unknown".to_string());
 
-            config.channel_bot_messages
-                .send_message(&ctx, |m| {
-                    m.embed(|e| {
-                        e.author(|a| {
-                            a.name("Message Edit").icon_url(msg.author.avatar_or_default())
-                        });
-                        e.title(msg.author.name_with_disc_and_id());
-                        e.description(indoc::formatdoc!("
-                                **Before:**
-                                {}
 
-                                **Now:**
-                                {}
+            config.guild.send_embed(&ctx, config.channel_bot_messages, |e| {
+                e.author(|a| {
+                    a.name("Message Edit").icon_url(msg.author.avatar_or_default())
+                });
+                e.title(msg.author.name_with_disc_and_id());
+                e.description(indoc::formatdoc!("
+                        **Before:**
+                        {}
 
-                                [(context)]({})
-                            ",
-                            old_if_available
-                                    .map(|old| old.content)
-                                    .unwrap_or("<Unavailable>".to_string()),
-                                event.content.clone().unwrap_or("<Unavailable>".to_string()),
-                                msg.link()
-                        ));
-                        if let Some(edited_timestamp) = event.edited_timestamp {
-                            e.timestamp(&edited_timestamp);
-                        }
-                        e.footer(|f| f.text(format!("#{}", channel_name)))
-                    })
-                })
-                .await?;
+                        **Now:**
+                        {}
+
+                        [(context)]({})
+                    ",
+                    old_if_available
+                            .map(|old| old.content)
+                            .unwrap_or("<Unavailable>".to_string()),
+                        event.content.clone().unwrap_or("<Unavailable>".to_string()),
+                        msg.link()
+                ));
+                if let Some(edited_timestamp) = event.edited_timestamp {
+                    e.timestamp(&edited_timestamp);
+                }
+                e.footer(|f| f.text(format!("#{}", channel_name)));
+            })
+            .await?;
 
         };
     }

@@ -24,6 +24,7 @@ use serenity::{
 use std::collections::HashSet;
 use thiserror::Error;
 
+pub mod ban;
 pub mod errors;
 pub mod help;
 pub mod info;
@@ -32,8 +33,9 @@ pub mod move_users;
 pub mod mute;
 pub mod note;
 pub mod pfp;
-pub mod restart;
+pub mod small;
 pub mod warn;
+use ban::*;
 pub use errors::*;
 pub use help::*;
 use info::*;
@@ -42,7 +44,7 @@ use move_users::*;
 use mute::*;
 use note::*;
 use pfp::*;
-use restart::*;
+use small::*;
 use warn::*;
 
 lazy_static::lazy_static! {
@@ -51,13 +53,13 @@ lazy_static::lazy_static! {
 
 #[group]
 #[only_in(guilds)]
-#[commands(restart, mute, warn, note, notes)]
+#[commands(restart, mute, warn, note, notes, latency, say, ban, delban)]
 #[checks(moderator)]
 struct Moderator;
 
 #[group]
 #[only_in(guilds)]
-#[commands(info, modping, pfp, move_users)]
+#[commands(info, modping, pfp, move_users, repo)]
 struct General;
 
 pub async fn disambiguate_user_mention(
@@ -85,7 +87,7 @@ pub async fn disambiguate_user_mention(
         } else {
             Ok(await_reaction_selection(
                 &ctx,
-                msg.channel_id,
+                &msg,
                 msg.author.id,
                 member_options.clone(),
                 "Ambiguous user mention",
@@ -100,7 +102,7 @@ pub async fn disambiguate_user_mention(
 
 pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
     ctx: &client::Context,
-    channel_id: ChannelId,
+    replying_to: &Message,
     by: UserId,
     options: Vec<T>,
     title: &str,
@@ -120,9 +122,9 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
         .map(|(emoji, value)| format!("{} - {}", emoji, show(&value)))
         .join("\n");
 
-    let selection_message = channel_id
-        .send_message(&ctx, |m| {
-            m.embed(|e| e.title(title).description(description))
+    let selection_message = replying_to
+        .reply_embed(&ctx, |e| {
+            e.title(title).description(description);
         })
         .await
         .context("Failed to send selection message")?;
