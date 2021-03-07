@@ -27,3 +27,7 @@ CREATE TABLE IF NOT EXISTS note (
     create_date datetime not null
 );
 
+CREATE TABLE IF NOT EXISTS fetch (
+    usr integer primary key not null,
+    info text not null
+);

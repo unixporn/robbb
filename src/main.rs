@@ -1,5 +1,7 @@
 #![feature(try_blocks)]
 #![feature(label_break_value)]
+#![feature(str_split_once)]
+
 use chrono::{DateTime, Utc};
 use db::Db;
 use extensions::GuildExt;
@@ -88,7 +90,7 @@ async fn main() {
     let db = Db::new().await.unwrap();
 
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix("!"))
+        .configure(|c| c.prefix("!").delimiters(vec![" ", "\n"]))
         .on_dispatch_error(dispatch_error_hook)
         .after(after)
         .group(&MODERATOR_GROUP)

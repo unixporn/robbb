@@ -6,6 +6,7 @@ use serenity::{model::id::UserId, prelude::TypeMapKey};
 use sqlx::{prelude::*, types::Uuid, SqlitePool};
 use warn::Warn;
 
+pub mod fetch;
 pub mod mute;
 pub mod note;
 pub mod warn;

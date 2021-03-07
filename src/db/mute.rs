@@ -70,8 +70,8 @@ impl Db {
             moderator: UserId(x.moderator as u64),
             user: UserId(x.usr as u64),
             reason: x.reason.unwrap_or_default(),
-            start_time: chrono::DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(x.start_time, 0), Utc),
-            end_time: chrono::DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(x.end_time, 0), Utc),
+            start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
+            end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
         }})
         .collect())
     }

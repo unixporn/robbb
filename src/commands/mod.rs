@@ -26,6 +26,7 @@ use thiserror::Error;
 
 pub mod ban;
 pub mod errors;
+pub mod fetch;
 pub mod help;
 pub mod info;
 pub mod modping;
@@ -37,6 +38,7 @@ pub mod small;
 pub mod warn;
 use ban::*;
 pub use errors::*;
+use fetch::*;
 pub use help::*;
 use info::*;
 use modping::*;
@@ -59,7 +61,7 @@ struct Moderator;
 
 #[group]
 #[only_in(guilds)]
-#[commands(info, modping, pfp, move_users, repo)]
+#[commands(info, modping, pfp, move_users, repo, set_fetch, fetch)]
 struct General;
 
 pub async fn disambiguate_user_mention(
