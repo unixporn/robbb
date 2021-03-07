@@ -28,6 +28,13 @@ CREATE TABLE IF NOT EXISTS note (
 );
 
 CREATE TABLE IF NOT EXISTS fetch (
-    usr integer primary key not null,
+    usr integer primary key,
     info text not null
+);
+
+CREATE TABLE IF NOT EXISTS profile (
+    usr integer primary key,
+    git text,
+    dotfiles text,
+    description text
 );

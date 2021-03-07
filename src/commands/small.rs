@@ -43,3 +43,50 @@ pub async fn repo(ctx: &client::Context, msg: &Message) -> CommandResult {
         .await?;
     Ok(())
 }
+
+/// set your profiles description.
+#[command]
+#[usage("desc <text>")]
+pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data.get::<Db>().unwrap().clone();
+
+    let value = args.remains().map(|x| x.to_string());
+    db.set_description(msg.author.id, value).await?;
+
+    msg.reply(&ctx, "Successfully updated your description!")
+        .await?;
+    Ok(())
+}
+
+/// Provide a link to your git.
+#[command]
+#[usage("git <url>")]
+pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data.get::<Db>().unwrap().clone();
+
+    // TODO validate url
+    let value = args.remains().map(|x| x.to_string());
+    db.set_git(msg.author.id, value).await?;
+
+    msg.reply(&ctx, "Successfully updated your git-url!")
+        .await?;
+    Ok(())
+}
+
+/// Provide a link to your dotfiles
+#[command]
+#[usage("dotfiles <url>")]
+pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let data = ctx.data.read().await;
+    let db = data.get::<Db>().unwrap().clone();
+
+    // TODO validate url
+    let value = args.remains().map(|x| x.to_string());
+    db.set_dotfiles(msg.author.id, value).await?;
+
+    msg.reply(&ctx, "Successfully updated your dotfiles!")
+        .await?;
+    Ok(())
+}

@@ -103,6 +103,8 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let color = member.colour(&ctx).await;
 
+    let profile = db.get_profile(mentioned_user_id).await?;
+
     msg.reply_embed(&ctx, |e| {
         e.author(|a| {
             a.name(member.user.name_with_disc());
@@ -128,7 +130,14 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
             e.image(image_url);
         }
 
+        // set main fetch fields
         e.fields(fetch_info.info.iter().map(|(k, v)| (k, v, true)));
+
+        profile
+            .description
+            .map(|x| e.field("Description", x, false));
+        profile.git.map(|x| e.field("Git", x, false));
+        profile.dotfiles.map(|x| e.field("Dotfiles", x, false));
     })
     .await?;
 

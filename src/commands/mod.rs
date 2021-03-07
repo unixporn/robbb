@@ -61,7 +61,9 @@ struct Moderator;
 
 #[group]
 #[only_in(guilds)]
-#[commands(info, modping, pfp, move_users, repo, set_fetch, fetch)]
+#[commands(
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles
+)]
 struct General;
 
 pub async fn disambiguate_user_mention(

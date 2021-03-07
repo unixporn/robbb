@@ -9,6 +9,7 @@ use warn::Warn;
 pub mod fetch;
 pub mod mute;
 pub mod note;
+pub mod profile;
 pub mod warn;
 
 pub struct Db {
