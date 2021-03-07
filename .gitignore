@@ -1,3 +1,4 @@
 /target
 .env
 trup.db-*
+trup.db

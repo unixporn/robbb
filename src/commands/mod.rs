@@ -30,6 +30,7 @@ pub mod info;
 pub mod modping;
 pub mod move_users;
 pub mod mute;
+pub mod note;
 pub mod pfp;
 pub mod restart;
 pub mod warn;
@@ -39,6 +40,7 @@ use info::*;
 use modping::*;
 use move_users::*;
 use mute::*;
+use note::*;
 use pfp::*;
 use restart::*;
 use warn::*;
@@ -49,7 +51,7 @@ lazy_static::lazy_static! {
 
 #[group]
 #[only_in(guilds)]
-#[commands(restart, mute, warn)]
+#[commands(restart, mute, warn, note, notes)]
 #[checks(moderator)]
 struct Moderator;
 
@@ -87,7 +89,7 @@ pub async fn disambiguate_user_mention(
                 msg.author.id,
                 member_options.clone(),
                 "Ambiguous user mention",
-                |m| format!("{}", m.mention()),
+                |m| format!("{} ({})", m.mention(), m.user.name_with_disc()),
             )
             .await
             .context("Failed to request user selection")?

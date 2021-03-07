@@ -7,6 +7,7 @@ use sqlx::{prelude::*, types::Uuid, SqlitePool};
 use warn::Warn;
 
 pub mod mute;
+pub mod note;
 pub mod warn;
 
 pub struct Db {

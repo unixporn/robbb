@@ -85,13 +85,15 @@ impl MessageExt for Message {
             .send_message(&ctx, move |m| {
                 m.reference_message(self);
                 m.embed(move |e| {
-                    build(e);
+                    e.timestamp(&Utc::now());
                     e.footer(|f| {
                         if let Some(emoji) = emoji {
                             f.icon_url(emoji.url());
                         }
-                        f.text(format!("{}", Utc::now()))
-                    })
+                        f.text("\u{200b}")
+                    });
+                    build(e);
+                    e
                 })
             })
             .await

@@ -3,9 +3,8 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use serenity::model::id::{GuildId, UserId};
 
 use super::Db;
-use sqlx::FromRow;
 
-#[derive(Debug, FromRow)]
+#[derive(Debug)]
 pub struct Mute {
     pub id: i64,
     pub guild_id: GuildId,

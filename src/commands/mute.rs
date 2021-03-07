@@ -20,7 +20,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         .single::<humantime::Duration>()
         .map_err(|_| UserErr::Other("Malformed duration".to_string()))?;
 
-    let reason = args.single::<String>().unwrap_or_default();
+    let reason = args.remains().unwrap_or_default();
 
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
     let mut member = guild.member(&ctx, mentioned_user_id).await?;

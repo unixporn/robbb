@@ -69,8 +69,8 @@ pub fn parse_required_env_var<E: Into<anyhow::Error>, T: std::str::FromStr<Err =
 
 pub fn format_date(date: chrono::DateTime<chrono::Utc>) -> String {
     chrono_humanize::HumanTime::from(date).to_text_en(
-        chrono_humanize::Accuracy::Precise,
-        chrono_humanize::Tense::Present,
+        chrono_humanize::Accuracy::Rough,
+        chrono_humanize::Tense::Past,
     )
 }
 

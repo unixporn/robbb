@@ -1,4 +1,6 @@
 use super::*;
+use crate::db::note::NoteType;
+
 /// Warn a user for a given reason.
 #[command]
 #[usage("warn <user> <reason>")]
@@ -17,17 +19,16 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let reason = args.rest();
     if reason.trim().is_empty() {
-        error_out!(UserErr::invalid_usage(&MODPING_COMMAND_OPTIONS));
+        error_out!(UserErr::invalid_usage(&WARN_COMMAND_OPTIONS));
     }
 
-    let warn = db
-        .add_warn(
-            msg.author.id,
-            mentioned_user_id,
-            reason.to_string(),
-            Utc::now(),
-        )
-        .await?;
+    db.add_warn(
+        msg.author.id,
+        mentioned_user_id,
+        reason.to_string(),
+        Utc::now(),
+    )
+    .await?;
 
     let warn_count = db.count_warns(mentioned_user_id).await?;
     let _ = msg
