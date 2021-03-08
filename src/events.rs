@@ -1,12 +1,9 @@
 use super::checks::*;
-use crate::extensions::*;
+use crate::{extensions::*, log_return_on_err_async, return_on_err};
 //use super::Config;
 use anyhow::{anyhow, Context, Result};
 use chrono_humanize::*;
 use itertools::Itertools;
-use serenity::async_trait;
-use serenity::cache::Cache;
-use serenity::client;
 use serenity::framework::standard::macros::{check, group, help};
 use serenity::framework::standard::StandardFramework;
 use serenity::framework::standard::{
@@ -15,6 +12,9 @@ use serenity::framework::standard::{
 use serenity::framework::standard::{macros::command, CommandResult};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use serenity::{async_trait, futures::future::join_all};
+use serenity::{cache::Cache, futures::future::try_join_all};
+use serenity::{client, futures};
 use util::log_error_value;
 
 use crate::{db::Db, extensions::UserExt, log_errors, util, Config};
@@ -244,23 +244,49 @@ impl EventHandler for Handler {
         };
     }
 
-    //async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
-    //if event.user(&ctx).await.unwrap().bot {
-    //return;
-    //}
-    //// todo user disambiguation
+    async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
+        let result: Result<_> = try {
+            let user = event.user(&ctx).await?;
+            if user.bot {
+                return;
+            }
+            let msg = event.message(&ctx).await?;
 
-    //let message = event.message(&ctx).await.unwrap();
+            let is_poll = msg.author.bot
+                && msg.embeds.iter().any(|embed| {
+                    embed
+                        .title
+                        .as_ref()
+                        .map(|x| x.starts_with("Poll"))
+                        .unwrap_or(false)
+                });
 
-    //if message.author.bot
-    //&& message
-    //.embeds
-    //.iter()
-    //.any(|embed| embed.title.unwrap_or_default().starts_with("Poll:"))
-    //{
-    //let channel = message.channel(&ctx).await.unwrap();
-    //}
-    //}
+            if is_poll {
+                // This is rather imperfect, but discord API sucks :/
+                let _ = serenity::futures::future::join_all(
+                    msg.reactions
+                        .iter()
+                        .filter(|r| r.reaction_type != event.emoji)
+                        .map(|r| {
+                            ctx.http.delete_reaction(
+                                msg.channel_id.0,
+                                msg.id.0,
+                                Some(user.id.0),
+                                &r.reaction_type,
+                            )
+                        }),
+                )
+                .await;
+            }
+        };
+
+        match result {
+            Ok(_) => {}
+            Err(err) => {
+                eprintln!("Error in reaction_add: {}", err);
+            }
+        }
+    }
 }
 
 async fn start_mute_handler(ctx: client::Context) {

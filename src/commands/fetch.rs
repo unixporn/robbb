@@ -117,10 +117,10 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     msg.reply_embed(&ctx, |e| {
         e.author(|a| {
-            a.name(member.user.name_with_disc());
+            a.name(member.user.tag());
             a.icon_url(member.user.avatar_or_default())
         });
-        e.title(format!("Fetch {}", member.user.name_with_disc()));
+        e.title(format!("Fetch {}", member.user.tag()));
         if let Some(color) = color {
             e.color(color);
         }

@@ -34,6 +34,7 @@ pub mod move_users;
 pub mod mute;
 pub mod note;
 pub mod pfp;
+pub mod poll;
 pub mod small;
 pub mod warn;
 use ban::*;
@@ -46,11 +47,12 @@ use move_users::*;
 use mute::*;
 use note::*;
 use pfp::*;
+use poll::*;
 use small::*;
 use warn::*;
 
 lazy_static::lazy_static! {
-    static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+    pub static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
 }
 
 #[group]
@@ -62,7 +64,7 @@ struct Moderator;
 #[group]
 #[only_in(guilds)]
 #[commands(
-    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll
 )]
 struct General;
 
@@ -95,7 +97,7 @@ pub async fn disambiguate_user_mention(
                 msg.author.id,
                 member_options.clone(),
                 "Ambiguous user mention",
-                |m| format!("{} ({})", m.mention(), m.user.name_with_disc()),
+                |m| format!("{} ({})", m.mention(), m.user.tag()),
             )
             .await
             .context("Failed to request user selection")?

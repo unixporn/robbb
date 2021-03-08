@@ -16,15 +16,11 @@ use serenity::{
 };
 
 pub trait UserExt {
-    fn name_with_disc(&self) -> String;
     fn name_with_disc_and_id(&self) -> String;
     fn avatar_or_default(&self) -> String;
 }
 
 impl UserExt for User {
-    fn name_with_disc(&self) -> String {
-        format!("{}#{}", self.name, self.discriminator)
-    }
     fn name_with_disc_and_id(&self) -> String {
         format!("{}#{}({})", self.name, self.discriminator, self.id)
     }

@@ -20,7 +20,7 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let color = member.colour(&ctx).await;
 
     msg.reply_embed(&ctx, |e| {
-        e.title(member.user.name_with_disc());
+        e.title(member.user.tag());
         e.thumbnail(member.user.avatar_or_default());
         if let Some(color) = color {
             e.color(color);

@@ -57,7 +57,7 @@ async fn do_ban(
             e.title("User banned").description(format!(
                 "{} ({}) was banned by {}",
                 user.mention(),
-                user.name_with_disc(),
+                user.tag(),
                 msg.author.mention()
             ));
             e.field("Reason", reason, false);
