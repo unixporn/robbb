@@ -59,7 +59,7 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let mentioned_user_id = {
         let user_mention = args
             .single::<String>()
-            .invalid_usage(&NOTE_COMMAND_OPTIONS)?;
+            .invalid_usage(&NOTES_COMMAND_OPTIONS)?;
         disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
             .await?
             .ok_or(UserErr::MentionedUserNotFound)?
@@ -72,7 +72,7 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         "blocklist" => Some(NoteType::BlocklistViolation),
         "warn" => Some(NoteType::Warn),
         "mute" => Some(NoteType::Mute),
-        _ => error_out!(UserErr::invalid_usage(&NOTE_COMMAND_OPTIONS)),
+        _ => error_out!(UserErr::invalid_usage(&NOTES_COMMAND_OPTIONS)),
     };
 
     let avatar_url = mentioned_user_id

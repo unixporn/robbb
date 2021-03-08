@@ -97,21 +97,18 @@ impl Db {
         let note_type_value = filter.map(|x| x.to_i32());
         sqlx::query!(
             r#"
-            WITH args as (SELECT ? as "arg_id", ? as "arg_note_type")
-
-            SELECT id as "id!", moderator, usr, content, create_date, note_type
-                FROM note, args
-                WHERE usr=arg_id AND (arg_note_type IS NULL OR note_type=arg_note_type)
-            UNION
-            SELECT id as "id!", moderator, usr, reason as "content!", create_date, 2 as "note_type!"
-                FROM warn, args
-                WHERE usr=arg_id AND (arg_note_type IS NULL OR arg_note_type=3)
-            UNION
-            SELECT id as "id!", moderator, usr, reason as "content!", start_time, 3 as "note_type!"
-                FROM mute, args
-                WHERE usr=arg_id AND (arg_note_type IS NULL OR arg_note_type=3)
-            ORDER BY create_date DESC"#,
+                SELECT id as "id!", moderator, usr, content as "content!", create_date, note_type as "note_type!: i32" 
+                FROM (
+                    SELECT id, moderator, usr, content as "content", create_date, note_type FROM note
+                    UNION
+                    SELECT id, moderator, usr, reason as "content", create_date, 2 as "note_type" FROM warn
+                    UNION
+                    SELECT id, moderator, usr, reason as "content", start_time as "create_date!", 3 as "note_type" FROM mute
+                )
+                WHERE usr=? AND (? IS NULL OR note_type=?)
+                ORDER BY create_date DESC"#,
             user_id,
+            note_type_value,
             note_type_value,
         )
         .fetch_all(&mut conn)
