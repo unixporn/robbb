@@ -1,5 +1,4 @@
 use anyhow::*;
-use chrono::{DateTime, Utc};
 use serenity::model::id::UserId;
 
 use super::Db;
@@ -17,20 +16,15 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
 
         let user = user.0 as i64;
-
-        // TODO handling of insert vs. update definitely belongs into sql, not like this
-        let result = sqlx::query!(
-            "insert into profile (usr, git, dotfiles, description) values (?, ?, NULL, NULL)",
+        sqlx::query!(
+            "insert into profile (usr, git, dotfiles, description) values (?, ?, NULL, NULL)
+                on conflict(usr) do update set description=?",
             user,
+            value,
             value
         )
         .execute(&mut conn)
-        .await;
-        if result.is_err() {
-            sqlx::query!("update profile set git=? where usr=?", user, value)
-                .execute(&mut conn)
-                .await?;
-        }
+        .await?;
         Ok(())
     }
 
@@ -38,19 +32,15 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
 
         let user = user.0 as i64;
-        let result = sqlx::query!(
-            "insert into profile (usr, git, dotfiles, description) values (?, NULL, ?, NULl)",
+        sqlx::query!(
+            "insert into profile (usr, git, dotfiles, description) values (?, NULL, ?, NULl)
+                on conflict(usr) do update set dotfiles=?",
             user,
+            value,
             value
         )
         .execute(&mut conn)
-        .await;
-
-        if result.is_err() {
-            sqlx::query!("update profile set dotfiles=? where usr=?", user, value)
-                .execute(&mut conn)
-                .await?;
-        }
+        .await?;
         Ok(())
     }
 
@@ -58,22 +48,19 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
 
         let user = user.0 as i64;
-        let result = sqlx::query!(
-            "insert into profile (usr, git, dotfiles, description) values (?, NULL, NULL, ?)",
+        sqlx::query!(
+            "insert into profile (usr, git, dotfiles, description) values (?, NULL, NULL, ?)
+                on conflict(usr) do update set description=?",
             user,
+            value,
             value
         )
         .execute(&mut conn)
-        .await;
-        if result.is_err() {
-            sqlx::query!("update profile set description=? where usr=?", user, value)
-                .execute(&mut conn)
-                .await?;
-        }
+        .await?;
         Ok(())
     }
 
-    pub async fn get_profile(&self, user_id: UserId) -> Result<Profile> {
+    pub async fn get_profile(&self, user_id: UserId) -> Result<Option<Profile>> {
         let mut conn = self.pool.acquire().await?;
 
         let user = user_id.0 as i64;
@@ -85,12 +72,6 @@ impl Db {
                 description: x.description,
                 git: x.git,
                 dotfiles: x.dotfiles,
-            })
-            .unwrap_or_else(|| Profile {
-                user: user_id,
-                description: None,
-                git: None,
-                dotfiles: None,
             }))
     }
 }

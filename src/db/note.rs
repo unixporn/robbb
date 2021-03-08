@@ -1,7 +1,6 @@
 use anyhow::*;
-use chrono::{DateTime, NaiveDateTime, Utc};
-use serenity::model::id::{GuildId, UserId};
-use sqlx::FromRow;
+use chrono::{DateTime, Utc};
+use serenity::model::id::UserId;
 
 use super::Db;
 

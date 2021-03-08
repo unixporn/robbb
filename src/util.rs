@@ -82,3 +82,9 @@ pub fn format_count(num: i32) -> String {
         _ => format!("{}th", num),
     }
 }
+
+pub fn validate_url(value: &str) -> bool {
+    url::Url::parse(value)
+        .map(|url| !url.scheme().is_empty() || url.host().is_some())
+        .unwrap_or(false)
+}
