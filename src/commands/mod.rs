@@ -35,6 +35,7 @@ pub mod mute;
 pub mod note;
 pub mod pfp;
 pub mod poll;
+pub mod role;
 pub mod small;
 pub mod warn;
 use ban::*;
@@ -48,6 +49,7 @@ use mute::*;
 use note::*;
 use pfp::*;
 use poll::*;
+use role::*;
 use small::*;
 use warn::*;
 
@@ -64,7 +66,7 @@ struct Moderator;
 #[group]
 #[only_in(guilds)]
 #[commands(
-    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role
 )]
 struct General;
 
