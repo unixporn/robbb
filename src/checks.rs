@@ -1,8 +1,7 @@
 use super::Config;
 use serenity::client;
-use serenity::framework::standard::macros::{check, group};
-use serenity::framework::standard::{macros::command, CommandResult};
-use serenity::framework::standard::{Args, CommandOptions, Reason};
+use serenity::framework::standard::macros::check;
+use serenity::framework::standard::Reason;
 use serenity::model::prelude::*;
 
 #[check]

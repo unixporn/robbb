@@ -1,22 +1,24 @@
 #![feature(try_blocks)]
+#![feature(box_patterns)]
 #![feature(label_break_value)]
 #![feature(str_split_once)]
+#![feature(or_patterns)]
 
-use chrono::{DateTime, Utc};
+#[allow(unused_imports)]
 use db::Db;
-use extensions::GuildExt;
+use extensions::{GuildExt, MessageExt};
+use serenity::client::bridge::gateway::GatewayIntents;
 #[allow(unused_imports)]
 use serenity::client::{self, Client};
-use serenity::framework::standard::{macros::hook, CommandResult};
-use serenity::framework::standard::{ArgError, DispatchError};
+use serenity::framework::standard::DispatchError;
+use serenity::framework::standard::{macros::hook, CommandResult, Reason};
+use serenity::model::prelude::*;
 use serenity::prelude::*;
-use serenity::{async_trait, client::bridge::gateway::GatewayIntents};
 use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
-use serenity::{http::CacheHttp, model::prelude::*};
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use crate::util::*;
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 
 pub mod checks;
 pub mod commands;
@@ -119,8 +121,55 @@ async fn main() {
 }
 
 #[hook]
-async fn dispatch_error_hook(_ctx: &client::Context, _msg: &Message, error: DispatchError) {
-    dbg!(&error);
+async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError) {
+    // Log dispatch errors that should be logged
+    if let DispatchError::CheckFailed(
+        required,
+        Reason::Log(log) | Reason::UserAndLog { user: _, log },
+    ) = &error
+    {
+        eprintln!("Check for {} failed with: {}", required, log);
+    }
+
+    let _ = msg.reply_error(&ctx, display_dispatch_error(error)).await;
+}
+
+fn display_dispatch_error(err: DispatchError) -> String {
+    match err {
+        DispatchError::CheckFailed(required, reason) => match reason {
+            Reason::User(reason)
+            | Reason::UserAndLog {
+                user: reason,
+                log: _,
+            } => format!("{}\nRequires {}", reason, required),
+            _ => "You're not allowed to use this command".to_string(),
+        },
+        DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),
+        DispatchError::CommandDisabled(_) => "Command is disabled".to_string(),
+        DispatchError::BlockedUser => "User not allowed to use bot".to_string(),
+        DispatchError::BlockedGuild => "Guild is blocked by bot".to_string(),
+        DispatchError::BlockedChannel => "Channel is blocked by bot".to_string(),
+        DispatchError::OnlyForDM => "Command may only be used in DMs".to_string(),
+        DispatchError::OnlyForGuilds => "Command may only be used in a server".to_string(),
+        DispatchError::OnlyForOwners => "Command may only be used by owners".to_string(),
+        DispatchError::LackingRole => "Missing a required role".to_string(),
+        DispatchError::LackingPermissions(flags) => format!(
+            "User is missing permissions - required permission number is {}",
+            flags
+        ),
+        DispatchError::NotEnoughArguments { min, given } => format!(
+            "Not enough arguments provided - got {} but needs {}",
+            given, min
+        ),
+        DispatchError::TooManyArguments { max, given } => format!(
+            "Too many arguments provided - got {} but can only handle {}",
+            given, max
+        ),
+        _ => {
+            eprintln!("Unhandled dispatch error: {:?}", err);
+            "Failed to run command".to_string()
+        }
+    }
 }
 
 #[hook]
@@ -129,19 +178,32 @@ async fn after(ctx: &client::Context, msg: &Message, _command_name: &str, result
         Err(err) => match err.downcast_ref::<UserErr>() {
             Some(err) => match err {
                 UserErr::MentionedUserNotFound => {
-                    let _ = msg.reply(&ctx, "No user found with that name").await;
+                    let _ = msg.reply_error(&ctx, "No user found with that name").await;
                 }
                 UserErr::InvalidUsage(usage) => {
-                    let _ = msg.reply(&ctx, format!("Usage: {}", usage)).await;
+                    let _ = msg.reply_error(&ctx, format!("Usage: {}", usage)).await;
                 }
                 UserErr::Other(issue) => {
-                    let _ = msg.reply(&ctx, format!("Error: {}", issue)).await;
+                    let _ = msg.reply_error(&ctx, format!("Error: {}", issue)).await;
                 }
             },
-            None => {
-                let _ = msg.reply(&ctx, format!("Something went wrong")).await;
-                eprintln!("Internal error: {:?}", &err);
-            }
+            None => match err.downcast::<serenity::Error>() {
+                Ok(box err) => {
+                    eprintln!("Serenity error: {} ({:?})", &err, &err);
+                    match err {
+                        serenity::Error::Model(err) => {
+                            let _ = msg.reply_error(&ctx, err).await;
+                        }
+                        _ => {
+                            let _ = msg.reply_error(&ctx, "Something went wrong").await;
+                        }
+                    }
+                }
+                Err(err) => {
+                    let _ = msg.reply_error(&ctx, "Something went wrong").await;
+                    eprintln!("Internal error: {} ({:?})", &err, &err);
+                }
+            },
         },
         Ok(()) => {}
     }

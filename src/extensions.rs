@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::{Context, Result};
 use chrono::Utc;
 use chrono_humanize::Humanize;
@@ -104,6 +106,12 @@ pub trait MessageExt {
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync;
+
+    async fn reply_error(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message>;
 }
 
 #[async_trait]
@@ -131,6 +139,18 @@ impl MessageExt for Message {
             })
             .await
             .context("Failed to send embed")
+    }
+
+    async fn reply_error(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message> {
+        self.reply_embed(&ctx, |e| {
+            e.description(format!("{} :'(", s));
+            e.color(0xfb4934);
+        })
+        .await
     }
 }
 
