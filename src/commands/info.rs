@@ -28,10 +28,10 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         e.field("ID/Snowflake", mentioned_user_id.to_string(), false);
         e.field(
             "Account creation date",
-            util::format_date(created_at),
+            util::format_date_ago(created_at),
             false,
         );
-        e.field("Join Date", util::format_date(join_date), false);
+        e.field("Join Date", util::format_date_ago(join_date), false);
         if !member.roles.is_empty() {
             e.field(
                 "Roles",

@@ -1,5 +1,5 @@
 use anyhow::*;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use serenity::model::id::{GuildId, UserId};
 
 use super::Db;

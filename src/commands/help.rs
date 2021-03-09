@@ -8,7 +8,7 @@ use super::*;
 #[lacking_permissions = "Hide"]
 #[lacking_role = "Nothing"]
 #[wrong_channel = "Strike"]
-pub async fn my_help(
+async fn my_help(
     ctx: &client::Context,
     msg: &Message,
     _args: Args,

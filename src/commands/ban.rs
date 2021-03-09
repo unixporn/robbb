@@ -29,10 +29,7 @@ async fn do_ban(
         .single::<UserId>()
         .invalid_usage(&BAN_COMMAND_OPTIONS)?;
 
-    let reason = match args.remains() {
-        Some(reason) => reason,
-        None => error_out!(UserErr::invalid_usage(&BAN_COMMAND_OPTIONS)),
-    };
+    let reason = args.remains().invalid_usage(&BAN_COMMAND_OPTIONS)?;
 
     let user = mentioned_user
         .to_user(&ctx)

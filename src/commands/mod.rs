@@ -1,6 +1,6 @@
 use crate::{
+    abort_with,
     db::Db,
-    error_out,
     extensions::{MessageExt, UserExt},
     util, Config,
 };
@@ -81,7 +81,7 @@ pub async fn disambiguate_user_mention(
     if let Ok(user_id) = name.parse::<UserId>() {
         Ok(Some(user_id))
     } else if let Some(member) =
-        async { Some(guild.member(&ctx, name.parse::<u64>().ok()?).await.ok()?) }.await
+        async { guild.member(&ctx, name.parse::<u64>().ok()?).await.ok() }.await
     {
         Ok(Some(member.user.id))
     } else {

@@ -65,14 +65,16 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
             .ok_or(UserErr::MentionedUserNotFound)?
     };
 
-    let note_filter = args.single::<String>().unwrap_or("all".to_string());
+    let note_filter = args
+        .single::<String>()
+        .unwrap_or_else(|_| "all".to_string());
     let note_filter = match note_filter.as_str() {
         "all" => None,
         "mod" => Some(NoteType::ManualNote),
         "blocklist" => Some(NoteType::BlocklistViolation),
         "warn" => Some(NoteType::Warn),
         "mute" => Some(NoteType::Mute),
-        _ => error_out!(UserErr::invalid_usage(&NOTES_COMMAND_OPTIONS)),
+        _ => abort_with!(UserErr::invalid_usage(&NOTE_COMMAND_OPTIONS)),
     };
 
     let avatar_url = mentioned_user_id
@@ -94,7 +96,7 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                 format!(
                     "{} - {}",
                     note.note_type,
-                    util::format_date(note.create_date)
+                    util::format_date_ago(note.create_date)
                 ),
                 format!("{} - {}", note.content, note.moderator.mention(),),
                 false,

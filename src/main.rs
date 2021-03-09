@@ -1,7 +1,6 @@
 #![feature(try_blocks)]
 #![feature(box_patterns)]
 #![feature(label_break_value)]
-#![feature(str_split_once)]
 #![feature(or_patterns)]
 
 #[allow(unused_imports)]

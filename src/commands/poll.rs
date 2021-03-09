@@ -18,12 +18,12 @@ pub async fn poll(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     if is_multi {
         let mut lines = args.rest().lines().collect_vec();
         let title = lines.first().and_then(|line| line.strip_prefix("multi "));
-        if lines.len() > 0 {
+        if !lines.is_empty() {
             lines.remove(0);
         }
 
         if lines.len() > SELECTION_EMOJI.len() || lines.len() < 2 {
-            error_out!(UserErr::other("There must be between 2 and 10 options"))
+            abort_with!(UserErr::other("There must be between 2 and 10 options"))
         }
 
         let options = SELECTION_EMOJI
@@ -59,7 +59,7 @@ pub async fn poll(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     } else {
         let question = args.remains().invalid_usage(&POLL_COMMAND_OPTIONS)?;
         if question.len() > 255 {
-            error_out!(UserErr::other("The question is too long :("))
+            abort_with!(UserErr::other("The question is too long :("))
         }
         msg.channel_id
             .send_message(&ctx, |m| {

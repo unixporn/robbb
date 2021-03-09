@@ -1,5 +1,4 @@
 use super::*;
-use crate::db::note::NoteType;
 
 /// Warn a user for a given reason.
 #[command]
@@ -11,16 +10,13 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let mentioned_user = &args
-        .single::<String>()
+        .single_quoted::<String>()
         .invalid_usage(&WARN_COMMAND_OPTIONS)?;
     let mentioned_user_id = disambiguate_user_mention(&ctx, &guild, msg, mentioned_user)
         .await?
         .ok_or(UserErr::MentionedUserNotFound)?;
 
-    let reason = args.rest();
-    if reason.trim().is_empty() {
-        error_out!(UserErr::invalid_usage(&WARN_COMMAND_OPTIONS));
-    }
+    let reason = args.remains().invalid_usage(&WARN_COMMAND_OPTIONS)?;
 
     db.add_warn(
         msg.author.id,

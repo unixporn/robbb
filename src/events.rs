@@ -1,20 +1,13 @@
-use super::checks::*;
-use crate::{extensions::*, log_return_on_err_async, return_on_err};
+use crate::extensions::*;
 //use super::Config;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use chrono_humanize::*;
-use itertools::Itertools;
-use serenity::framework::standard::macros::{check, group, help};
-use serenity::framework::standard::StandardFramework;
-use serenity::framework::standard::{
-    help_commands, Args, CommandGroup, CommandOptions, HelpOptions, Reason,
-};
-use serenity::framework::standard::{macros::command, CommandResult};
+
+use serenity::async_trait;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use serenity::{async_trait, futures::future::join_all};
-use serenity::{cache::Cache, futures::future::try_join_all};
-use serenity::{client, futures};
+
+use serenity::client;
 use util::log_error_value;
 
 use crate::{db::Db, extensions::UserExt, log_errors, util, Config};
@@ -167,7 +160,7 @@ impl EventHandler for Handler {
             .channel_id
             .name(&ctx)
             .await
-            .unwrap_or("unknown".to_string());
+            .unwrap_or_else(|| "unknown".to_string());
 
         util::log_error_value(
             config
@@ -211,7 +204,7 @@ impl EventHandler for Handler {
                 .channel_id
                 .name(&ctx)
                 .await
-                .unwrap_or("unknown".to_string());
+                .unwrap_or_else(|| "unknown".to_string());
 
 
             config.guild.send_embed(&ctx, config.channel_bot_messages, |e| {
@@ -230,8 +223,8 @@ impl EventHandler for Handler {
                     ",
                     old_if_available
                             .map(|old| old.content)
-                            .unwrap_or("<Unavailable>".to_string()),
-                        event.content.clone().unwrap_or("<Unavailable>".to_string()),
+                            .unwrap_or_else(|| "<Unavailable>".to_string()),
+                        event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
                         msg.link()
                 ));
                 if let Some(edited_timestamp) = event.edited_timestamp {

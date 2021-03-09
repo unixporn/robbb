@@ -20,7 +20,7 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
     }
 
     let lines = args.rest().lines().collect_vec();
-    if lines.len() < 1 && msg.attachments.is_empty() {
+    if lines.is_empty() && msg.attachments.is_empty() {
         msg.reply(&ctx, indoc::indoc!("
             Run this: `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh` 
             and follow the instructions. It's recommended that you download and read the script before running it, 
@@ -43,7 +43,7 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
 
     for (key, value) in info.iter_mut() {
         if !ALLOWED_KEYS.contains(&key.as_ref()) {
-            error_out!(UserErr::Other(format!("Illegal fetch field: {}", key)))
+            abort_with!(UserErr::Other(format!("Illegal fetch field: {}", key)))
         }
         match key.as_str() {
             "Memory" => {
@@ -54,7 +54,7 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
             }
             "image" => {
                 if !util::validate_url(&value) {
-                    error_out!(UserErr::other("Got malformed url for image"))
+                    abort_with!(UserErr::other("Got malformed url for image"))
                 }
             }
             _ => {}
@@ -106,7 +106,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let profile = db.get_profile(mentioned_user_id).await?;
     let fetch_info = db.get_fetch(mentioned_user_id).await?;
     if fetch_info.is_none() && profile.is_none() {
-        error_out!(UserErr::Other(
+        abort_with!(UserErr::Other(
             "This user has not set their fetch :/".to_string()
         ))
     }

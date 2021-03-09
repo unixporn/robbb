@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::*;
-use chrono::{DateTime, Utc};
-use serenity::{model::id::UserId, prelude::TypeMapKey};
-use sqlx::{prelude::*, types::Uuid, SqlitePool};
-use warn::Warn;
+
+use serenity::prelude::TypeMapKey;
+use sqlx::SqlitePool;
 
 pub mod fetch;
 pub mod mute;

@@ -2,17 +2,16 @@ use std::fmt::Display;
 
 use anyhow::{Context, Result};
 use chrono::Utc;
-use chrono_humanize::Humanize;
+
 use rand::prelude::IteratorRandom;
 use serenity::{
     async_trait,
-    builder::{CreateEmbed, CreateMessage},
+    builder::CreateEmbed,
     client,
-    http::Http,
     model::{
         channel::Message,
         guild::{Emoji, Guild},
-        id::{ChannelId, GuildId, MessageId, UserId},
+        id::{ChannelId, GuildId},
         prelude::User,
     },
 };
@@ -28,7 +27,8 @@ impl UserExt for User {
     }
 
     fn avatar_or_default(&self) -> String {
-        self.avatar_url().unwrap_or(self.default_avatar_url())
+        self.avatar_url()
+            .unwrap_or_else(|| self.default_avatar_url())
     }
 }
 
@@ -120,6 +120,7 @@ impl MessageExt for Message {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
+        #[allow(clippy::manual_map)]
         let build_basics = if let Some(guild_id) = self.guild_id {
             Some(build_embed_builder(&ctx, guild_id).await)
         } else {
