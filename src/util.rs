@@ -53,6 +53,16 @@ pub fn format_date_ago(date: chrono::DateTime<chrono::Utc>) -> String {
     )
 }
 
+/// Format a date.
+pub fn format_date(date: chrono::DateTime<chrono::Utc>) -> String {
+    format!("{}", date)
+}
+
+/// Format a date, showing both the concrete date and the "n days ago"-format.
+pub fn format_date_detailed(date: chrono::DateTime<chrono::Utc>) -> String {
+    format!("{} ({})", format_date(date), format_date_ago(date))
+}
+
 /// Format a number into the 1st, 2nd, 3rd, 4th,... format
 pub fn format_count(num: i32) -> String {
     match num {

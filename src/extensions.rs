@@ -16,6 +16,8 @@ use serenity::{
     },
 };
 
+use crate::Config;
+
 pub trait UserExt {
     fn name_with_disc_and_id(&self) -> String;
     fn avatar_or_default(&self) -> String;
@@ -87,7 +89,7 @@ impl GuildExt for GuildId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let build_basics = build_embed_builder(&ctx, *self).await;
+        let build_basics = build_embed_builder(&ctx).await;
         Ok(channel_id
             .send_message(&ctx, |m| {
                 m.embed(|e| {
@@ -120,20 +122,13 @@ impl MessageExt for Message {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        #[allow(clippy::manual_map)]
-        let build_basics = if let Some(guild_id) = self.guild_id {
-            Some(build_embed_builder(&ctx, guild_id).await)
-        } else {
-            None
-        };
+        let build_basics = build_embed_builder(&ctx).await;
 
         self.channel_id
             .send_message(&ctx, move |m| {
                 m.reference_message(self);
                 m.embed(move |e| {
-                    if let Some(build_basics) = build_basics {
-                        build_basics(e);
-                    }
+                    build_basics(e);
                     build(e);
                     e
                 })
@@ -155,16 +150,39 @@ impl MessageExt for Message {
     }
 }
 
-async fn build_embed_builder(
-    ctx: &client::Context,
-    guild_id: GuildId,
-) -> impl FnOnce(&mut CreateEmbed) {
-    let guild = guild_id.to_guild_cached(&ctx).await;
-    let emoji = if let Some(guild) = guild {
-        guild.random_stare_emoji(&ctx).await
-    } else {
-        None
-    };
+#[async_trait]
+pub trait ChannelIdExt {
+    async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync;
+}
+
+#[async_trait]
+impl ChannelIdExt for ChannelId {
+    async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync,
+    {
+        let build_basics = build_embed_builder(&ctx).await;
+        Ok(self
+            .send_message(&ctx, |m| {
+                m.embed(|e| {
+                    build_basics(e);
+                    build(e);
+                    e
+                })
+            })
+            .await
+            .context("Failed to send embed message")?)
+    }
+}
+
+async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
+    let data = ctx.data.read().await;
+    let config = data.get::<Config>().unwrap().clone();
+
+    let guild = config.guild;
+    let emoji = guild.random_stare_emoji(&ctx).await;
 
     move |e: &mut CreateEmbed| {
         e.timestamp(&Utc::now());
