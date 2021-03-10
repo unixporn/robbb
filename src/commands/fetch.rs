@@ -4,40 +4,50 @@ use lazy_static::lazy_static;
 use super::*;
 use std::collections::HashMap;
 
-/// Run without arguments to see instructions:
+const SETFETCH_USAGE: &'static str = indoc::indoc!("
+    Run this: 
+    `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh`
+    and follow the instructions. It's recommended that you download and read the script before running it, 
+    as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
+
+    **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
+    **NOTE**: If you're trying to manually change a value, it needs a newline after !setfetch (update).
+    **NOTE**: !git, !dotfiles, and !desc are different commands"
+);
+
+/// Run without arguments to see instructions.
 #[command("setfetch")]
 #[usage("setfetch [update]")]
-pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+#[sub_commands(set_fetch_update)]
+pub async fn set_fetch(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let lines = args.rest().lines().collect_vec();
+    handle_set_fetch(ctx, msg, lines, false).await
+}
+
+#[command("update")]
+#[usage("setfetch update")]
+pub async fn set_fetch_update(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let lines = args.rest().lines().collect_vec();
+    handle_set_fetch(ctx, msg, lines, true).await
+}
+
+pub async fn handle_set_fetch(
+    ctx: &client::Context,
+    msg: &Message,
+    lines: Vec<&str>,
+    update: bool,
+) -> CommandResult {
     let data = ctx.data.read().await;
     let db = data.get::<Db>().unwrap().clone();
 
-    let updating = args
-        .single::<String>()
-        .map(|x| x == "update")
-        .unwrap_or(false);
-    if !updating {
-        args.restore();
-    }
-
-    let lines = args.rest().lines().collect_vec();
     if lines.is_empty() && msg.attachments.is_empty() {
         msg.reply_embed(&ctx, |e| {
-            e.title("Usage");
-            e.description(indoc::indoc!("
-                Run this: 
-                `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh`
-                and follow the instructions. It's recommended that you download and read the script before running it, 
-                as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
-
-                **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-                **NOTE**: If you're trying to manually change a value, it needs a newline after !setfetch (update).
-                **NOTE**: !git, !dotfiles, and !desc are different commands"
-            ));
-        }).await?;
+            e.title("Usage").description(SETFETCH_USAGE);
+        })
+        .await?;
         return Ok(());
     }
 
-    // TODO does this need better error handling? Or is ignoring invalid values fine.
     let mut info = lines
         .into_iter()
         .filter_map(|line| line.split_once(":"))
@@ -81,13 +91,15 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
         info.insert("image".to_string(), image);
     }
 
-    if updating {
+    if update {
         db.update_fetch(msg.author.id, info).await?;
+        msg.reply_success(&ctx, "Successfully updated your fetch data!")
+            .await?;
     } else {
         db.set_fetch(msg.author.id, info).await?;
+        msg.reply_success(&ctx, "Successfully set your fetch data!")
+            .await?;
     }
-    msg.reply_success(&ctx, "Successfully set your fetch data!")
-        .await?;
 
     Ok(())
 }
