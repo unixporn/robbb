@@ -42,7 +42,9 @@ async fn my_help(
                         continue 'command;
                     }
                 }
-                if help_commands::has_all_requirements(&ctx, command.options, msg).await {
+                if help_commands::has_all_requirements(&ctx, command.options, msg).await
+                    && command.options.help_available
+                {
                     commands.push(command.options)
                 }
             }

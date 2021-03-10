@@ -1,7 +1,7 @@
 use super::*;
 /// Unban a user.
 #[command]
-#[usage("unban [user]")]
+#[usage("unban <user>")]
 pub async fn unban(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let config = data.get::<Config>().unwrap().clone();

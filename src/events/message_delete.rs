@@ -52,6 +52,18 @@ pub async fn message_delete_bulk(
         return Ok(());
     };
 
+    if deleted_message_ids.len() == 1 {
+        let mut deleted_message_ids = deleted_message_ids;
+        message_delete(
+            ctx,
+            channel_id,
+            deleted_message_ids.pop().unwrap(),
+            guild_id,
+        )
+        .await?;
+        return Ok(());
+    }
+
     let mut msgs = Vec::new();
     for id in deleted_message_ids {
         if let Some(msg) = ctx.cache.message(channel_id, id).await {

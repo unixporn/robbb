@@ -55,9 +55,7 @@ async fn handle_feedback_post(ctx: client::Context, msg: Message) -> Result<()> 
                 .any(|e| e.title == Some("CONTRIBUTING.md".to_string()))
     });
     if let Some(bottom_pin_msg) = last_bottom_pin_msg {
-        ctx.http
-            .delete_message(msg.channel_id.0, bottom_pin_msg.id.0)
-            .await?;
+        bottom_pin_msg.delete(&ctx).await?;
     }
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
