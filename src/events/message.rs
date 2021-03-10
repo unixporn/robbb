@@ -1,3 +1,5 @@
+use chrono::Utc;
+use itertools::Itertools;
 use maplit::hashmap;
 
 use super::*;
@@ -7,6 +9,11 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     if msg.author.bot {
         return Ok(());
     }
+
+    if handle_spam_protect(&ctx, &msg).await? {
+        return Ok(());
+    }
+
     if msg.channel_id == config.channel_showcase {
         handle_showcase_post(ctx, msg)
             .await
@@ -17,6 +24,68 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
             .context("Failed to handle feedback post")
     } else {
         Ok(())
+    }
+}
+
+async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<bool> {
+    let account_age_millis = Utc::now().timestamp() - msg.author.created_at().timestamp();
+
+    if msg.mentions.is_empty() && (account_age_millis / 1000 / 60 / 60) > 24 {
+        return Ok(false);
+    }
+
+    let msgs = msg
+        .channel_id
+        .messages(&ctx, |m| m.before(msg.id).limit(10))
+        .await?;
+
+    let msgs = msgs
+        .iter()
+        .filter(|x| {
+            x.author.id == msg.author.id
+                && x.channel_id == msg.channel_id
+                && x.content == msg.content
+        })
+        .collect_vec();
+
+    let is_spam = msgs.len() > 3
+        && match msgs.iter().minmax_by_key(|x| x.timestamp) {
+            itertools::MinMaxResult::NoElements => true,
+            itertools::MinMaxResult::OneElement(_) => true,
+            itertools::MinMaxResult::MinMax(min, max) => {
+                (max.timestamp - min.timestamp).num_minutes() < 2
+            }
+        };
+
+    if is_spam {
+        let data = ctx.data.read().await;
+        let config = data.get::<Config>().unwrap().clone();
+
+        let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+        let member = guild.member(&ctx, msg.author.id).await?;
+        let bot_id = ctx.cache.current_user_id().await;
+
+        let duration = std::time::Duration::from_secs(60 * 30);
+
+        crate::commands::mute::do_mute(&ctx, guild, bot_id, member, duration.clone(), Some("spam"))
+            .await?;
+        config
+            .log_bot_action(&ctx, |e| {
+                e.description(format!(
+                    "User {} was muted for spamming\n{}",
+                    msg.author.id.mention(),
+                    msg.to_context_link(),
+                ));
+                e.field(
+                    "Duration",
+                    humantime::Duration::from(duration).to_string(),
+                    false,
+                );
+            })
+            .await;
+        Ok(true)
+    } else {
+        Ok(false)
     }
 }
 

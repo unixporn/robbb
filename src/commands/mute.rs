@@ -25,24 +25,15 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
     let mut member = guild.member(&ctx, mentioned_user_id).await?;
 
-    let start_time = Utc::now();
-    let end_time = start_time + chrono::Duration::from_std(duration.into()).unwrap();
-
-    db.add_mute(
-        guild.id,
-        msg.author.id,
-        mentioned_user_id,
-        reason.unwrap_or_default().to_string(),
-        start_time,
-        end_time,
-    )
-    .await?;
-
-    member.add_role(&ctx, config.role_mute).await?;
+    do_mute(&ctx, guild, msg.author.id, member, *duration, reason).await?;
 
     msg.reply_success(
         &ctx,
-        format!("{} has been muted for {}", member.mention(), duration),
+        format!(
+            "{} has been muted for {}",
+            mentioned_user_id.mention(),
+            duration
+        ),
     )
     .await?;
 
@@ -59,5 +50,34 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         })
         .await;
 
+    Ok(())
+}
+
+pub async fn do_mute(
+    ctx: &client::Context,
+    guild: Guild,
+    moderator: UserId,
+    mut member: Member,
+    duration: std::time::Duration,
+    reason: Option<&str>,
+) -> Result<()> {
+    let data = ctx.data.read().await;
+    let config = data.get::<Config>().unwrap().clone();
+    let db = data.get::<Db>().unwrap().clone();
+
+    let start_time = Utc::now();
+    let end_time = start_time + chrono::Duration::from_std(duration.into()).unwrap();
+
+    db.add_mute(
+        guild.id,
+        moderator,
+        member.user.id,
+        reason.unwrap_or("no reason").to_string(),
+        start_time,
+        end_time,
+    )
+    .await?;
+
+    member.add_role(&ctx, config.role_mute).await?;
     Ok(())
 }
