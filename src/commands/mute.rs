@@ -5,7 +5,6 @@ use super::*;
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let config = data.get::<Config>().unwrap().clone();
-    let db = data.get::<Db>().unwrap().clone();
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
@@ -23,7 +22,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let reason = args.remains();
 
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
-    let mut member = guild.member(&ctx, mentioned_user_id).await?;
+    let member = guild.member(&ctx, mentioned_user_id).await?;
 
     do_mute(&ctx, guild, msg.author.id, member, *duration, reason).await?;
 

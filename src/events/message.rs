@@ -2,6 +2,8 @@ use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 
+use crate::db::note::NoteType;
+
 use super::*;
 
 pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
@@ -11,6 +13,9 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     }
 
     if handle_spam_protect(&ctx, &msg).await? {
+        return Ok(());
+    }
+    if handle_blocklist(&ctx, &msg).await? {
         return Ok(());
     }
 
@@ -24,6 +29,60 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
             .context("Failed to handle feedback post")
     } else {
         Ok(())
+    }
+}
+
+async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
+    let data = ctx.data.read().await;
+    let config = data.get::<Config>().unwrap().clone();
+    let db = data.get::<Db>().unwrap().clone();
+    let blocklist_regex = db.get_combined_blocklist_regex().await?;
+    if let Some(word) = blocklist_regex.find(&msg.content) {
+        let word = word.as_str();
+
+        let dm_future = async {
+            let _ = msg
+                .author
+                .dm(&ctx, |m| {
+                    m.embed(|e| {
+                        e.description(&msg.content).title(format!(
+                            "Your message has been deleted for containing a blocked word: `{}`",
+                            word
+                        ))
+                    })
+                })
+                .await;
+        };
+
+        let bot_log_future = config.log_bot_action(&ctx, |e| {
+            e.author(|a| a.name("Message Autodelete"));
+            e.title(format!(
+                "{} - deleted because of `{}`",
+                msg.author.tag(),
+                word,
+            ));
+            e.description(format!("{} {}", msg.content, msg.to_context_link()));
+        });
+
+        let note_future = async {
+            let bot_id = ctx.cache.current_user_id().await;
+            let note_content = format!("Message deleted because of word `{}`", word);
+            let _ = db
+                .add_note(
+                    bot_id,
+                    msg.author.id,
+                    note_content,
+                    Utc::now(),
+                    NoteType::BlocklistViolation,
+                )
+                .await;
+        };
+
+        tokio::join!(dm_future, bot_log_future, note_future, msg.delete(&ctx)).3?;
+
+        Ok(true)
+    } else {
+        Ok(false)
     }
 }
 

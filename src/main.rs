@@ -3,6 +3,7 @@
 #![feature(label_break_value)]
 #![feature(or_patterns)]
 #![feature(async_closure)]
+#![feature(drain_filter)]
 
 #[allow(unused_imports)]
 use db::Db;

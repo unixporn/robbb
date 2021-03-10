@@ -20,6 +20,7 @@ use std::collections::HashSet;
 use thiserror::Error;
 
 pub mod ban;
+pub mod blocklist;
 pub mod errors;
 pub mod fetch;
 pub mod help;
@@ -36,6 +37,7 @@ pub mod small;
 pub mod unban;
 pub mod warn;
 use ban::*;
+use blocklist::*;
 pub use errors::*;
 use fetch::*;
 pub use help::*;
@@ -59,7 +61,7 @@ lazy_static::lazy_static! {
 #[group]
 #[only_in(guilds)]
 #[commands(
-    restart, mute, warn, note, notes, latency, say, ban, delban, purge, unban, spurge
+    restart, mute, warn, note, notes, latency, say, ban, delban, purge, unban, spurge, blocklist
 )]
 #[checks(moderator)]
 struct Moderator;
