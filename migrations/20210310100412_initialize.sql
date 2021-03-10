@@ -1,4 +1,3 @@
--- Add migration script here
 CREATE TABLE IF NOT EXISTS warn (
     id integer primary key asc,
     moderator integer not null,
