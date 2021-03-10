@@ -64,12 +64,10 @@ pub async fn purge(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         .collect_vec();
 
     channel.delete_messages(&ctx, &recent_messages).await?;
-    msg.reply_embed(&ctx, |e| {
-        e.title(format!(
-            "Successfully deleted {} messages",
-            recent_messages.len()
-        ));
-    })
+    msg.reply_success(
+        &ctx,
+        format!("Successfully deleted {} messages", recent_messages.len()),
+    )
     .await?;
 
     Ok(())

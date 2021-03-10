@@ -1,9 +1,4 @@
-use crate::{
-    abort_with,
-    db::Db,
-    extensions::{MessageExt, UserExt},
-    util, Config,
-};
+use crate::{abort_with, db::Db, extensions::MessageExt, util, Config};
 
 use super::checks::*;
 //use super::Config;

@@ -108,6 +108,12 @@ pub trait MessageExt {
         ctx: &client::Context,
         s: impl Display + Send + Sync + 'static,
     ) -> Result<Message>;
+
+    async fn reply_success(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message>;
 }
 
 #[async_trait]
@@ -120,6 +126,7 @@ impl MessageExt for Message {
 
         self.channel_id
             .send_message(&ctx, move |m| {
+                m.allowed_mentions(|f| f.replied_user(false));
                 m.reference_message(self);
                 m.embed(move |e| {
                     build_basics(e);
@@ -137,8 +144,20 @@ impl MessageExt for Message {
         s: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
         self.reply_embed(&ctx, |e| {
-            e.description(format!("{} :'(", s));
+            e.description(format!("{}", s));
             e.color(0xfb4934);
+        })
+        .await
+    }
+
+    async fn reply_success(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message> {
+        self.reply_embed(&ctx, |e| {
+            e.description(format!("{}", s));
+            e.color(0xb8bb26);
         })
         .await
     }

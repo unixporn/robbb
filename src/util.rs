@@ -76,6 +76,6 @@ pub fn format_count(num: i32) -> String {
 /// Validate that a string is a valid URL.
 pub fn validate_url(value: &str) -> bool {
     url::Url::parse(value)
-        .map(|url| !url.scheme().is_empty() || url.host().is_some())
+        .map(|url| !url.scheme().is_empty() && url.host().is_some() && url.domain().is_some())
         .unwrap_or(false)
 }

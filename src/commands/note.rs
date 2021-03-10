@@ -14,7 +14,7 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let mentioned_user_id = {
         let user_mention = args
-            .single::<String>()
+            .single_quoted::<String>()
             .invalid_usage(&NOTE_COMMAND_OPTIONS)?;
         disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
             .await?

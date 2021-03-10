@@ -30,9 +30,10 @@ pub async fn role(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         let mut member = guild.member(&ctx, msg.author.id).await?;
         member.remove_roles(&ctx, &config.roles_color).await?;
         member.add_role(&ctx, chosen_role.id).await?;
-        msg.reply_embed(&ctx, |e| {
-            e.description(format!("Success! You're now {}", chosen_role.id.mention()));
-        })
+        msg.reply_success(
+            &ctx,
+            format!("Success! You're now {}", chosen_role.id.mention()),
+        )
         .await?;
     }
 

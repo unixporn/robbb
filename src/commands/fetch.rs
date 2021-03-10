@@ -24,13 +24,14 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
         msg.reply_embed(&ctx, |e| {
             e.title("Usage");
             e.description(indoc::indoc!("
-                Run this: `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh` 
+                Run this: 
+                `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh`
                 and follow the instructions. It's recommended that you download and read the script before running it, 
                 as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
 
-                > NOTE: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-                > NOTE: If you're trying to manually change a value, it needs a newline after !setfetch (update).
-                > NOTE: !git, !dotfiles, and !desc are different commands"
+                **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
+                **NOTE**: If you're trying to manually change a value, it needs a newline after !setfetch (update).
+                **NOTE**: !git, !dotfiles, and !desc are different commands"
             ));
         }).await?;
         return Ok(());
@@ -85,26 +86,29 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
     } else {
         db.set_fetch(msg.author.id, info).await?;
     }
-    msg.reply(&ctx, "Successfully set your fetch data!").await?;
+    msg.reply_success(&ctx, "Successfully set your fetch data!")
+        .await?;
 
     Ok(())
 }
 
 /// Fetch a users system information.
 #[command("fetch")]
-#[usage("fetch [user]")]
+#[usage("fetch [user] [field]")]
 pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let db = data.get::<Db>().unwrap().clone();
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
+    let mentioned_user_id = if let Ok(mentioned_user) = args.single_quoted::<String>() {
         disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
             .await?
             .ok_or(UserErr::MentionedUserNotFound)?
     } else {
         msg.author.id
     };
+
+    let desired_field = args.single_quoted::<String>().ok();
 
     let profile = db.get_profile(mentioned_user_id).await?;
     let fetch_info = db.get_fetch(mentioned_user_id).await?;
@@ -118,41 +122,75 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let color = member.colour(&ctx).await;
 
-    msg.reply_embed(&ctx, |e| {
-        e.author(|a| {
-            a.name(member.user.tag());
-            a.icon_url(member.user.face())
-        });
-        e.title(format!("Fetch {}", member.user.tag()));
-        if let Some(color) = color {
-            e.color(color);
-        }
-
-        if let Some(mut fetch_info) = fetch_info {
-            if let Some(image_url) = fetch_info.info.get("Distro").and_then(|distro| {
-                DISTRO_IMAGES
-                    .iter()
-                    .find(|(d, _)| distro.as_str().to_lowercase().starts_with(*d))
-                    .map(|(_, url)| url)
-            }) {
-                e.thumbnail(image_url);
-            }
-
-            if let Some(image_url) = fetch_info.info.remove("image") {
+    match desired_field {
+        // Handle image fetch specifically
+        Some(desired_field) if desired_field == "image" => {
+            let image_url = fetch_info
+                .and_then(|x| x.info.get("image").cloned())
+                .user_error("User hasn't set an image")?;
+            msg.reply_embed(&ctx, |e| {
+                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
+                e.title(format!("{}'s {}", member.user.tag(), desired_field));
                 e.image(image_url);
-            }
-
-            // set main fetch fields
-            e.fields(fetch_info.info.iter().map(|(k, v)| (k, v, true)));
+                color.map(|c| e.color(c));
+            })
+            .await?;
         }
 
-        if let Some(profile) = profile {
-            profile.description.map(|x| e.description(x));
-            profile.git.map(|x| e.field("Git", x, true));
-            profile.dotfiles.map(|x| e.field("Dotfiles", x, true));
+        // Handle fetching a single field
+        Some(desired_field) => {
+            let value = match desired_field.as_str() {
+                "description" => profile.and_then(|x| x.description.clone()),
+                "git" => profile.and_then(|x| x.git.clone()),
+                "dotfiles" => profile.and_then(|x| x.dotfiles.clone()),
+                _ => fetch_info.and_then(|x| x.info.get(&desired_field).cloned()),
+            };
+
+            let value = value.user_error("Failed to get that value. Maybe the user hasn't set it, or maybe the field does not exist?")?;
+
+            msg.reply_embed(&ctx, |e| {
+                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
+                e.title(format!("{}'s {}", member.user.tag(), desired_field));
+                e.description(value);
+                color.map(|c| e.color(c));
+            })
+            .await?;
         }
-    })
-    .await?;
+
+        // Handle fetching all fields
+        None => {
+            msg.reply_embed(&ctx, |e| {
+                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
+                e.title(format!("Fetch {}", member.user.tag()));
+                color.map(|c| e.color(c));
+
+                if let Some(mut fetch_info) = fetch_info {
+                    if let Some(image_url) = fetch_info.info.get("Distro").and_then(|distro| {
+                        DISTRO_IMAGES
+                            .iter()
+                            .find(|(d, _)| distro.as_str().to_lowercase().starts_with(*d))
+                            .map(|(_, url)| url)
+                    }) {
+                        e.thumbnail(image_url);
+                    }
+
+                    if let Some(image_url) = fetch_info.info.remove("image") {
+                        e.image(image_url);
+                    }
+
+                    // set main fetch fields
+                    e.fields(fetch_info.info.iter().map(|(k, v)| (k, v, true)));
+                }
+
+                if let Some(profile) = profile {
+                    profile.description.map(|x| e.description(x));
+                    profile.git.map(|x| e.field("Git", x, true));
+                    profile.dotfiles.map(|x| e.field("Dotfiles", x, true));
+                }
+            })
+            .await?;
+        }
+    }
 
     Ok(())
 }

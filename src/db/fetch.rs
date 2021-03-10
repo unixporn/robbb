@@ -19,15 +19,14 @@ impl Db {
             let user = user.0 as i64;
             let info = serde_json::to_string(&info)?;
 
-            // TODO this should be handled on sql layer
-            let result = sqlx::query!("insert into fetch (usr, info) values (?, ?)", user, info)
-                .execute(&mut conn)
-                .await;
-            if result.is_err() {
-                sqlx::query!("update fetch set usr=?, info=?", user, info)
-                    .execute(&mut conn)
-                    .await?;
-            }
+            sqlx::query!(
+                "insert into fetch (usr, info) values (?, ?) on conflict(usr) do update set info=?",
+                user,
+                info,
+                info,
+            )
+            .execute(&mut conn)
+            .await?;
         }
 
         Ok(Fetch { user, info })

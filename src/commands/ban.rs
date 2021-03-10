@@ -62,9 +62,6 @@ async fn do_ban(
         })
         .await;
 
-    msg.reply_embed(&ctx, |e| {
-        e.title("Successfully yote!");
-    })
-    .await?;
+    msg.reply_success(&ctx, "Successfully yote!").await?;
     Ok(())
 }

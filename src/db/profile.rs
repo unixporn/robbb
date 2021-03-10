@@ -18,7 +18,7 @@ impl Db {
         let user = user.0 as i64;
         sqlx::query!(
             "insert into profile (usr, git, dotfiles, description) values (?, ?, NULL, NULL)
-                on conflict(usr) do update set description=?",
+                on conflict(usr) do update set git=?",
             user,
             value,
             value
