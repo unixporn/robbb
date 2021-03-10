@@ -7,7 +7,7 @@ Now written in a _good_ language!
 
 ## Dependencies
 
-- Rust nightly
+- Rust **nightly**
 - sqlx-cli (if you need to change the database schema)
 
 ## Set up environment variables
