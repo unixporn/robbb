@@ -114,6 +114,8 @@ pub trait MessageExt {
         ctx: &client::Context,
         s: impl Display + Send + Sync + 'static,
     ) -> Result<Message>;
+
+    fn to_context_link(&self) -> String;
 }
 
 #[async_trait]
@@ -160,6 +162,10 @@ impl MessageExt for Message {
             e.color(0xb8bb26);
         })
         .await
+    }
+
+    fn to_context_link(&self) -> String {
+        format!("[(context)]({})", self.link())
     }
 }
 

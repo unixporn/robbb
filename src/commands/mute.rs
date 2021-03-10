@@ -49,9 +49,10 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     config
         .log_bot_action(&ctx, |e| {
             e.description(format!(
-                "User {} was muted by {}",
+                "User {} was muted by {}\n{}",
                 mentioned_user_id.mention(),
                 msg.author.id.mention(),
+                msg.to_context_link(),
             ));
             e.field("Duration", duration, false);
             reason.map(|r| e.field("Reason", r, false));

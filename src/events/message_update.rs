@@ -36,7 +36,7 @@ pub async fn message_update(
                         **Now:**
                         {}
 
-                        [(context)]({})
+                        {}
                     ",
                 old_if_available
                     .map(|old| old.content)
@@ -45,7 +45,7 @@ pub async fn message_update(
                     .content
                     .clone()
                     .unwrap_or_else(|| "<Unavailable>".to_string()),
-                msg.link()
+                msg.to_context_link()
             ));
             if let Some(edited_timestamp) = event.edited_timestamp {
                 e.timestamp(&edited_timestamp);

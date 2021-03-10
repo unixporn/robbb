@@ -53,10 +53,11 @@ async fn do_ban(
     config
         .log_bot_action(&ctx, |e| {
             e.title("User yote").description(format!(
-                "{} ({}) was banned by {}",
+                "{} ({}) was banned by {}\n{}",
                 user.mention(),
                 user.tag(),
-                msg.author.mention()
+                msg.author.mention(),
+                msg.to_context_link(),
             ));
             e.field("Reason", reason, false);
         })

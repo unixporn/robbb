@@ -32,7 +32,7 @@ pub async fn message_delete(
         .send_embed(&ctx, |e| {
             e.author(|a| a.name("Message Deleted").icon_url(msg.author.face()));
             e.title(msg.author.name_with_disc_and_id());
-            e.description(format!("{}\n\n[(context)]({})", msg.content, msg.link()));
+            e.description(format!("{}\n\n{}", msg.content, msg.to_context_link()));
             e.footer(|f| f.text(format!("#{}", channel_name)));
         })
         .await?;
