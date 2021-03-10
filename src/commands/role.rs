@@ -24,7 +24,9 @@ pub async fn role(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             .roles_color
             .iter()
             .filter_map(|r| guild.roles.get(r))
-            .find(|r| r.name == chosen_role_name)
+            .find(|r| {
+                r.name == chosen_role_name || Some(r.id) == chosen_role_name.parse::<RoleId>().ok()
+            })
             .user_error("Unknown color role")?;
 
         let mut member = guild.member(&ctx, msg.author.id).await?;
