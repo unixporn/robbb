@@ -1,3 +1,5 @@
+use maplit::hashmap;
+
 use super::*;
 
 pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
@@ -19,7 +21,21 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 }
 
 async fn handle_showcase_post(ctx: client::Context, msg: Message) -> Result<()> {
-    if msg.attachments.is_empty() {
+    if !msg.attachments.is_empty() || !msg.embeds.is_empty() {
+        if let Some(attachment) = msg.attachments.first() {
+            let data = ctx.data.read().await;
+            let db = data.get::<Db>().unwrap().clone();
+            msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
+                .await
+                .context("Error reacting to showcase submission with ❤️")?;
+
+            db.update_fetch(
+                msg.author.id,
+                hashmap! {"image".to_string() => attachment.url.to_string() },
+            )
+            .await?;
+        }
+    } else {
         msg.delete(&ctx)
             .await
             .context("Failed to delete invalid showcase submission")?;
@@ -29,10 +45,6 @@ async fn handle_showcase_post(ctx: client::Context, msg: Message) -> Result<()> 
                     If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup
                 "))
             }).await.context("Failed to send DM about invalid showcase submission")?;
-    } else {
-        msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
-            .await
-            .context("Error reacting to showcase submission with ❤️")?;
     }
     Ok(())
 }

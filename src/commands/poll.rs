@@ -23,7 +23,10 @@ pub async fn poll(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         }
 
         if lines.len() > SELECTION_EMOJI.len() || lines.len() < 2 {
-            abort_with!(UserErr::other("There must be between 2 and 10 options"))
+            abort_with!(UserErr::Other(format!(
+                "There must be between 2 and {} options",
+                SELECTION_EMOJI.len()
+            )))
         }
 
         let options = SELECTION_EMOJI
