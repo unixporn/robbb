@@ -44,5 +44,29 @@ async fn handle_feedback_post(ctx: client::Context, msg: Message) -> Result<()> 
     msg.react(&ctx, ReactionType::Unicode("👎".to_string()))
         .await
         .context("Error reacting to feedback submission with 👍")?;
+
+    // retrieve the last keep-at-bottom message the bot wrote
+    let recent_messages = msg.channel_id.messages(&ctx, |m| m.before(&msg)).await?;
+
+    let last_bottom_pin_msg = recent_messages.iter().find(|m| {
+        m.author.bot
+            && m.embeds
+                .iter()
+                .any(|e| e.title == Some("CONTRIBUTING.md".to_string()))
+    });
+    if let Some(bottom_pin_msg) = last_bottom_pin_msg {
+        ctx.http
+            .delete_message(msg.channel_id.0, bottom_pin_msg.id.0)
+            .await?;
+    }
+    msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("CONTRIBUTING.md").color(0xb8bb26);
+            e.description(indoc::indoc!(
+                "Before posting, please make sure to check if your idea is a **repetitive topic**. (Listed in pins)
+                Note that we have added a consequence for failure. The inability to delete repetitive feedback will result in an 'unsatisfactory' mark on your official testing record, followed by death. Good luck!"
+            ))
+        })
+    }).await?;
     Ok(())
 }

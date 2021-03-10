@@ -62,6 +62,25 @@ impl EventHandler for Handler {
         );
     }
 
+    async fn message_delete_bulk(
+        &self,
+        ctx: client::Context,
+        channel_id: ChannelId,
+        multiple_deleted_messages_ids: Vec<MessageId>,
+        guild_id: Option<GuildId>,
+    ) {
+        util::log_error_value(
+            message_delete::message_delete_bulk(
+                ctx,
+                channel_id,
+                multiple_deleted_messages_ids,
+                guild_id,
+            )
+            .await
+            .context("Error while handling message_delete event"),
+        );
+    }
+
     async fn guild_member_addition(
         &self,
         ctx: client::Context,
