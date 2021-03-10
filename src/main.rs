@@ -190,6 +190,18 @@ async fn after(ctx: &client::Context, msg: &Message, _command_name: &str, result
                 Ok(box err) => {
                     eprintln!("Serenity error: {} ({:?})", &err, &err);
                     match err {
+                        serenity::Error::Http(err) => match *err {
+                            serenity::http::error::Error::UnsuccessfulRequest(res) => {
+                                if res.status_code == serenity::http::StatusCode::NOT_FOUND
+                                    && res.error.message.to_lowercase().contains("unknown user")
+                                {
+                                    let _ = msg.reply_error(&ctx, "User not found").await;
+                                } else {
+                                    let _ = msg.reply_error(&ctx, "Something went wrong").await;
+                                }
+                            }
+                            _ => {}
+                        },
                         serenity::Error::Model(err) => {
                             let _ = msg.reply_error(&ctx, err).await;
                         }

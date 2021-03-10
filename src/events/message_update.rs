@@ -26,10 +26,7 @@ pub async fn message_update(
     config
         .guild
         .send_embed(&ctx, config.channel_bot_messages, |e| {
-            e.author(|a| {
-                a.name("Message Edit")
-                    .icon_url(msg.author.avatar_or_default())
-            });
+            e.author(|a| a.name("Message Edit").icon_url(msg.author.face()));
             e.title(msg.author.name_with_disc_and_id());
             e.description(indoc::formatdoc!(
                 "

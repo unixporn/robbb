@@ -80,7 +80,7 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let avatar_url = mentioned_user_id
         .to_user(&ctx)
         .await
-        .map(|user| user.avatar_or_default())
+        .map(|user| user.face())
         .ok();
 
     let notes = db.get_notes(mentioned_user_id, note_filter).await?;

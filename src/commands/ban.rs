@@ -1,9 +1,10 @@
 use super::*;
+
 /// Ban a user from the server
 #[command]
 #[usage("ban <@user> <reason>")]
 pub async fn ban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    do_ban(ctx, msg, args, 1).await?;
+    do_ban(ctx, msg, args, 0).await?;
     Ok(())
 }
 
@@ -51,7 +52,7 @@ async fn do_ban(
 
     config
         .log_bot_action(&ctx, |e| {
-            e.title("User banned").description(format!(
+            e.title("User yote").description(format!(
                 "{} ({}) was banned by {}",
                 user.mention(),
                 user.tag(),
@@ -62,7 +63,7 @@ async fn do_ban(
         .await;
 
     msg.reply_embed(&ctx, |e| {
-        e.title("Successfully yeeted!");
+        e.title("Successfully yote!");
     })
     .await?;
     Ok(())

@@ -20,7 +20,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         .single::<humantime::Duration>()
         .map_err(|_| UserErr::Other("Malformed duration".to_string()))?;
 
-    let reason = args.remains().unwrap_or_default();
+    let reason = args.remains();
 
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
     let mut member = guild.member(&ctx, mentioned_user_id).await?;
@@ -32,7 +32,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         guild.id,
         msg.author.id,
         mentioned_user_id,
-        reason.to_string(),
+        reason.unwrap_or_default().to_string(),
         start_time,
         end_time,
     )
@@ -54,7 +54,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
                 msg.author.id.mention(),
             ));
             e.field("Duration", duration, false);
-            e.field("Reason", reason.to_string(), false);
+            reason.map(|r| e.field("Reason", r, false));
         })
         .await;
 

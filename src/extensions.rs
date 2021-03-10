@@ -20,17 +20,11 @@ use crate::Config;
 
 pub trait UserExt {
     fn name_with_disc_and_id(&self) -> String;
-    fn avatar_or_default(&self) -> String;
 }
 
 impl UserExt for User {
     fn name_with_disc_and_id(&self) -> String {
         format!("{}#{}({})", self.name, self.discriminator, self.id)
-    }
-
-    fn avatar_or_default(&self) -> String {
-        self.avatar_url()
-            .unwrap_or_else(|| self.default_avatar_url())
     }
 }
 

@@ -78,7 +78,11 @@ pub async fn disambiguate_user_mention(
     msg: &Message,
     name: &str,
 ) -> Result<Option<UserId>> {
-    if let Ok(user_id) = name.parse::<UserId>() {
+    if let Some(user_id) = name
+        .parse::<UserId>()
+        .ok()
+        .filter(|id| id.0 > 10_000_000_000_000_000)
+    {
         Ok(Some(user_id))
     } else if let Some(member) =
         async { guild.member(&ctx, name.parse::<u64>().ok()?).await.ok() }.await

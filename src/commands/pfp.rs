@@ -20,7 +20,7 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
         if let Some(color) = color {
             e.color(color);
         }
-        e.image(member.user.avatar_or_default());
+        e.image(member.user.face());
     })
     .await?;
     Ok(())

@@ -30,10 +30,7 @@ pub async fn message_delete(
     config
         .channel_bot_messages
         .send_embed(&ctx, |e| {
-            e.author(|a| {
-                a.name("Message Deleted");
-                a.icon_url(msg.author.avatar_or_default())
-            });
+            e.author(|a| a.name("Message Deleted").icon_url(msg.author.face()));
             e.title(msg.author.name_with_disc_and_id());
             e.description(format!("{}\n\n[(context)]({})", msg.content, msg.link()));
             e.footer(|f| f.text(format!("#{}", channel_name)));

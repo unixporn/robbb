@@ -38,10 +38,11 @@ async fn handle_showcase_post(ctx: client::Context, msg: Message) -> Result<()> 
 }
 
 async fn handle_feedback_post(ctx: client::Context, msg: Message) -> Result<()> {
-    tokio::try_join!(
-        msg.react(&ctx, ReactionType::Unicode("👍".to_string())),
-        msg.react(&ctx, ReactionType::Unicode("👎".to_string())),
-    )
-    .context("Error reacting to feedback submission with 👍")?;
+    msg.react(&ctx, ReactionType::Unicode("👍".to_string()))
+        .await
+        .context("Error reacting to feedback submission with 👍")?;
+    msg.react(&ctx, ReactionType::Unicode("👎".to_string()))
+        .await
+        .context("Error reacting to feedback submission with 👍")?;
     Ok(())
 }

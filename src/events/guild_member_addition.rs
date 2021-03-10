@@ -12,10 +12,7 @@ pub async fn guild_member_addition(
     config
         .channel_bot_traffic
         .send_embed(&ctx, |e| {
-            e.author(|a| {
-                a.name("Member Join");
-                a.icon_url(new_member.user.avatar_or_default())
-            });
+            e.author(|a| a.name("Member Join").icon_url(new_member.user.face()));
             e.title(new_member.user.name_with_disc_and_id());
             e.description(format!("User {} joined the server", new_member.mention()));
             e.field(

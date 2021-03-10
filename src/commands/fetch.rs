@@ -21,15 +21,18 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
 
     let lines = args.rest().lines().collect_vec();
     if lines.is_empty() && msg.attachments.is_empty() {
-        msg.reply(&ctx, indoc::indoc!("
-            Run this: `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh` 
-            and follow the instructions. It's recommended that you download and read the script before running it, 
-            as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
+        msg.reply_embed(&ctx, |e| {
+            e.title("Usage");
+            e.description(indoc::indoc!("
+                Run this: `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh` 
+                and follow the instructions. It's recommended that you download and read the script before running it, 
+                as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
 
-            > NOTE: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-            > NOTE: If you're trying to manually change a value, it needs a newline after !setfetch (update).
-            > NOTE: !git, !dotfiles, and !desc are different commands"
-        )).await?;
+                > NOTE: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
+                > NOTE: If you're trying to manually change a value, it needs a newline after !setfetch (update).
+                > NOTE: !git, !dotfiles, and !desc are different commands"
+            ));
+        }).await?;
         return Ok(());
     }
 
@@ -118,7 +121,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     msg.reply_embed(&ctx, |e| {
         e.author(|a| {
             a.name(member.user.tag());
-            a.icon_url(member.user.avatar_or_default())
+            a.icon_url(member.user.face())
         });
         e.title(format!("Fetch {}", member.user.tag()));
         if let Some(color) = color {
@@ -144,11 +147,9 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         }
 
         if let Some(profile) = profile {
-            profile
-                .description
-                .map(|x| e.field("Description", x, false));
-            profile.git.map(|x| e.field("Git", x, false));
-            profile.dotfiles.map(|x| e.field("Dotfiles", x, false));
+            profile.description.map(|x| e.description(x));
+            profile.git.map(|x| e.field("Git", x, true));
+            profile.dotfiles.map(|x| e.field("Dotfiles", x, true));
         }
     })
     .await?;
