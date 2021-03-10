@@ -110,16 +110,15 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let desired_field = args.single_quoted::<String>().ok();
 
-    let profile = db.get_profile(mentioned_user_id).await?;
-    let fetch_info = db.get_fetch(mentioned_user_id).await?;
+    let (profile, fetch_info) = tokio::try_join!(
+        db.get_profile(mentioned_user_id),
+        db.get_fetch(mentioned_user_id),
+    )?;
     if fetch_info.is_none() && profile.is_none() {
-        abort_with!(UserErr::Other(
-            "This user has not set their fetch :/".to_string()
-        ))
+        abort_with!(UserErr::other("This user has not set their fetch :/"))
     }
 
     let member = guild.member(&ctx, mentioned_user_id).await?;
-
     let color = member.colour(&ctx).await;
 
     match desired_field {

@@ -1,4 +1,4 @@
-use serenity::framework::standard::Command;
+use serenity::framework::standard::{Check, Command};
 
 use super::*;
 
@@ -31,21 +31,18 @@ async fn my_help(
             .user_error(&format!("Unknown command `{}`", desired_command))?;
         reply_help_single(&ctx, &msg, &command).await?;
     } else {
+        // find commands that the user has access to
         let mut commands = Vec::new();
         for group in groups {
-            'command: for command in group.options.commands {
-                for check in group.options.checks {
-                    if (check.function)(&ctx, &msg, &mut args, &command.options)
-                        .await
-                        .is_err()
-                    {
-                        continue 'command;
-                    }
-                }
-                if help_commands::has_all_requirements(&ctx, command.options, msg).await
-                    && command.options.help_available
-                {
-                    commands.push(command.options)
+            for cmd in group.options.commands {
+                if cmd.options.help_available && {
+                    let (a, b) = tokio::join!(
+                        help_commands::has_all_requirements(&ctx, cmd.options, msg),
+                        passes_all_checks(group.options.checks, &ctx, &msg, &mut args, cmd.options)
+                    );
+                    a && b
+                } {
+                    commands.push(cmd.options)
                 }
             }
         }
@@ -62,7 +59,7 @@ async fn reply_help_single(
     msg.reply_embed(&ctx, move |e| {
         e.title(format!(
             "Help for {}",
-            command.options.names.first().unwrap()
+            command.options.names.first().unwrap_or(&"")
         ));
         command.options.desc.map(|d| e.description(d));
         command.options.usage.map(|u| e.field("Usage", u, false));
@@ -93,4 +90,20 @@ async fn reply_help_full(
         }
     })
     .await
+}
+
+async fn passes_all_checks(
+    checks: &[&Check],
+    ctx: &client::Context,
+    msg: &Message,
+    args: &mut Args,
+    options: &CommandOptions,
+) -> bool {
+    for check in checks {
+        let f = check.function;
+        if f(&ctx, &msg, args, options).await.is_err() {
+            return false;
+        }
+    }
+    true
 }

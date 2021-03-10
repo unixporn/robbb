@@ -43,7 +43,7 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             e.field("Note", note_content, false);
         })
         .await;
-    msg.reply(&ctx, "Noted!").await?;
+    msg.reply_success(&ctx, "Noted!").await?;
     Ok(())
 }
 
