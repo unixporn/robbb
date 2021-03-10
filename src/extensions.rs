@@ -196,7 +196,7 @@ impl ChannelIdExt for ChannelId {
     }
 }
 
-async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
+pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
     let data = ctx.data.read().await;
     let config = data.get::<Config>().unwrap().clone();
 

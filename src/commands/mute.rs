@@ -40,7 +40,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     member.add_role(&ctx, config.role_mute).await?;
 
-    msg.reply(
+    msg.reply_success(
         &ctx,
         format!("{} has been muted for {}", member.mention(), duration),
     )
