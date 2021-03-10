@@ -33,6 +33,7 @@ pub mod poll;
 pub mod purge;
 pub mod role;
 pub mod small;
+pub mod unban;
 pub mod warn;
 use ban::*;
 pub use errors::*;
@@ -48,6 +49,7 @@ use poll::*;
 use purge::*;
 use role::*;
 use small::*;
+use unban::*;
 use warn::*;
 
 lazy_static::lazy_static! {
@@ -56,7 +58,9 @@ lazy_static::lazy_static! {
 
 #[group]
 #[only_in(guilds)]
-#[commands(restart, mute, warn, note, notes, latency, say, ban, delban, purge)]
+#[commands(
+    restart, mute, warn, note, notes, latency, say, ban, delban, purge, unban
+)]
 #[checks(moderator)]
 struct Moderator;
 
