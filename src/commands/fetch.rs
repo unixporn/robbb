@@ -1,3 +1,4 @@
+use crate::extensions::CreateEmbedExt;
 use anyhow::*;
 use lazy_static::lazy_static;
 
@@ -130,40 +131,30 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         abort_with!(UserErr::other("This user has not set their fetch :/"))
     }
 
+    // all data shown in fetch, including the profile values
+    let mut all_data: HashMap<String, String> = fetch_info.map(|x| x.info).unwrap_or_default();
+    if let Some(profile) = profile {
+        all_data.extend(profile.into_values_map());
+    }
+
     let member = guild.member(&ctx, mentioned_user_id).await?;
     let color = member.colour(&ctx).await;
 
     match desired_field {
-        // Handle image fetch specifically
-        Some(desired_field) if desired_field == "image" => {
-            let image_url = fetch_info
-                .and_then(|x| x.info.get("image").cloned())
-                .user_error("User hasn't set an image")?;
-            msg.reply_embed(&ctx, |e| {
-                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
-                e.title(format!("{}'s {}", member.user.tag(), desired_field));
-                e.image(image_url);
-                color.map(|c| e.color(c));
-            })
-            .await?;
-        }
-
         // Handle fetching a single field
         Some(desired_field) => {
-            let value = match desired_field.as_str() {
-                "description" => profile.and_then(|x| x.description.clone()),
-                "git" => profile.and_then(|x| x.git.clone()),
-                "dotfiles" => profile.and_then(|x| x.dotfiles.clone()),
-                _ => fetch_info.and_then(|x| x.info.get(&desired_field).cloned()),
-            };
-
-            let value = value.user_error("Failed to get that value. Maybe the user hasn't set it, or maybe the field does not exist?")?;
+            let value = all_data.get(&desired_field).cloned()
+                .user_error("Failed to get that value. Maybe the user hasn't set it, or maybe the field does not exist?")?;
 
             msg.reply_embed(&ctx, |e| {
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
                 e.title(format!("{}'s {}", member.user.tag(), desired_field));
-                e.description(value);
-                color.map(|c| e.color(c));
+                e.color_opt(color);
+                if desired_field == "image" {
+                    e.image(value);
+                } else {
+                    e.description(value);
+                }
             })
             .await?;
         }
@@ -173,30 +164,20 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
             msg.reply_embed(&ctx, |e| {
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
                 e.title(format!("Fetch {}", member.user.tag()));
-                color.map(|c| e.color(c));
+                e.color_opt(color);
 
-                if let Some(mut fetch_info) = fetch_info {
-                    if let Some(image_url) = fetch_info.info.get("Distro").and_then(|distro| {
-                        DISTRO_IMAGES
-                            .iter()
-                            .find(|(d, _)| distro.as_str().to_lowercase().starts_with(*d))
-                            .map(|(_, url)| url)
-                    }) {
-                        e.thumbnail(image_url);
-                    }
-
-                    if let Some(image_url) = fetch_info.info.remove("image") {
-                        e.image(image_url);
-                    }
-
-                    // set main fetch fields
-                    e.fields(fetch_info.info.iter().map(|(k, v)| (k, v, true)));
+                if let Some(image_url) = all_data.get("Distro").and_then(|d| find_distro_image(d)) {
+                    e.thumbnail(image_url);
                 }
 
-                if let Some(profile) = profile {
-                    profile.description.map(|x| e.description(x));
-                    profile.git.map(|x| e.field("Git", x, true));
-                    profile.dotfiles.map(|x| e.field("Dotfiles", x, true));
+                // remove image here, such that it is not included in the main fetch fields
+                if let Some(image_url) = all_data.remove("image") {
+                    e.image(image_url);
+                }
+
+                // set main fetch fields
+                for (key, value) in all_data {
+                    e.field(key, value, true);
                 }
             })
             .await?;
@@ -204,6 +185,13 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     }
 
     Ok(())
+}
+
+fn find_distro_image(distro: &str) -> Option<&str> {
+    DISTRO_IMAGES
+        .iter()
+        .find(|(d, _)| distro.to_lowercase().starts_with(*d))
+        .map(|(_, url)| *url)
 }
 
 lazy_static! {

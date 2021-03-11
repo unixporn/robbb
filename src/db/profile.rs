@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::*;
 use serenity::model::id::UserId;
 
@@ -9,6 +11,22 @@ pub struct Profile {
     pub git: Option<String>,
     pub dotfiles: Option<String>,
     pub description: Option<String>,
+}
+
+impl Profile {
+    pub fn into_values_map(self) -> HashMap<String, String> {
+        let mut m = HashMap::new();
+        if let Some(description) = self.description {
+            m.insert("description".to_string(), description);
+        }
+        if let Some(dotfiles) = self.dotfiles {
+            m.insert("dotfiles".to_string(), dotfiles);
+        }
+        if let Some(git) = self.git {
+            m.insert("git".to_string(), git);
+        }
+        m
+    }
 }
 
 impl Db {

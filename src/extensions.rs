@@ -14,6 +14,7 @@ use serenity::{
         id::{ChannelId, GuildId},
         prelude::User,
     },
+    utils::Colour,
 };
 
 use crate::Config;
@@ -211,5 +212,18 @@ pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut Crea
             }
             f.text("\u{200b}")
         });
+    }
+}
+
+pub trait CreateEmbedExt {
+    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed;
+}
+
+impl CreateEmbedExt for CreateEmbed {
+    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed {
+        if let Some(c) = c {
+            self.color(c);
+        }
+        self
     }
 }
