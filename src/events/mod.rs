@@ -23,6 +23,14 @@ pub struct Handler;
 impl EventHandler for Handler {
     async fn ready(&self, ctx: client::Context, _data_about_bot: Ready) {
         println!("Trup is ready!");
+
+        let _ = ctx
+            .set_presence(
+                Some(Activity::competing("being the very best")),
+                OnlineStatus::Online,
+            )
+            .await;
+
         start_mute_handler(ctx).await;
     }
 

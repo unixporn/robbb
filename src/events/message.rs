@@ -1,15 +1,26 @@
+use crate::db::note::NoteType;
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
-
-use crate::db::note::NoteType;
+use regex::Regex;
 
 use super::*;
 
 pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+
     if msg.author.bot {
         return Ok(());
+    }
+
+    if msg.channel_id == config.channel_showcase {
+        handle_showcase_post(&ctx, &msg)
+            .await
+            .context("Failed to handle showcase post")?;
+    } else if msg.channel_id == config.channel_feedback {
+        handle_feedback_post(&ctx, &msg)
+            .await
+            .context("Failed to handle feedback post")?;
     }
 
     if handle_spam_protect(&ctx, &msg).await? {
@@ -18,18 +29,58 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     if handle_blocklist(&ctx, &msg).await? {
         return Ok(());
     }
-
-    if msg.channel_id == config.channel_showcase {
-        handle_showcase_post(ctx, msg)
-            .await
-            .context("Failed to handle showcase post")
-    } else if msg.channel_id == config.channel_feedback {
-        handle_feedback_post(ctx, msg)
-            .await
-            .context("Failed to handle feedback post")
-    } else {
-        Ok(())
+    if handle_quote(&ctx, &msg).await? {
+        return Ok(());
     }
+
+    Ok(())
+}
+
+async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
+    lazy_static::lazy_static! {
+        static ref MSG_LINK_PATTERN: Regex = Regex::new(r#"https://(?:canary\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)"#).unwrap();
+    }
+
+    let caps = match MSG_LINK_PATTERN.captures(&msg.content) {
+        Some(caps) => caps,
+        None => return Ok(false),
+    };
+
+    let (guild_id, channel_id, message_id) = (
+        caps.get(1).unwrap().as_str().parse::<u64>()?,
+        caps.get(2).unwrap().as_str().parse::<u64>()?,
+        caps.get(3).unwrap().as_str().parse::<u64>()?,
+    );
+
+    if Some(GuildId(guild_id)) != msg.guild_id {
+        return Ok(false);
+    }
+
+    let mentioned_msg = ctx.http.get_message(channel_id, message_id).await?;
+    let image_attachment = mentioned_msg
+        .attachments
+        .iter()
+        .find(|x| x.dimensions().is_some());
+
+    if (image_attachment.is_none() && mentioned_msg.content.trim().is_empty())
+        || mentioned_msg.author.bot
+    {
+        return Ok(false);
+    }
+
+    msg.reply_embed(&ctx, |e| {
+        e.footer(|f| {
+            f.text(format!("Quote of {}", mentioned_msg.author.tag()));
+            f.icon_url(mentioned_msg.author.face())
+        });
+        if let Some(attachment) = image_attachment {
+            e.image(&attachment.url);
+        }
+        e.description(&mentioned_msg.content);
+        e.timestamp(&mentioned_msg.timestamp);
+    })
+    .await?;
+    Ok(true)
 }
 
 async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
@@ -148,7 +199,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     }
 }
 
-async fn handle_showcase_post(ctx: client::Context, msg: Message) -> Result<()> {
+async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     if !msg.attachments.is_empty() || !msg.embeds.is_empty() {
         if let Some(attachment) = msg.attachments.first() {
             let data = ctx.data.read().await;
@@ -177,7 +228,7 @@ async fn handle_showcase_post(ctx: client::Context, msg: Message) -> Result<()> 
     Ok(())
 }
 
-async fn handle_feedback_post(ctx: client::Context, msg: Message) -> Result<()> {
+async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     msg.react(&ctx, ReactionType::Unicode("👍".to_string()))
         .await
         .context("Error reacting to feedback submission with 👍")?;
@@ -186,7 +237,7 @@ async fn handle_feedback_post(ctx: client::Context, msg: Message) -> Result<()> 
         .context("Error reacting to feedback submission with 👍")?;
 
     // retrieve the last keep-at-bottom message the bot wrote
-    let recent_messages = msg.channel_id.messages(&ctx, |m| m.before(&msg)).await?;
+    let recent_messages = msg.channel_id.messages(&ctx, |m| m.before(msg)).await?;
 
     let last_bottom_pin_msg = recent_messages.iter().find(|m| {
         m.author.bot
