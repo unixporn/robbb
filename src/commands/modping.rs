@@ -15,13 +15,13 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
         .into_iter()
         .chain(guild.members_with_status(OnlineStatus::Idle).into_iter())
         .chain(guild.members_with_status(DoNotDisturb).into_iter())
-        .filter(|member| member.roles.contains(&config.role_mod));
+        .filter(|member| member.roles.contains(&config.role_mod))
+        .collect_vec();
 
-    let mods = mods.map(|m| m.mention()).join(", ");
-    let mods = if mods.is_empty() {
+    let mods = if mods.len() < 2 {
         config.role_mod.mention().to_string()
     } else {
-        mods
+        mods.iter().map(|m| m.mention()).join(", ")
     };
 
     msg.channel_id

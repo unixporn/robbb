@@ -16,7 +16,7 @@ use serenity::{
     },
     model::prelude::*,
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, str::FromStr};
 use thiserror::Error;
 
 pub mod ban;
@@ -34,12 +34,13 @@ pub mod poll;
 pub mod purge;
 pub mod role;
 pub mod small;
+pub mod top;
 pub mod unban;
 pub mod warn;
 use ban::*;
 use blocklist::*;
 pub use errors::*;
-use fetch::*;
+pub use fetch::*;
 pub use help::*;
 use info::*;
 use modping::*;
@@ -51,6 +52,7 @@ use poll::*;
 use purge::*;
 use role::*;
 use small::*;
+use top::*;
 use unban::*;
 use warn::*;
 
@@ -69,9 +71,22 @@ struct Moderator;
 #[group]
 #[only_in(guilds)]
 #[commands(
-    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top
 )]
 struct General;
+
+#[derive(Debug, Clone)]
+pub struct BacktickedString(pub String);
+impl FromStr for BacktickedString {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        s.strip_prefix('`')
+            .and_then(|x| x.strip_suffix('`'))
+            .map(|x| BacktickedString(x.to_string()))
+            .context("must be surrounded in backticks")
+    }
+}
 
 pub async fn disambiguate_user_mention(
     ctx: &client::Context,

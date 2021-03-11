@@ -207,7 +207,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 }
 
 lazy_static! {
-    static ref ALLOWED_KEYS: [&'static str; 14] = [
+    pub static ref ALLOWED_KEYS: [&'static str; 14] = [
         "Distro",
         "Kernel",
         "Terminal",

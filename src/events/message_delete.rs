@@ -24,6 +24,18 @@ pub async fn message_delete(
         return Ok(());
     }
 
+    if !msg.mentions.is_empty() {
+        channel_id
+            .send_message(&ctx, |m| {
+                m.content(format!(
+                    "REEEEEEEEEEEEEEEEEEEE {} got 👻-pinged by {}",
+                    msg.mentions.iter().map(|x| x.mention()).join(", "),
+                    msg.author.id.mention()
+                ))
+            })
+            .await?;
+    }
+
     let channel_name = channel_id
         .name(&ctx)
         .await
