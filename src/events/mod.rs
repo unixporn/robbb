@@ -1,4 +1,6 @@
-use crate::extensions::*;
+use std::sync::Arc;
+
+use crate::{db::mute, extensions::*};
 use anyhow::{Context, Result};
 
 use serenity::async_trait;
@@ -125,6 +127,19 @@ impl EventHandler for Handler {
     }
 }
 
+async fn unmute(
+    ctx: &client::Context,
+    config: &Arc<Config>,
+    db: &Arc<Db>,
+    mute: &mute::Mute,
+) -> Result<()> {
+    let mut member = config.guild.member(&ctx, mute.user).await?;
+    member.remove_roles(&ctx, &[config.role_mute]).await?;
+    db.set_mute_inactive(mute.id).await?;
+
+    Ok(())
+}
+
 async fn start_mute_handler(ctx: client::Context) {
     tokio::spawn(async move {
         loop {
@@ -140,18 +155,14 @@ async fn start_mute_handler(ctx: client::Context) {
                 }
             };
             for mute in mutes {
-                let result: Result<_> = try {
-                    let mut member = config.guild.member(&ctx, mute.user).await?;
-                    member.remove_roles(&ctx, &[config.role_mute]).await?;
-                    db.set_mute_inactive(mute.id).await?;
+                if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
+                    eprintln!("Error handling mute removal: {}", err);
+                } else {
                     config
                         .log_bot_action(&ctx, |e| {
                             e.description(format!("{} is now unmuted", mute.user.mention()));
                         })
                         .await;
-                };
-                if let Err(err) = result {
-                    eprintln!("Error handling mute removal: {}", err);
                 }
             }
         }
