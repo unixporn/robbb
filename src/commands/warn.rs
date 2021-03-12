@@ -43,9 +43,11 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     config
         .log_bot_action(&ctx, |e| {
             e.description(format!(
-                "User {} was warned by {}",
+                "{} was warned by {} _({} warn)_\n{}",
                 mentioned_user_id.mention(),
                 msg.author.id.mention(),
+                util::format_count(warn_count),
+                msg.to_context_link(),
             ));
             e.field("Reason", reason, false);
         })

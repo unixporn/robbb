@@ -14,23 +14,18 @@ use serenity::{
         id::{ChannelId, GuildId},
         prelude::User,
     },
+    utils::Colour,
 };
 
 use crate::Config;
 
 pub trait UserExt {
     fn name_with_disc_and_id(&self) -> String;
-    fn avatar_or_default(&self) -> String;
 }
 
 impl UserExt for User {
     fn name_with_disc_and_id(&self) -> String {
         format!("{}#{}({})", self.name, self.discriminator, self.id)
-    }
-
-    fn avatar_or_default(&self) -> String {
-        self.avatar_url()
-            .unwrap_or_else(|| self.default_avatar_url())
     }
 }
 
@@ -114,6 +109,14 @@ pub trait MessageExt {
         ctx: &client::Context,
         s: impl Display + Send + Sync + 'static,
     ) -> Result<Message>;
+
+    async fn reply_success(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message>;
+
+    fn to_context_link(&self) -> String;
 }
 
 #[async_trait]
@@ -126,6 +129,7 @@ impl MessageExt for Message {
 
         self.channel_id
             .send_message(&ctx, move |m| {
+                m.allowed_mentions(|f| f.replied_user(false));
                 m.reference_message(self);
                 m.embed(move |e| {
                     build_basics(e);
@@ -143,10 +147,26 @@ impl MessageExt for Message {
         s: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
         self.reply_embed(&ctx, |e| {
-            e.description(format!("{} :'(", s));
+            e.description(format!("{}", s));
             e.color(0xfb4934);
         })
         .await
+    }
+
+    async fn reply_success(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message> {
+        self.reply_embed(&ctx, |e| {
+            e.description(format!("{}", s));
+            e.color(0xb8bb26);
+        })
+        .await
+    }
+
+    fn to_context_link(&self) -> String {
+        format!("[(context)]({})", self.link())
     }
 }
 
@@ -177,7 +197,7 @@ impl ChannelIdExt for ChannelId {
     }
 }
 
-async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
+pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
     let data = ctx.data.read().await;
     let config = data.get::<Config>().unwrap().clone();
 
@@ -192,5 +212,18 @@ async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEm
             }
             f.text("\u{200b}")
         });
+    }
+}
+
+pub trait CreateEmbedExt {
+    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed;
+}
+
+impl CreateEmbedExt for CreateEmbed {
+    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed {
+        if let Some(c) = c {
+            self.color(c);
+        }
+        self
     }
 }

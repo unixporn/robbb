@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::*;
 use serenity::model::id::UserId;
 
@@ -11,6 +13,22 @@ pub struct Profile {
     pub description: Option<String>,
 }
 
+impl Profile {
+    pub fn into_values_map(self) -> HashMap<String, String> {
+        let mut m = HashMap::new();
+        if let Some(description) = self.description {
+            m.insert("description".to_string(), description);
+        }
+        if let Some(dotfiles) = self.dotfiles {
+            m.insert("dotfiles".to_string(), dotfiles);
+        }
+        if let Some(git) = self.git {
+            m.insert("git".to_string(), git);
+        }
+        m
+    }
+}
+
 impl Db {
     pub async fn set_git(&self, user: UserId, value: Option<String>) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
@@ -18,7 +36,7 @@ impl Db {
         let user = user.0 as i64;
         sqlx::query!(
             "insert into profile (usr, git, dotfiles, description) values (?, ?, NULL, NULL)
-                on conflict(usr) do update set description=?",
+                on conflict(usr) do update set git=?",
             user,
             value,
             value

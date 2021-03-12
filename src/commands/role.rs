@@ -24,15 +24,18 @@ pub async fn role(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             .roles_color
             .iter()
             .filter_map(|r| guild.roles.get(r))
-            .find(|r| r.name == chosen_role_name)
+            .find(|r| {
+                r.name == chosen_role_name || Some(r.id) == chosen_role_name.parse::<RoleId>().ok()
+            })
             .user_error("Unknown color role")?;
 
         let mut member = guild.member(&ctx, msg.author.id).await?;
         member.remove_roles(&ctx, &config.roles_color).await?;
         member.add_role(&ctx, chosen_role.id).await?;
-        msg.reply_embed(&ctx, |e| {
-            e.description(format!("Success! You're now {}", chosen_role.id.mention()));
-        })
+        msg.reply_success(
+            &ctx,
+            format!("Success! You're now {}", chosen_role.id.mention()),
+        )
         .await?;
     }
 

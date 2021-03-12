@@ -1,3 +1,5 @@
+use crate::extensions::{build_embed_builder, ChannelIdExt};
+
 use super::*;
 /// Move a conversation to a different channel.
 #[command("move")]
@@ -6,26 +8,41 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
     let channel = args
         .single::<ChannelId>()
         .invalid_usage(&MOVE_USERS_COMMAND_OPTIONS)?;
-    let rest = args.remains().unwrap_or_default();
+    let mentions = args
+        .iter::<UserId>()
+        .filter_map(|x| Some(x.ok()?.mention()))
+        .join(" ");
+
+    let embed_builder = build_embed_builder(&ctx).await;
     let continuation_msg = channel
         .send_message(&ctx, |m| {
-            m.content(format!(
-                "{} {}\nContinuation from {}\n(<{}>)",
-                msg.author.mention(),
-                rest,
-                msg.channel_id.mention(),
-                msg.link()
-            ))
+            m.content(format!("{} {}", msg.author.mention(), mentions,));
+            m.embed(|e| {
+                embed_builder(e);
+                e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
+                e.description(indoc::formatdoc!(
+                    "Continuation from {}
+                    [Conversation]({})",
+                    msg.channel_id.mention(),
+                    msg.link()
+                ))
+            })
         })
         .await?;
+
     let _ = msg
-        .reply_embed(&ctx, |e| {
-            e.description(format!(
-                "Continued at {}\n{}",
+        .channel_id
+        .send_embed(&ctx, |e| {
+            e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
+            e.description(indoc::formatdoc!(
+                "Continued at {}: [Conversation]({})
+                Please continue your conversation **there**!",
                 channel.mention(),
                 continuation_msg.link()
             ));
         })
         .await?;
+
+    msg.delete(&ctx).await?;
     Ok(())
 }

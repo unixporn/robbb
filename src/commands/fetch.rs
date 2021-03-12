@@ -1,39 +1,54 @@
+use crate::extensions::CreateEmbedExt;
 use anyhow::*;
 use lazy_static::lazy_static;
 
 use super::*;
 use std::collections::HashMap;
 
-/// Run without arguments to see instructions:
+const SETFETCH_USAGE: &'static str = indoc::indoc!("
+    Run this: 
+    `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh`
+    and follow the instructions. It's recommended that you download and read the script before running it, 
+    as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
+
+    **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
+    **NOTE**: If you're trying to manually change a value, it needs a newline after !setfetch (update).
+    **NOTE**: !git, !dotfiles, and !desc are different commands"
+);
+
+/// Run without arguments to see instructions.
 #[command("setfetch")]
 #[usage("setfetch [update]")]
-pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+#[sub_commands(set_fetch_update)]
+pub async fn set_fetch(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let lines = args.rest().lines().collect_vec();
+    handle_set_fetch(ctx, msg, lines, false).await
+}
+
+#[command("update")]
+#[usage("setfetch update")]
+pub async fn set_fetch_update(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let lines = args.rest().lines().collect_vec();
+    handle_set_fetch(ctx, msg, lines, true).await
+}
+
+pub async fn handle_set_fetch(
+    ctx: &client::Context,
+    msg: &Message,
+    lines: Vec<&str>,
+    update: bool,
+) -> CommandResult {
     let data = ctx.data.read().await;
     let db = data.get::<Db>().unwrap().clone();
 
-    let updating = args
-        .single::<String>()
-        .map(|x| x == "update")
-        .unwrap_or(false);
-    if !updating {
-        args.restore();
-    }
-
-    let lines = args.rest().lines().collect_vec();
     if lines.is_empty() && msg.attachments.is_empty() {
-        msg.reply(&ctx, indoc::indoc!("
-            Run this: `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh` 
-            and follow the instructions. It's recommended that you download and read the script before running it, 
-            as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
-
-            > NOTE: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-            > NOTE: If you're trying to manually change a value, it needs a newline after !setfetch (update).
-            > NOTE: !git, !dotfiles, and !desc are different commands"
-        )).await?;
+        msg.reply_embed(&ctx, |e| {
+            e.title("Usage").description(SETFETCH_USAGE);
+        })
+        .await?;
         return Ok(());
     }
 
-    // TODO does this need better error handling? Or is ignoring invalid values fine.
     let mut info = lines
         .into_iter()
         .filter_map(|line| line.split_once(":"))
@@ -77,25 +92,28 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> 
         info.insert("image".to_string(), image);
     }
 
-    if updating {
+    if update {
         db.update_fetch(msg.author.id, info).await?;
+        msg.reply_success(&ctx, "Successfully updated your fetch data!")
+            .await?;
     } else {
         db.set_fetch(msg.author.id, info).await?;
+        msg.reply_success(&ctx, "Successfully set your fetch data!")
+            .await?;
     }
-    msg.reply(&ctx, "Successfully set your fetch data!").await?;
 
     Ok(())
 }
 
 /// Fetch a users system information.
 #[command("fetch")]
-#[usage("fetch [user]")]
+#[usage("fetch [user] [field]")]
 pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read().await;
     let db = data.get::<Db>().unwrap().clone();
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
+    let mentioned_user_id = if let Ok(mentioned_user) = args.single_quoted::<String>() {
         disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
             .await?
             .ok_or(UserErr::MentionedUserNotFound)?
@@ -103,61 +121,81 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         msg.author.id
     };
 
-    let profile = db.get_profile(mentioned_user_id).await?;
-    let fetch_info = db.get_fetch(mentioned_user_id).await?;
+    let desired_field = args.single_quoted::<String>().ok();
+
+    let (profile, fetch_info) = tokio::try_join!(
+        db.get_profile(mentioned_user_id),
+        db.get_fetch(mentioned_user_id),
+    )?;
     if fetch_info.is_none() && profile.is_none() {
-        abort_with!(UserErr::Other(
-            "This user has not set their fetch :/".to_string()
-        ))
+        abort_with!(UserErr::other("This user has not set their fetch :/"))
+    }
+
+    // all data shown in fetch, including the profile values
+    let mut all_data: HashMap<String, String> = fetch_info.map(|x| x.info).unwrap_or_default();
+    if let Some(profile) = profile {
+        all_data.extend(profile.into_values_map());
     }
 
     let member = guild.member(&ctx, mentioned_user_id).await?;
-
     let color = member.colour(&ctx).await;
 
-    msg.reply_embed(&ctx, |e| {
-        e.author(|a| {
-            a.name(member.user.tag());
-            a.icon_url(member.user.avatar_or_default())
-        });
-        e.title(format!("Fetch {}", member.user.tag()));
-        if let Some(color) = color {
-            e.color(color);
+    match desired_field {
+        // Handle fetching a single field
+        Some(desired_field) => {
+            let value = all_data.get(&desired_field).cloned()
+                .user_error("Failed to get that value. Maybe the user hasn't set it, or maybe the field does not exist?")?;
+
+            msg.reply_embed(&ctx, |e| {
+                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
+                e.title(format!("{}'s {}", member.user.tag(), desired_field));
+                e.color_opt(color);
+                if desired_field == "image" {
+                    e.image(value);
+                } else {
+                    e.description(value);
+                }
+            })
+            .await?;
         }
 
-        if let Some(mut fetch_info) = fetch_info {
-            if let Some(image_url) = fetch_info.info.get("Distro").and_then(|distro| {
-                DISTRO_IMAGES
-                    .iter()
-                    .find(|(d, _)| distro.as_str().to_lowercase().starts_with(*d))
-                    .map(|(_, url)| url)
-            }) {
-                e.thumbnail(image_url);
-            }
+        // Handle fetching all fields
+        None => {
+            msg.reply_embed(&ctx, |e| {
+                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
+                e.title(format!("Fetch {}", member.user.tag()));
+                e.color_opt(color);
 
-            if let Some(image_url) = fetch_info.info.remove("image") {
-                e.image(image_url);
-            }
+                if let Some(image_url) = all_data.get("Distro").and_then(|d| find_distro_image(d)) {
+                    e.thumbnail(image_url);
+                }
 
-            // set main fetch fields
-            e.fields(fetch_info.info.iter().map(|(k, v)| (k, v, true)));
+                // remove image here, such that it is not included in the main fetch fields
+                if let Some(image_url) = all_data.remove("image") {
+                    e.image(image_url);
+                }
+
+                // set main fetch fields
+                for (key, value) in all_data {
+                    e.field(key, value, true);
+                }
+            })
+            .await?;
         }
-
-        if let Some(profile) = profile {
-            profile
-                .description
-                .map(|x| e.field("Description", x, false));
-            profile.git.map(|x| e.field("Git", x, false));
-            profile.dotfiles.map(|x| e.field("Dotfiles", x, false));
-        }
-    })
-    .await?;
+    }
 
     Ok(())
 }
 
+fn find_distro_image(distro: &str) -> Option<&str> {
+    DISTRO_IMAGES
+        .iter()
+        .find(|(d, _)| distro.to_lowercase().starts_with(*d))
+        .map(|(_, url)| *url)
+}
+
 lazy_static! {
-    static ref ALLOWED_KEYS: [&'static str; 14] = [
+    pub static ref ALLOWED_KEYS: [&'static str; 14] = [
         "Distro",
         "Kernel",
         "Terminal",

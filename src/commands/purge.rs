@@ -18,11 +18,30 @@ impl FromStr for DeletionRange {
     }
 }
 
-/// delete <amount> messages sent by <user> in the current channel or messages sent in the last <duration> by <user>.
+/// **silently** delete <amount> messages sent by <user> in the current channel or messages sent in the last <duration> by <user>.
 /// Doesn't delete messages older than 14 days.
 #[command]
+#[usage("spurge <amount OR duration> <@user>")]
+#[help_available(false)]
+pub async fn spurge(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    do_purge(&ctx, &msg, args, true).await
+}
+
+/// delete <amount> messages sent by <user> in the current channel or messages sent in the last <duration> by <user>.
+/// Doesn't delete messages older than 14 days.
+/// (use `spurge` to do this silently)
+#[command]
 #[usage("purge <amount OR duration> <@user>")]
-pub async fn purge(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn purge(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    do_purge(&ctx, &msg, args, false).await
+}
+
+async fn do_purge(
+    ctx: &client::Context,
+    msg: &Message,
+    mut args: Args,
+    silent: bool,
+) -> CommandResult {
     let range = args
         .single::<DeletionRange>()
         .invalid_usage(&PURGE_COMMAND_OPTIONS)?;
@@ -64,13 +83,14 @@ pub async fn purge(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         .collect_vec();
 
     channel.delete_messages(&ctx, &recent_messages).await?;
-    msg.reply_embed(&ctx, |e| {
-        e.title(format!(
-            "Successfully deleted {} messages",
-            recent_messages.len()
-        ));
-    })
-    .await?;
-
+    if silent {
+        msg.delete(&ctx).await?;
+    } else {
+        msg.reply_success(
+            &ctx,
+            format!("Successfully deleted {} messages", recent_messages.len()),
+        )
+        .await?;
+    }
     Ok(())
 }

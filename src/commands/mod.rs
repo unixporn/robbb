@@ -1,9 +1,4 @@
-use crate::{
-    abort_with,
-    db::Db,
-    extensions::{MessageExt, UserExt},
-    util, Config,
-};
+use crate::{abort_with, db::Db, extensions::MessageExt, util, Config};
 
 use super::checks::*;
 //use super::Config;
@@ -21,10 +16,11 @@ use serenity::{
     },
     model::prelude::*,
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, str::FromStr};
 use thiserror::Error;
 
 pub mod ban;
+pub mod blocklist;
 pub mod errors;
 pub mod fetch;
 pub mod help;
@@ -38,10 +34,13 @@ pub mod poll;
 pub mod purge;
 pub mod role;
 pub mod small;
+pub mod top;
+pub mod unban;
 pub mod warn;
 use ban::*;
+use blocklist::*;
 pub use errors::*;
-use fetch::*;
+pub use fetch::*;
 pub use help::*;
 use info::*;
 use modping::*;
@@ -53,24 +52,41 @@ use poll::*;
 use purge::*;
 use role::*;
 use small::*;
+use top::*;
+use unban::*;
 use warn::*;
 
 lazy_static::lazy_static! {
-    pub static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+    pub static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "\u{1f1e6}","\u{1f1e7}", "\u{1f1e8}", "\u{1f1e9}", "\u{1f1f0}", "\u{1f1f1}", "\u{1f1f2}", "\u{1f1f3}", "\u{1f1f4}" ];
 }
 
 #[group]
 #[only_in(guilds)]
-#[commands(restart, mute, warn, note, notes, latency, say, ban, delban, purge)]
+#[commands(
+    restart, mute, warn, note, notes, latency, say, ban, delban, purge, unban, spurge, blocklist
+)]
 #[checks(moderator)]
 struct Moderator;
 
 #[group]
 #[only_in(guilds)]
 #[commands(
-    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top
 )]
 struct General;
+
+#[derive(Debug, Clone)]
+pub struct BacktickedString(pub String);
+impl FromStr for BacktickedString {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        s.strip_prefix('`')
+            .and_then(|x| x.strip_suffix('`'))
+            .map(|x| BacktickedString(x.to_string()))
+            .context("must be surrounded in backticks")
+    }
+}
 
 pub async fn disambiguate_user_mention(
     ctx: &client::Context,
@@ -78,7 +94,11 @@ pub async fn disambiguate_user_mention(
     msg: &Message,
     name: &str,
 ) -> Result<Option<UserId>> {
-    if let Ok(user_id) = name.parse::<UserId>() {
+    if let Some(user_id) = name
+        .parse::<UserId>()
+        .ok()
+        .filter(|id| id.0 > 10_000_000_000_000_000)
+    {
         Ok(Some(user_id))
     } else if let Some(member) =
         async { guild.member(&ctx, name.parse::<u64>().ok()?).await.ok() }.await

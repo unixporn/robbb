@@ -5,7 +5,7 @@ use super::*;
 pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
-    let mentioned_user_id = if let Ok(mentioned_user) = args.single::<String>() {
+    let mentioned_user_id = if let Ok(mentioned_user) = args.single_quoted::<String>() {
         disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
             .await?
             .ok_or(UserErr::MentionedUserNotFound)?
@@ -21,7 +21,7 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     msg.reply_embed(&ctx, |e| {
         e.title(member.user.tag());
-        e.thumbnail(member.user.avatar_or_default());
+        e.thumbnail(member.user.face());
         if let Some(color) = color {
             e.color(color);
         }

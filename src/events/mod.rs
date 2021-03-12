@@ -23,6 +23,14 @@ pub struct Handler;
 impl EventHandler for Handler {
     async fn ready(&self, ctx: client::Context, _data_about_bot: Ready) {
         println!("Trup is ready!");
+
+        let _ = ctx
+            .set_presence(
+                Some(Activity::competing("being the very best")),
+                OnlineStatus::Online,
+            )
+            .await;
+
         start_mute_handler(ctx).await;
     }
 
@@ -59,6 +67,25 @@ impl EventHandler for Handler {
             message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id)
                 .await
                 .context("Error while handling message_delete event"),
+        );
+    }
+
+    async fn message_delete_bulk(
+        &self,
+        ctx: client::Context,
+        channel_id: ChannelId,
+        multiple_deleted_messages_ids: Vec<MessageId>,
+        guild_id: Option<GuildId>,
+    ) {
+        util::log_error_value(
+            message_delete::message_delete_bulk(
+                ctx,
+                channel_id,
+                multiple_deleted_messages_ids,
+                guild_id,
+            )
+            .await
+            .context("Error while handling message_delete event"),
         );
     }
 

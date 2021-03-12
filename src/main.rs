@@ -2,6 +2,8 @@
 #![feature(box_patterns)]
 #![feature(label_break_value)]
 #![feature(or_patterns)]
+#![feature(async_closure)]
+#![feature(drain_filter)]
 
 #[allow(unused_imports)]
 use db::Db;
@@ -115,7 +117,7 @@ async fn main() {
     };
 
     if let Err(why) = client.start().await {
-        println!("An error occurred while running the client : {:?}", why);
+        println!("An error occurred while running the client: {:?}", why);
     }
 }
 
@@ -172,7 +174,7 @@ fn display_dispatch_error(err: DispatchError) -> String {
 }
 
 #[hook]
-async fn after(ctx: &client::Context, msg: &Message, _command_name: &str, result: CommandResult) {
+async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result: CommandResult) {
     match result {
         Err(err) => match err.downcast_ref::<UserErr>() {
             Some(err) => match err {
@@ -188,8 +190,23 @@ async fn after(ctx: &client::Context, msg: &Message, _command_name: &str, result
             },
             None => match err.downcast::<serenity::Error>() {
                 Ok(box err) => {
-                    eprintln!("Serenity error: {} ({:?})", &err, &err);
+                    eprintln!(
+                        "Serenity error [handling {}]: {} ({:?})",
+                        command_name, &err, &err
+                    );
                     match err {
+                        serenity::Error::Http(err) => match *err {
+                            serenity::http::error::Error::UnsuccessfulRequest(res) => {
+                                if res.status_code == serenity::http::StatusCode::NOT_FOUND
+                                    && res.error.message.to_lowercase().contains("unknown user")
+                                {
+                                    let _ = msg.reply_error(&ctx, "User not found").await;
+                                } else {
+                                    let _ = msg.reply_error(&ctx, "Something went wrong").await;
+                                }
+                            }
+                            _ => {}
+                        },
                         serenity::Error::Model(err) => {
                             let _ = msg.reply_error(&ctx, err).await;
                         }
@@ -200,7 +217,10 @@ async fn after(ctx: &client::Context, msg: &Message, _command_name: &str, result
                 }
                 Err(err) => {
                     let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                    eprintln!("Internal error: {} ({:?})", &err, &err);
+                    eprintln!(
+                        "Internal error [handling {}]: {} ({:?})",
+                        command_name, &err, &err
+                    );
                 }
             },
         },

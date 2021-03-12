@@ -37,3 +37,9 @@ CREATE TABLE IF NOT EXISTS profile (
     dotfiles text,
     description text
 );
+
+CREATE TABLE IF NOT EXISTS blocked_regexes (
+    pattern text primary key,
+    added_by integer not null
+);
+

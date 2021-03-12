@@ -14,10 +14,7 @@ pub async fn guild_member_removal(
     config
         .channel_bot_traffic
         .send_embed(&ctx, |e| {
-            e.author(|a| {
-                a.name("Member Leave");
-                a.icon_url(user.avatar_or_default())
-            });
+            e.author(|a| a.name("Member Leave").icon_url(user.face()));
             e.title(user.name_with_disc_and_id());
             e.field("Leave Date", util::format_date(chrono::Utc::now()), false);
         })
