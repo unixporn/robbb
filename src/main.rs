@@ -1,10 +1,3 @@
-#![feature(try_blocks)]
-#![feature(box_patterns)]
-#![feature(label_break_value)]
-#![feature(or_patterns)]
-#![feature(async_closure)]
-#![feature(drain_filter)]
-
 #[allow(unused_imports)]
 use db::Db;
 use extensions::{GuildExt, MessageExt};
@@ -124,13 +117,13 @@ async fn main() {
 #[hook]
 async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError) {
     // Log dispatch errors that should be logged
-    if let DispatchError::CheckFailed(
-        required,
-        Reason::Log(log) | Reason::UserAndLog { user: _, log },
-    ) = &error
-    {
-        eprintln!("Check for {} failed with: {}", required, log);
-    }
+    match &error {
+        DispatchError::CheckFailed(required, Reason::Log(log))
+        | DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
+            eprintln!("Check for {} failed with: {}", required, log);
+        }
+        _ => {}
+    };
 
     let _ = msg.reply_error(&ctx, display_dispatch_error(error)).await;
 }
@@ -189,7 +182,8 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                 }
             },
             None => match err.downcast::<serenity::Error>() {
-                Ok(box err) => {
+                Ok(err) => {
+                    let err = *err;
                     eprintln!(
                         "Serenity error [handling {}]: {} ({:?})",
                         command_name, &err, &err

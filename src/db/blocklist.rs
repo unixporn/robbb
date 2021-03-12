@@ -1,4 +1,5 @@
 use anyhow::*;
+use itertools::Itertools;
 use regex::Regex;
 use serenity::model::id::UserId;
 
@@ -57,7 +58,9 @@ impl Db {
 
         let mut cache = self.blocklist_cache.lock().await;
         if let Some(ref mut cache) = cache.as_mut() {
-            cache.drain_filter(|x| x == s).for_each(|_| {});
+            if let Some((pos, _)) = cache.iter().find_position(|x| x.as_str() == s) {
+                cache.remove(pos);
+            }
         }
 
         Ok(())

@@ -51,7 +51,14 @@ pub async fn handle_set_fetch(
 
     let mut info = lines
         .into_iter()
-        .filter_map(|line| line.split_once(":"))
+        .filter_map(|line| {
+            const DELIM: &str = ":";
+            let pos = line.find(DELIM)?;
+            let key = &line[..pos];
+            let value = &line[pos+DELIM.len()..];
+
+            Some((key, value))
+        })
         .map(|(key, value)| (key.trim().to_string(), value.trim().to_string()))
         .filter(|(k, v)| !k.is_empty() && !v.is_empty())
         .collect::<HashMap<String, String>>();
