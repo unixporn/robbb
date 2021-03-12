@@ -115,7 +115,7 @@ async fn main() {
     };
 
     if let Err(why) = client.start().await {
-        println!("An error occurred while running the client: {:?}", why);
+        println!("An error occurred while running the client : {:?}", why);
     }
 }
 
