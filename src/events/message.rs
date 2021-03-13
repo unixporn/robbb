@@ -288,10 +288,21 @@ async fn message_txt(ctx: &client::Context, msg: &Message) -> Result<()> {
         )));
     }
     let text = code.text().await?;
+    let color = msg
+        .guild(&ctx)
+        .await
+        .context("Failed to load guild")?
+        .member(&ctx, msg.author.id)
+        .await?
+        .colour(&ctx)
+        .await;
+
     msg.reply_embed(&ctx, |m| {
+        if let Some(color) = color {
+            m.color(color);
+        }
         m.title(format!("{}", text));
         m.footer(|f| f.text(format!("message.txt of {}", msg.author.name)));
-        m.color(serenity::utils::Color::from_rgb(3, 192, 60));
     })
     .await?;
     Ok(())
