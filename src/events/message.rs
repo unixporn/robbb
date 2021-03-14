@@ -3,6 +3,9 @@ use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
+use tokio::io::AsyncReadExt;
+use tokio_util::compat::FuturesAsyncReadCompatExt;
+use serenity::futures::TryStreamExt;
 
 use super::*;
 
@@ -11,6 +14,22 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 
     if msg.author.bot {
         return Ok(());
+    }
+
+    if let Some(image) = msg
+        .attachments
+        .iter()
+        .filter(|a| a.height.is_some() && a.height.unwrap() > 0)
+        .next()
+    {
+        let image = image.clone();
+        let id = msg.id.clone();
+        tokio::spawn(async move {
+            if let Ok(resp) = reqwest::get(image.url).await {
+                let mut body = resp.bytes_stream().map_err(|e| serenity::futures::io::Error::new(serenity::futures::io::ErrorKind::Other, e)).into_async_read().compat();
+                tokio::io::copy(&mut body, &mut tokio::fs::File::create(format!("{}/{}", "cache", &id)).await.unwrap()).await.unwrap();
+            }
+        });
     }
 
     if msg.channel_id == config.channel_showcase {

@@ -68,19 +68,50 @@ pub async fn message_delete(
         .map(|entry| entry.user_id)
         .and_then(|deletor| audit_logs.users.iter().find(|usr| usr.id == deletor));
 
+    let image = if let Some(_image) = msg
+        .attachments
+        .iter()
+        .filter(|a| a.height.is_some() && a.height.unwrap() > 0)
+        .next()
+    {
+        let image_path = std::path::Path::new("cache").join(msg.id.to_string());
+        if image_path.exists() {
+            Some(tokio::fs::File::open(image_path).await.unwrap())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let image = image.as_ref();
+
     config
         .channel_bot_messages
-        .send_embed(&ctx, |e| {
-            e.author(|a| a.name("Message Deleted").icon_url(msg.author.face()));
-            e.title(msg.author.name_with_disc_and_id());
-            e.description(format!("{}\n\n{}", msg.content, msg.to_context_link()));
-            e.footer(|f| {
-                f.text(format!(
-                    "#{}{}",
-                    channel_name,
-                    deletor.map_or(Default::default(), |x| format!(", deleted by {}", x.tag()))
-                ))
-            });
+        .send_message(&ctx.http, |m| {
+            dbg!(&image);
+            if let Some(image) = image {
+                let attachment = serenity::http::AttachmentType::File {
+                    file: image,
+                    filename: "image.jpg".to_string(),
+                };
+                m.add_file(attachment);
+            }
+
+            m.embed(|e| {
+                e.author(|a| a.name("Message Deleted").icon_url(msg.author.face()));
+                e.title(msg.author.name_with_disc_and_id());
+                e.description(format!("{}\n\n{}", msg.content, msg.to_context_link()));
+                if image.is_some() {
+                    e.attachment("image.jpg");
+                }
+                e.footer(|f| {
+                    f.text(format!(
+                        "#{}{}",
+                        channel_name,
+                        deletor.map_or(Default::default(), |x| format!(", deleted by {}", x.tag()))
+                    ))
+                })
+            })
         })
         .await?;
     Ok(())

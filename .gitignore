@@ -2,3 +2,5 @@
 .env
 trup.db-*
 trup.db
+cache/*
+!cache/.gitkeep
