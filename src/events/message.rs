@@ -1,4 +1,5 @@
 use crate::db::note::NoteType;
+use anyhow::bail;
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
@@ -22,10 +23,6 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         handle_feedback_post(&ctx, &msg)
             .await
             .context("Failed to handle feedback post")?;
-    } else if msg.attachments.len() > 0 {
-        message_txt(&ctx, &msg)
-            .await
-            .context("Failed to handle attachments")?;
     }
 
     if handle_spam_protect(&ctx, &msg).await? {
@@ -37,6 +34,9 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     if handle_quote(&ctx, &msg).await? {
         return Ok(());
     }
+    handle_message_txt(&ctx, &msg)
+        .await
+        .context("Failed to handle attachments")?;
 
     Ok(())
 }
@@ -239,7 +239,7 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
         .context("Error reacting to feedback submission with 👍")?;
     msg.react(&ctx, ReactionType::Unicode("👎".to_string()))
         .await
-        .context("Error reacting to feedback submission with 👍")?;
+        .context("Error reacting to feedback submission with 👎")?;
 
     // retrieve the last keep-at-bottom message the bot wrote
     let recent_messages = msg.channel_id.messages(&ctx, |m| m.before(msg)).await?;
@@ -265,29 +265,30 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
     Ok(())
 }
 
-async fn message_txt(ctx: &client::Context, msg: &Message) -> Result<()> {
-    let txt = msg.attachments.iter().find(|a| a.filename == "message.txt");
-    if txt.is_none() {
-        return Ok(());
-    }
+async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<()> {
+    let message_txt_file = match msg.attachments.iter().find(|a| a.filename == "message.txt") {
+        Some(attachment) => attachment,
+        None => return Ok(()),
+    };
 
-    let form = multipart::Form::new().text("url", txt.unwrap().url.clone());
+    // Upload the file to 0x0.st via URL
+    let form = multipart::Form::new().text("url", message_txt_file.url.clone());
     let code = reqwest::Client::builder()
-        .https_only(true)
         .build()?
         .post("https://0x0.st")
         .multipart(form)
         .send()
         .await?;
-    if code.status() != 200 {
-        return Err(anyhow::anyhow!(format!(
+    if !code.status().is_success() {
+        bail!(
             "0x0.st returned an error uploading the `message.txt` from {} ({}): \n{}",
             msg.author.name,
             msg.link(),
             code.text().await?
-        )));
+        );
     }
-    let text = code.text().await?;
+
+    let download_url = code.text().await?;
     let color = msg
         .guild(&ctx)
         .await
@@ -298,11 +299,10 @@ async fn message_txt(ctx: &client::Context, msg: &Message) -> Result<()> {
         .await;
 
     msg.reply_embed(&ctx, |m| {
-        if let Some(color) = color {
-            m.color(color);
-        }
-        m.title(format!("{}", text));
-        m.footer(|f| f.text(format!("message.txt of {}", msg.author.name)));
+        m.title("Open message.txt in browser");
+        m.url(download_url);
+        m.color_opt(color);
+        m.description("Discord sucks, so here's an easier way to read that file.");
     })
     .await?;
     Ok(())
