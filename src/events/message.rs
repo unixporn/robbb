@@ -4,6 +4,7 @@ use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
+use util::log_error_value;
 
 use super::*;
 use reqwest::multipart;
@@ -16,27 +17,35 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     }
 
     if msg.channel_id == config.channel_showcase {
-        handle_showcase_post(&ctx, &msg)
-            .await
-            .context("Failed to handle showcase post")?;
+        util::log_error_value(
+            handle_showcase_post(&ctx, &msg)
+                .await
+                .context("Failed to handle showcase post"),
+        );
     } else if msg.channel_id == config.channel_feedback {
-        handle_feedback_post(&ctx, &msg)
-            .await
-            .context("Failed to handle feedback post")?;
+        util::log_error_value(
+            handle_feedback_post(&ctx, &msg)
+                .await
+                .context("Failed to handle feedback post"),
+        );
     }
 
-    if handle_spam_protect(&ctx, &msg).await? {
-        return Ok(());
-    }
-    if handle_blocklist(&ctx, &msg).await? {
-        return Ok(());
-    }
-    if handle_quote(&ctx, &msg).await? {
-        return Ok(());
-    }
-    handle_message_txt(&ctx, &msg)
-        .await
-        .context("Failed to handle attachments")?;
+    match handle_spam_protect(&ctx, &msg).await {
+        Ok(_) => return Ok(()),
+        err => log_error_value(err),
+    };
+    match handle_blocklist(&ctx, &msg).await {
+        Ok(_) => return Ok(()),
+        err => log_error_value(err),
+    };
+    match handle_quote(&ctx, &msg).await {
+        Ok(_) => return Ok(()),
+        err => log_error_value(err),
+    };
+    match handle_message_txt(&ctx, &msg).await {
+        Ok(_) => return Ok(()),
+        err => log_error_value(err),
+    };
 
     Ok(())
 }

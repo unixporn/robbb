@@ -1,3 +1,7 @@
+use chrono::Duration;
+
+use crate::checks;
+
 use super::*;
 
 /// Ban a user from the server
@@ -28,6 +32,14 @@ async fn do_ban(
     let config = data.get::<Config>().unwrap().clone();
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+
+    let permission_level = checks::get_permission_level(&ctx, &msg).await?;
+    if permission_level == PermissionLevel::Helper {
+        if Utc::now().signed_duration_since(msg.author.created_at()) > Duration::days(3) {
+            abort_with!(UserErr::other("You can't ban an account older than 3 days"));
+        }
+    }
+
     let mentioned_user = &args
         .single::<UserId>()
         .invalid_usage(&BAN_COMMAND_OPTIONS)?;

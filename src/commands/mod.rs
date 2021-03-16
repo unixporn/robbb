@@ -64,10 +64,16 @@ lazy_static::lazy_static! {
 #[group]
 #[only_in(guilds)]
 #[commands(
-    restart, mute, warn, note, notes, latency, say, ban, delban, purge, unban, spurge, blocklist
+    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist
 )]
 #[checks(moderator)]
 struct Moderator;
+
+#[group]
+#[only_in(guilds)]
+#[commands(ban, delban, mute)]
+#[checks(helper_or_mod)]
+struct HelperOrMod;
 
 #[group]
 #[only_in(guilds)]

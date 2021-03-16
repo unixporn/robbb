@@ -90,6 +90,7 @@ async fn main() {
         .on_dispatch_error(dispatch_error_hook)
         .after(after)
         .group(&MODERATOR_GROUP)
+        .group(&HELPERORMOD_GROUP)
         .group(&GENERAL_GROUP)
         .help(&help::MY_HELP);
 
