@@ -1,3 +1,4 @@
+use crate::extensions::CreateEmbedExt;
 use crate::{abort_with, db::Db, extensions::MessageExt, util, Config};
 
 use super::checks::*;

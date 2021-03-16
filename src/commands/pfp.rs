@@ -1,4 +1,5 @@
 use super::*;
+
 /// Show the profile-picture of a user.
 #[command]
 #[usage("pfp [user]")]
@@ -17,7 +18,7 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
 
     msg.reply_embed(&ctx, |e| {
         e.title(format!("{}'s profile picture", member.user.tag()));
-        color.map(|c| e.color(c));
+        e.color_opt(color);
         e.image(member.user.face());
     })
     .await?;

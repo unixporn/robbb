@@ -22,9 +22,7 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     msg.reply_embed(&ctx, |e| {
         e.title(member.user.tag());
         e.thumbnail(member.user.face());
-        if let Some(color) = color {
-            e.color(color);
-        }
+        e.color_opt(color);
         e.field("ID/Snowflake", mentioned_user_id.to_string(), false);
         e.field(
             "Account creation date",
