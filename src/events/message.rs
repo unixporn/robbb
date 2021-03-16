@@ -1,10 +1,12 @@
 use crate::db::note::NoteType;
+use anyhow::bail;
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
 
 use super::*;
+use reqwest::multipart;
 
 pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     let config = ctx.data.read().await.get::<Config>().unwrap().clone();
@@ -32,6 +34,9 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     if handle_quote(&ctx, &msg).await? {
         return Ok(());
     }
+    handle_message_txt(&ctx, &msg)
+        .await
+        .context("Failed to handle attachments")?;
 
     Ok(())
 }
@@ -234,7 +239,7 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
         .context("Error reacting to feedback submission with 👍")?;
     msg.react(&ctx, ReactionType::Unicode("👎".to_string()))
         .await
-        .context("Error reacting to feedback submission with 👍")?;
+        .context("Error reacting to feedback submission with 👎")?;
 
     // retrieve the last keep-at-bottom message the bot wrote
     let recent_messages = msg.channel_id.messages(&ctx, |m| m.before(msg)).await?;
@@ -257,5 +262,48 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
             ))
         })
     }).await?;
+    Ok(())
+}
+
+async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<()> {
+    let message_txt_file = match msg.attachments.iter().find(|a| a.filename == "message.txt") {
+        Some(attachment) => attachment,
+        None => return Ok(()),
+    };
+
+    // Upload the file to 0x0.st via URL
+    let form = multipart::Form::new().text("url", message_txt_file.url.clone());
+    let code = reqwest::Client::builder()
+        .build()?
+        .post("https://0x0.st")
+        .multipart(form)
+        .send()
+        .await?;
+    if !code.status().is_success() {
+        bail!(
+            "0x0.st returned an error uploading the `message.txt` from {} ({}): \n{}",
+            msg.author.name,
+            msg.link(),
+            code.text().await?
+        );
+    }
+
+    let download_url = code.text().await?;
+    let color = msg
+        .guild(&ctx)
+        .await
+        .context("Failed to load guild")?
+        .member(&ctx, msg.author.id)
+        .await?
+        .colour(&ctx)
+        .await;
+
+    msg.reply_embed(&ctx, |m| {
+        m.title("Open message.txt in browser");
+        m.url(download_url);
+        m.color_opt(color);
+        m.description("Discord sucks, so here's an easier way to read that file.");
+    })
+    .await?;
     Ok(())
 }
