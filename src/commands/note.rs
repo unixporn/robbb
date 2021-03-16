@@ -83,7 +83,8 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         .map(|user| user.face())
         .ok();
 
-    let notes = db.get_notes(mentioned_user_id, note_filter).await?;
+    let notes = fetch_note_values(&db, mentioned_user_id, note_filter).await?;
+
     msg.reply_embed(&ctx, |e| {
         e.title("Notes");
         e.description(format!("Notes about {}", mentioned_user_id.mention()));
@@ -93,12 +94,8 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         });
         for note in notes {
             e.field(
-                format!(
-                    "{} - {}",
-                    note.note_type,
-                    util::format_date_ago(note.create_date)
-                ),
-                format!("{} - {}", note.content, note.moderator.mention(),),
+                format!("{} - {}", note.note_type, util::format_date_ago(note.date)),
+                format!("{} - {}", note.description, note.moderator.mention(),),
                 false,
             );
         }
@@ -106,4 +103,68 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     .await?;
 
     Ok(())
+}
+
+struct NotesEntry {
+    note_type: NoteType,
+    description: String,
+    date: chrono::DateTime<Utc>,
+    moderator: UserId,
+}
+
+async fn fetch_note_values(
+    db: &Db,
+    user_id: UserId,
+    filter: Option<NoteType>,
+) -> Result<Vec<NotesEntry>> {
+    let mut entries = Vec::new();
+
+    if filter.is_none() || filter == Some(NoteType::ManualNote) {
+        let notes = db
+            .get_notes(user_id, filter)
+            .await?
+            .into_iter()
+            .map(|x| NotesEntry {
+                note_type: x.note_type,
+                description: x.content,
+                moderator: x.moderator,
+                date: x.create_date,
+            });
+        entries.extend(notes);
+    }
+    if filter.is_none() || filter == Some(NoteType::Mute) {
+        let mutes = db
+            .get_mutes(user_id)
+            .await?
+            .into_iter()
+            .map(|x| NotesEntry {
+                note_type: NoteType::Mute,
+                description: format!(
+                    "[{}] {}",
+                    humantime::Duration::from(
+                        (x.end_time - x.start_time).to_std().unwrap_or_default()
+                    ),
+                    x.reason
+                ),
+                date: x.start_time,
+                moderator: x.moderator,
+            });
+        entries.extend(mutes);
+    }
+    if filter.is_none() || filter == Some(NoteType::Warn) {
+        let warns = db
+            .get_warns(user_id)
+            .await?
+            .into_iter()
+            .map(|x| NotesEntry {
+                note_type: NoteType::Warn,
+                description: x.reason,
+                date: x.create_date,
+                moderator: x.moderator,
+            });
+        entries.extend(warns);
+    }
+
+    entries.sort_by_key(|x| x.date);
+    Ok(entries)
 }

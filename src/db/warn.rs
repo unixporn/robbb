@@ -47,6 +47,25 @@ impl Db {
         })
     }
 
+    pub async fn get_warns(&self, user: UserId) -> Result<Vec<Warn>> {
+        let mut conn = self.pool.acquire().await?;
+        let id = user.0 as i64;
+        Ok(sqlx::query!(
+            r#"select id, moderator, usr, reason as "reason!", create_date as "create_date!" from warn where usr=?"#,
+            id
+        )
+        .fetch_all(&mut conn)
+        .await?
+        .into_iter()
+        .map(|x| Warn {
+            id: x.id,
+            moderator: UserId(x.moderator as u64),
+            user: UserId(x.usr as u64),
+            reason: x.reason,
+            create_date: chrono::DateTime::from_utc(x.create_date, Utc),
+        }).collect())
+    }
+
     pub async fn count_warns(&self, user: UserId) -> Result<i32> {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
