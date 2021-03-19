@@ -35,6 +35,7 @@ pub mod poll;
 pub mod purge;
 pub mod role;
 pub mod small;
+pub mod tag;
 pub mod top;
 pub mod unban;
 pub mod warn;
@@ -53,6 +54,7 @@ use poll::*;
 use purge::*;
 use role::*;
 use small::*;
+use tag::*;
 use top::*;
 use unban::*;
 use warn::*;
@@ -64,7 +66,7 @@ lazy_static::lazy_static! {
 #[group]
 #[only_in(guilds)]
 #[commands(
-    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist
+    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag
 )]
 #[checks(moderator)]
 struct Moderator;
@@ -78,7 +80,8 @@ struct HelperOrMod;
 #[group]
 #[only_in(guilds)]
 #[commands(
-    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
+    tag, list_tags
 )]
 struct General;
 
