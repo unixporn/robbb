@@ -30,13 +30,21 @@ pub async fn role(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             .user_error("Unknown color role")?;
 
         let mut member = guild.member(&ctx, msg.author.id).await?;
+        let old_roles = member.roles.clone();
+
         member.remove_roles(&ctx, &config.roles_color).await?;
-        member.add_role(&ctx, chosen_role.id).await?;
-        msg.reply_success(
-            &ctx,
-            format!("Success! You're now {}", chosen_role.id.mention()),
-        )
-        .await?;
+
+        if !old_roles.contains(&chosen_role.id) {
+            member.add_role(&ctx, chosen_role.id).await?;
+            msg.reply_success(
+                &ctx,
+                format!("Success! You're now {}", chosen_role.id.mention()),
+            )
+            .await?;
+        } else {
+            msg.reply_success(&ctx, "Success! Removed your role!")
+                .await?;
+        }
     }
 
     Ok(())

@@ -91,6 +91,7 @@ impl Config {
         log_error!(result);
     }
 
+    #[allow(unused)]
     async fn is_mod(&self, ctx: &client::Context, user_id: UserId) -> Result<bool> {
         let user = user_id.to_user(&ctx).await?;
         Ok(user.has_role(&ctx, self.guild, self.role_mod).await?)
