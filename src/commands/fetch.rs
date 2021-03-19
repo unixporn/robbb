@@ -214,8 +214,8 @@ lazy_static! {
         "Shell",
         "GTK3 Theme",
         "GTK Icon Theme",
-        "CPU",
-        "GPU",
+        "Cpu",
+        "Gpu",
         "Memory",
     ];
     static ref DISTRO_IMAGES: Vec<(&'static str, &'static str)> = vec![

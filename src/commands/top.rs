@@ -31,6 +31,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
         let field_value_counts = fetches
             .into_iter()
             .filter_map(|mut x| x.info.remove(&field))
+            .filter(|x| !x.is_empty() && x != "0")
             .counts();
 
         if let Some(value_pattern) = value_pattern {
@@ -62,6 +63,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
             let top_ten_field_value_counts = field_value_counts
                 .into_iter()
                 .sorted_by_key(|(_, cnt)| *cnt)
+                .rev()
                 .take(10);
 
             msg.reply_embed(&ctx, |e| {
@@ -97,6 +99,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
             let values_cnt = values.len();
             let (most_popular_value, most_popular_cnt) = values
                 .into_iter()
+                .filter(|x| !x.is_empty() && x != "0")
                 .counts()
                 .into_iter()
                 .max_by_key(|(_, cnt)| *cnt)?;
@@ -118,7 +121,8 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
                     .join("\n"),
             );
         })
-        .await?;
+        .await
+        .context("sending reply to top-command")?;
     }
     Ok(())
 }
