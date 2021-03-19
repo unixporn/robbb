@@ -17,7 +17,6 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     let field = args.single_quoted::<String>().ok();
 
     let fetches = db.get_all_fetches().await?;
-    let fetches_cnt = fetches.len();
 
     let field = field.and_then(|field| {
         super::fetch::ALLOWED_KEYS
@@ -50,7 +49,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
                 e.title(format!("Stats for matching {}s", field));
                 e.description(indoc::formatdoc!(
                     "**Total**: {}
-                     **Percentage**: {}
+                     **Percentage**: {:.2}
                     ",
                     matching_value_count,
                     percentage,
@@ -58,6 +57,8 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
             })
             .await?;
         } else {
+            let total_field_values: usize = field_value_counts.iter().map(|(_, n)| n).sum();
+
             let top_ten_field_value_counts = field_value_counts
                 .into_iter()
                 .sorted_by_key(|(_, cnt)| *cnt)
@@ -70,11 +71,11 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
                         .enumerate()
                         .map(|(i, (value, count))| {
                             format!(
-                                "**{}**. {} ({}, {}%)",
+                                "**{}**. {} ({}, {:.2}%)",
                                 i,
                                 value,
                                 count,
-                                (count as f64 / fetches_cnt as f64) * 100f64
+                                (count as f64 / total_field_values as f64) * 100f64
                             )
                         })
                         .join("\n"),

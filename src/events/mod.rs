@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::log_error;
 use crate::{db::mute, extensions::*};
 use anyhow::{Context, Result};
 
@@ -24,7 +25,7 @@ pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: client::Context, _data_about_bot: Ready) {
-        println!("Trup is ready!");
+        log::info!("Trup is ready!");
 
         let _ = ctx
             .set_presence(
@@ -38,11 +39,10 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, ctx: client::Context, msg: Message) {
-        util::log_error_value(
-            message::message(ctx, msg)
-                .await
-                .context("Error while handling message event"),
-        );
+        log_error!(
+            "Error while handling message event",
+            message::message(ctx, msg).await
+        )
     }
 
     async fn message_update(
@@ -52,10 +52,9 @@ impl EventHandler for Handler {
         _new: Option<Message>,
         event: MessageUpdateEvent,
     ) {
-        util::log_error_value(
-            message_update::message_update(ctx, old_if_available, _new, event)
-                .await
-                .context("Error while handling message_update event"),
+        log_error!(
+            "Error while handling message_update event",
+            message_update::message_update(ctx, old_if_available, _new, event).await
         );
     }
 
@@ -66,10 +65,9 @@ impl EventHandler for Handler {
         deleted_message_id: MessageId,
         guild_id: Option<GuildId>,
     ) {
-        util::log_error_value(
-            message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id)
-                .await
-                .context("Error while handling message_delete event"),
+        log_error!(
+            "Error while handling message_delete event",
+            message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id).await
         );
     }
 
@@ -80,7 +78,8 @@ impl EventHandler for Handler {
         multiple_deleted_messages_ids: Vec<MessageId>,
         guild_id: Option<GuildId>,
     ) {
-        util::log_error_value(
+        log_error!(
+            "Error while handling message_delete event",
             message_delete::message_delete_bulk(
                 ctx,
                 channel_id,
@@ -88,7 +87,6 @@ impl EventHandler for Handler {
                 guild_id,
             )
             .await
-            .context("Error while handling message_delete event"),
         );
     }
 
@@ -98,10 +96,9 @@ impl EventHandler for Handler {
         guild_id: GuildId,
         new_member: Member,
     ) {
-        util::log_error_value(
-            guild_member_addition::guild_member_addition(ctx, guild_id, new_member)
-                .await
-                .context("Error while handling guild_member_addition event"),
+        log_error!(
+            "Error while handling guild_member_addition event",
+            guild_member_addition::guild_member_addition(ctx, guild_id, new_member).await
         );
     }
 
@@ -112,19 +109,17 @@ impl EventHandler for Handler {
         user: User,
         _member: Option<Member>,
     ) {
-        util::log_error_value(
-            guild_member_removal::guild_member_removal(ctx, guild_id, user, _member)
-                .await
-                .context("Error while handling guild_member_removal event"),
+        log_error!(
+            "Error while handling guild_member_removal event",
+            guild_member_removal::guild_member_removal(ctx, guild_id, user, _member).await
         );
     }
 
     async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
-        util::log_error_value(
-            reaction_add::reaction_add(ctx, event)
-                .await
-                .context("Error while handling reaction_addd event"),
-        )
+        log_error!(
+            "Error while handling reaction_addd event",
+            reaction_add::reaction_add(ctx, event).await
+        );
     }
 }
 
@@ -151,13 +146,13 @@ async fn start_mute_handler(ctx: client::Context) {
             let mutes = match db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {
-                    eprintln!("Failed to request expired mutes: {}", err);
+                    log::error!("Failed to request expired mutes: {}", err);
                     continue;
                 }
             };
             for mute in mutes {
                 if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
-                    eprintln!("Error handling mute removal: {}", err);
+                    log::error!("Error handling mute removal: {}", err);
                 } else {
                     config
                         .log_bot_action(&ctx, |e| {
@@ -177,10 +172,9 @@ async fn start_attachment_log_handler(ctx: client::Context) {
             let data = ctx.data.read().await;
             let config = data.get::<Config>().unwrap().clone();
 
-            util::log_error_value(
-                crate::attachment_logging::cleanup(&config)
-                    .await
-                    .context("Failed to clean up attachments"),
+            log_error!(
+                "Failed to clean up attachments",
+                crate::attachment_logging::cleanup(&config).await
             );
         }
     });

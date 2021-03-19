@@ -35,7 +35,7 @@ pub async fn store_attachments(
     Ok(())
 }
 
-/// store a single attachment in the given directory path.
+/// Store a single attachment in the given directory path.
 async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachment) -> Result<()> {
     let file_path = dir_path.as_ref().join(attachment.filename);
 
@@ -56,6 +56,7 @@ async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachm
     Ok(())
 }
 
+/// Search for logged attachments for a given message.
 pub async fn find_attachments_for(
     attachment_cache_path: impl AsRef<Path>,
     channel_id: ChannelId,
@@ -79,6 +80,7 @@ pub async fn find_attachments_for(
     Ok(entries)
 }
 
+/// Restrict the disk-space used up by attachment logs by removing old files.
 pub async fn cleanup(config: &Config) -> Result<()> {
     let mut read_dir = tokio::fs::read_dir(&config.attachment_cache_path).await?;
 
@@ -102,7 +104,7 @@ pub async fn cleanup(config: &Config) -> Result<()> {
 
     while total_size_bytes > config.attachment_cache_max_size && files.len() > 0 {
         let (file, meta) = files.remove(0);
-        println!("deleting {}", file.path().display());
+        log::debug!("deleting {}", file.path().display());
         tokio::fs::remove_file(file.path()).await?;
         total_size_bytes -= meta.size() as usize;
     }

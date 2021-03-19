@@ -55,7 +55,7 @@ pub async fn handle_set_fetch(
             const DELIM: &str = ":";
             let pos = line.find(DELIM)?;
             let key = &line[..pos];
-            let value = &line[pos+DELIM.len()..];
+            let value = &line[pos + DELIM.len()..];
 
             Some((key, value))
         })
@@ -155,7 +155,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
             msg.reply_embed(&ctx, |e| {
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
-                e.title(format!("{}'s {}", member.user.tag(), desired_field));
+                e.title(format!("{}'s {}", member.user.name, desired_field));
                 e.color_opt(color);
                 if desired_field == "image" {
                     e.image(value);

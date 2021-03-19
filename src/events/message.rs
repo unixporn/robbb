@@ -1,10 +1,10 @@
+use crate::log_error;
 use crate::{attachment_logging, db::note::NoteType};
 use anyhow::bail;
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
-use util::log_error_value;
 
 use super::*;
 use reqwest::multipart;
@@ -19,26 +19,29 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     handle_attachment_logging(&ctx, &msg).await;
 
     if msg.channel_id == config.channel_showcase {
-        util::log_error_value(handle_showcase_post(&ctx, &msg).await);
+        log_error!(handle_showcase_post(&ctx, &msg).await);
     } else if msg.channel_id == config.channel_feedback {
-        util::log_error_value(handle_feedback_post(&ctx, &msg).await);
+        log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
     match handle_spam_protect(&ctx, &msg).await {
-        Ok(_) => return Ok(()),
-        err => log_error_value(err),
+        Ok(true) => return Ok(()),
+        Ok(_) => {}
+        err => log_error!("Spam-protection", err),
     };
     match handle_blocklist(&ctx, &msg).await {
-        Ok(_) => return Ok(()),
-        err => log_error_value(err),
+        Ok(true) => return Ok(()),
+        Ok(_) => {}
+        err => log_error!("blocklist-handling", err),
     };
     match handle_quote(&ctx, &msg).await {
-        Ok(_) => return Ok(()),
-        err => log_error_value(err),
+        Ok(true) => return Ok(()),
+        Ok(_) => {}
+        err => log_error!("Handling a quoted message", err),
     };
     match handle_message_txt(&ctx, &msg).await {
         Ok(_) => return Ok(()),
-        err => log_error_value(err),
+        err => log_error!("handling a message.txt upload", err),
     };
 
     Ok(())
@@ -56,7 +59,8 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
 
     let attachments = msg.attachments.clone();
     tokio::spawn(async move {
-        log_error_value(
+        log_error!(
+            "Storing attachments in message",
             attachment_logging::store_attachments(
                 attachments,
                 msg_id,
@@ -137,7 +141,7 @@ async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> 
                 .await;
         };
 
-        let bot_log_future = config.log_bot_action(&ctx, |e| {
+        let bot_log_future = config.log_automod_action(&ctx, |e| {
             e.author(|a| a.name("Message Autodelete"));
             e.title(format!(
                 "{} - deleted because of `{}`",

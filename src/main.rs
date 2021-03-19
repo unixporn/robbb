@@ -9,6 +9,7 @@ use serenity::framework::standard::{macros::hook, CommandResult, Reason};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
+use std::io::Write;
 use std::{path::PathBuf, sync::Arc};
 
 use crate::util::*;
@@ -77,7 +78,17 @@ impl Config {
             .guild
             .send_embed(&ctx, self.channel_modlog, build_embed)
             .await;
-        util::log_error_value(result);
+        log_error!(result);
+    }
+    async fn log_automod_action<F>(&self, ctx: &client::Context, build_embed: F)
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync,
+    {
+        let result = self
+            .guild
+            .send_embed(&ctx, self.channel_auto_mod, build_embed)
+            .await;
+        log_error!(result);
     }
 }
 
@@ -87,6 +98,8 @@ impl TypeMapKey for Config {
 
 #[tokio::main]
 async fn main() {
+    init_logger();
+
     let config = Config::from_environment().expect("Failed to load experiment");
 
     let db = Db::new().await.unwrap();
@@ -117,7 +130,7 @@ async fn main() {
     };
 
     if let Err(why) = client.start().await {
-        println!("An error occurred while running the client: {:?}", why);
+        log::error!("An error occurred while running the client: {:?}", why);
     }
 }
 
@@ -127,7 +140,7 @@ async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: Dispat
     match &error {
         DispatchError::CheckFailed(required, Reason::Log(log))
         | DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
-            eprintln!("Check for {} failed with: {}", required, log);
+            log::warn!("Check for {} failed with: {}", required, log);
         }
         _ => {}
     };
@@ -167,7 +180,7 @@ fn display_dispatch_error(err: DispatchError) -> String {
             given, max
         ),
         _ => {
-            eprintln!("Unhandled dispatch error: {:?}", err);
+            log::warn!("Unhandled dispatch error: {:?}", err);
             "Failed to run command".to_string()
         }
     }
@@ -191,9 +204,11 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
             None => match err.downcast::<serenity::Error>() {
                 Ok(err) => {
                     let err = *err;
-                    eprintln!(
+                    log::warn!(
                         "Serenity error [handling {}]: {} ({:?})",
-                        command_name, &err, &err
+                        command_name,
+                        &err,
+                        &err
                     );
                     match err {
                         serenity::Error::Http(err) => match *err {
@@ -218,13 +233,52 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                 }
                 Err(err) => {
                     let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                    eprintln!(
+                    log::warn!(
                         "Internal error [handling {}]: {} ({:?})",
-                        command_name, &err, &err
+                        command_name,
+                        &err,
+                        &err
                     );
                 }
             },
         },
         Ok(()) => {}
     }
+}
+
+fn init_logger() {
+    let mut builder = pretty_env_logger::formatted_timed_builder();
+    builder
+        .format(|buf, r| {
+            let ts = buf.timestamp();
+            let level = buf.default_styled_level(r.level());
+            let mut bold = buf.style();
+            bold.set_bold(true);
+
+            let module_or_file = if r.file().is_some() && r.file().unwrap().len() < 80 {
+                format!(
+                    "{}:{}",
+                    r.file().unwrap_or_default(),
+                    r.line().unwrap_or_default()
+                )
+            } else {
+                format!("{}", r.module_path().unwrap_or_default())
+            };
+
+            writeln!(
+                buf,
+                "{} {} [{}] {} {}",
+                ts,
+                level,
+                module_or_file,
+                bold.value(">"),
+                r.args()
+            )
+        })
+        .filter_module("trup_rs", log::LevelFilter::Debug);
+
+    if let Some(log_var) = std::env::var("RUST_LOG").ok() {
+        builder.parse_filters(&log_var);
+    }
+    builder.init();
 }
