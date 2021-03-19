@@ -1,4 +1,4 @@
-use crate::db::note::NoteType;
+use crate::{attachment_logging, db::note::NoteType};
 use anyhow::bail;
 use chrono::Utc;
 use itertools::Itertools;
@@ -16,18 +16,12 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         return Ok(());
     }
 
+    handle_attachment_logging(&ctx, &msg).await;
+
     if msg.channel_id == config.channel_showcase {
-        util::log_error_value(
-            handle_showcase_post(&ctx, &msg)
-                .await
-                .context("Failed to handle showcase post"),
-        );
+        util::log_error_value(handle_showcase_post(&ctx, &msg).await);
     } else if msg.channel_id == config.channel_feedback {
-        util::log_error_value(
-            handle_feedback_post(&ctx, &msg)
-                .await
-                .context("Failed to handle feedback post"),
-        );
+        util::log_error_value(handle_feedback_post(&ctx, &msg).await);
     }
 
     match handle_spam_protect(&ctx, &msg).await {
@@ -48,6 +42,30 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     };
 
     Ok(())
+}
+
+async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
+    if msg.attachments.is_empty() {
+        return;
+    }
+
+    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+
+    let msg_id = msg.id.clone();
+    let channel_id = msg.channel_id.clone();
+
+    let attachments = msg.attachments.clone();
+    tokio::spawn(async move {
+        log_error_value(
+            attachment_logging::store_attachments(
+                attachments,
+                msg_id,
+                channel_id,
+                config.attachment_cache_path.clone(),
+            )
+            .await,
+        )
+    });
 }
 
 async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {

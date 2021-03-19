@@ -3,6 +3,7 @@ use std::fmt::Display;
 use anyhow::{Context, Result};
 use chrono::Utc;
 
+use extend::ext;
 use rand::prelude::IteratorRandom;
 use serenity::{
     async_trait,
@@ -19,31 +20,16 @@ use serenity::{
 
 use crate::Config;
 
-pub trait UserExt {
-    fn name_with_disc_and_id(&self) -> String;
-}
-
-impl UserExt for User {
+#[ext(pub)]
+impl User {
     fn name_with_disc_and_id(&self) -> String {
         format!("{}#{}({})", self.name, self.discriminator, self.id)
     }
 }
 
+#[ext(pub)]
 #[async_trait]
-pub trait GuildExt {
-    async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji>;
-    async fn send_embed<F>(
-        &self,
-        ctx: &client::Context,
-        channel_id: ChannelId,
-        build: F,
-    ) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync;
-}
-
-#[async_trait]
-impl GuildExt for Guild {
+impl Guild {
     async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji> {
         self.id.random_stare_emoji(&ctx).await
     }
@@ -60,8 +46,10 @@ impl GuildExt for Guild {
         self.id.send_embed(ctx, channel_id, build).await
     }
 }
+
+#[ext(pub)]
 #[async_trait]
-impl GuildExt for GuildId {
+impl GuildId {
     async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji> {
         self.emojis(&ctx)
             .await
@@ -98,29 +86,9 @@ impl GuildExt for GuildId {
     }
 }
 
+#[ext(pub)]
 #[async_trait]
-pub trait MessageExt {
-    async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync;
-
-    async fn reply_error(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message>;
-
-    async fn reply_success(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message>;
-
-    fn to_context_link(&self) -> String;
-}
-
-#[async_trait]
-impl MessageExt for Message {
+impl Message {
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
@@ -170,15 +138,9 @@ impl MessageExt for Message {
     }
 }
 
+#[ext(pub)]
 #[async_trait]
-pub trait ChannelIdExt {
-    async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync;
-}
-
-#[async_trait]
-impl ChannelIdExt for ChannelId {
+impl ChannelId {
     async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
@@ -215,15 +177,21 @@ pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut Crea
     }
 }
 
-pub trait CreateEmbedExt {
-    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed;
-}
-
-impl CreateEmbedExt for CreateEmbed {
+#[ext(pub)]
+impl CreateEmbed {
     fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed {
         if let Some(c) = c {
             self.color(c);
         }
         self
+    }
+}
+
+#[ext(pub, name = StrExt)]
+impl<T: AsRef<str>> T {
+    fn split_once(&self, c: char) -> Option<(&str, &str)> {
+        let s: &str = self.as_ref();
+        let index = s.find(c)?;
+        Some(s.split_at(index))
     }
 }

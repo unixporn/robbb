@@ -9,7 +9,7 @@ use serenity::prelude::*;
 
 use serenity::client;
 
-use crate::{db::Db, extensions::UserExt, util, Config};
+use crate::{db::Db, util, Config};
 use indoc::indoc;
 
 mod guild_member_addition;
@@ -33,7 +33,8 @@ impl EventHandler for Handler {
             )
             .await;
 
-        start_mute_handler(ctx).await;
+        start_mute_handler(ctx.clone()).await;
+        start_attachment_log_handler(ctx).await;
     }
 
     async fn message(&self, ctx: client::Context, msg: Message) {
@@ -165,6 +166,22 @@ async fn start_mute_handler(ctx: client::Context) {
                         .await;
                 }
             }
+        }
+    });
+}
+
+async fn start_attachment_log_handler(ctx: client::Context) {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            let data = ctx.data.read().await;
+            let config = data.get::<Config>().unwrap().clone();
+
+            util::log_error_value(
+                crate::attachment_logging::cleanup(&config)
+                    .await
+                    .context("Failed to clean up attachments"),
+            );
         }
     });
 }

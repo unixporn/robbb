@@ -1,6 +1,6 @@
+use crate::extensions::*;
 #[allow(unused_imports)]
 use db::Db;
-use extensions::{GuildExt, MessageExt};
 use serenity::client::bridge::gateway::GatewayIntents;
 #[allow(unused_imports)]
 use serenity::client::{self, Client};
@@ -9,11 +9,12 @@ use serenity::framework::standard::{macros::hook, CommandResult, Reason};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::util::*;
 use anyhow::Result;
 
+pub mod attachment_logging;
 pub mod checks;
 pub mod commands;
 pub mod db;
@@ -23,7 +24,7 @@ pub mod util;
 
 use commands::*;
 
-struct Config {
+pub struct Config {
     pub discord_token: String,
 
     pub guild: GuildId,
@@ -39,6 +40,9 @@ struct Config {
     pub channel_auto_mod: ChannelId,
     pub channel_bot_messages: ChannelId,
     pub channel_bot_traffic: ChannelId,
+
+    pub attachment_cache_path: PathBuf,
+    pub attachment_cache_max_size: usize,
 }
 
 impl Config {
@@ -60,6 +64,8 @@ impl Config {
             channel_auto_mod: ChannelId(parse_required_env_var("CHANNEL_AUTO_MOD")?),
             channel_bot_messages: ChannelId(parse_required_env_var("CHANNEL_BOT_MESSAGES")?),
             channel_bot_traffic: ChannelId(parse_required_env_var("CHANNEL_BOT_TRAFFIC")?),
+            attachment_cache_path: parse_required_env_var("ATTACHMENT_CACHE_PATH")?,
+            attachment_cache_max_size: parse_required_env_var("ATTACHMENT_CACHE_MAX_SIZE")?,
         })
     }
 
