@@ -1,9 +1,7 @@
 use crate::extensions::*;
-#[allow(unused_imports)]
 use db::Db;
 use rand::prelude::IteratorRandom;
 use serenity::client::bridge::gateway::GatewayIntents;
-#[allow(unused_imports)]
 use serenity::client::{self, Client};
 use serenity::framework::standard::DispatchError;
 use serenity::framework::standard::{macros::hook, CommandResult, Reason};
