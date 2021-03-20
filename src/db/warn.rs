@@ -47,6 +47,16 @@ impl Db {
         })
     }
 
+    pub async fn undo_latest_warn(&self, user: UserId) -> Result<()> {
+        let mut conn = self.pool.acquire().await?;
+        let user = user.0 as i64;
+        sqlx::query!(
+            r#"delete from warn where usr=? and create_date=(select max(create_date) from warn where usr=?)"#,
+            user, user,
+        ).execute(&mut conn).await?;
+        Ok(())
+    }
+
     pub async fn get_warns(&self, user: UserId) -> Result<Vec<Warn>> {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
