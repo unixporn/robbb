@@ -1,6 +1,7 @@
 use crate::extensions::*;
 #[allow(unused_imports)]
 use db::Db;
+use rand::prelude::IteratorRandom;
 use serenity::client::bridge::gateway::GatewayIntents;
 #[allow(unused_imports)]
 use serenity::client::{self, Client};
@@ -24,6 +25,24 @@ pub mod extensions;
 pub mod util;
 
 use commands::*;
+
+#[derive(Debug, Clone)]
+pub struct UPEmotes {
+    pensibe: Emoji,
+    police: Emoji,
+    poggers: Emoji,
+    stares: Vec<Emoji>,
+}
+impl UPEmotes {
+    pub fn random_stare(&self) -> Option<Emoji> {
+        let mut rng = rand::thread_rng();
+        self.stares.iter().choose(&mut rng).cloned()
+    }
+}
+
+impl TypeMapKey for UPEmotes {
+    type Value = Arc<UPEmotes>;
+}
 
 pub struct Config {
     pub discord_token: String,
@@ -131,7 +150,6 @@ async fn main() {
     {
         let mut data = client.data.write().await;
         data.insert::<Config>(Arc::new(config));
-
         data.insert::<Db>(Arc::new(db));
     };
 
@@ -156,12 +174,12 @@ async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: Dispat
 
 fn display_dispatch_error(err: DispatchError) -> String {
     match err {
-        DispatchError::CheckFailed(required, reason) => match reason {
+        DispatchError::CheckFailed(_required, reason) => match reason {
             Reason::User(reason)
             | Reason::UserAndLog {
                 user: reason,
                 log: _,
-            } => format!("{}\nRequires {}", reason, required),
+            } => reason,
             _ => "You're not allowed to use this command".to_string(),
         },
         DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),

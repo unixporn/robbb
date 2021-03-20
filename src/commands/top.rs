@@ -11,8 +11,7 @@ use std::collections::HashMap;
 #[example("!top Editor")]
 #[example("!top Editor `n?vim`")]
 pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     let field = args.single_quoted::<String>().ok();
 

@@ -5,12 +5,10 @@ use super::*;
 #[usage("tag <name>")]
 #[sub_commands(list_tags, set_tag)]
 pub async fn tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let db = ctx.get_db().await;
     let tag_name = args
         .single_quoted::<String>()
         .invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
-
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
 
     let tag = db
         .get_tag(tag_name)
@@ -33,8 +31,7 @@ pub async fn tag(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
 #[command("list")]
 #[usage("tag list")]
 pub async fn list_tags(ctx: &client::Context, msg: &Message) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     let tags = db.list_tags().await?;
 
@@ -51,14 +48,12 @@ pub async fn list_tags(ctx: &client::Context, msg: &Message) -> CommandResult {
 #[command("settag")]
 #[usage("settag <name> <content>")]
 pub async fn set_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let db = ctx.get_db().await;
     let tag_name = args
         .single_quoted::<String>()
         .invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
 
     let content = args.remains().invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
-
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
 
     db.set_tag(msg.author.id, tag_name, content.to_string(), true)
         .await?;
@@ -70,12 +65,10 @@ pub async fn set_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> Co
 #[command("deletetag")]
 #[usage("deletetag <name> ")]
 pub async fn delete_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let db = ctx.get_db().await;
     let tag_name = args
         .single_quoted::<String>()
         .invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
-
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
 
     db.delete_tag(tag_name).await?;
     msg.reply_success(&ctx, "Succesfully removed!").await?;

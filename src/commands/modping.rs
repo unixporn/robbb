@@ -4,16 +4,17 @@ use super::*;
 #[command]
 #[usage("modping <reason>")]
 pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    use OnlineStatus::DoNotDisturb;
-    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    use OnlineStatus::*;
+
+    let config = ctx.get_config().await;
     let reason = args.remains().invalid_usage(&MODPING_COMMAND_OPTIONS)?;
 
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
 
     let mods = guild
-        .members_with_status(OnlineStatus::Online)
+        .members_with_status(Online)
         .into_iter()
-        .chain(guild.members_with_status(OnlineStatus::Idle).into_iter())
+        .chain(guild.members_with_status(Idle).into_iter())
         .chain(guild.members_with_status(DoNotDisturb).into_iter())
         .filter(|member| member.roles.contains(&config.role_mod))
         .collect_vec();

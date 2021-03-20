@@ -49,8 +49,7 @@ pub async fn repo(ctx: &client::Context, msg: &Message) -> CommandResult {
 #[usage("desc <text>")]
 #[aliases("description")]
 pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     if let Some(value) = args.remains().map(|x| x.to_string()) {
         db.set_description(msg.author.id, Some(value)).await?;
@@ -76,8 +75,7 @@ pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 #[command]
 #[usage("git <url>")]
 pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     if let Some(value) = args.remains().map(|x| x.to_string()) {
         db.set_git(msg.author.id, Some(value)).await?;
@@ -98,8 +96,7 @@ pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 #[command]
 #[usage("dotfiles <url>")]
 pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     if let Some(value) = args.remains().map(|x| x.to_string()) {
         db.set_dotfiles(msg.author.id, Some(value)).await?;

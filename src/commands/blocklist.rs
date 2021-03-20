@@ -5,6 +5,7 @@ use super::*;
 /// Control the blocklist
 #[command]
 #[sub_commands(blocklist_add, blocklist_remove, blocklist_get)]
+#[usage("blocklist <add | get | remove>")]
 pub async fn blocklist(_ctx: &client::Context, _msg: &Message) -> CommandResult {
     abort_with!(UserErr::invalid_usage(&BLOCKLIST_COMMAND_OPTIONS));
 }
@@ -12,8 +13,7 @@ pub async fn blocklist(_ctx: &client::Context, _msg: &Message) -> CommandResult 
 #[command("add")]
 #[usage("blocklist add `regex`")]
 pub async fn blocklist_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     let pattern = args
         .remains()
@@ -39,8 +39,7 @@ pub async fn blocklist_add(ctx: &client::Context, msg: &Message, args: Args) -> 
 #[command("remove")]
 #[usage("blocklist remove `regex`")]
 pub async fn blocklist_remove(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     let pattern = args
         .remains()
@@ -63,8 +62,7 @@ pub async fn blocklist_remove(ctx: &client::Context, msg: &Message, args: Args) 
 #[command("get")]
 #[usage("blocklist get")]
 pub async fn blocklist_get(ctx: &client::Context, msg: &Message) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     let entries = db.get_blocklist().await?;
 

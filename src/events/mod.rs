@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::log_error;
 use crate::{db::mute, extensions::*};
+use crate::{log_error, UPEmotes};
 use anyhow::{Context, Result};
 
 use serenity::async_trait;
@@ -26,6 +26,18 @@ pub struct Handler;
 impl EventHandler for Handler {
     async fn ready(&self, ctx: client::Context, _data_about_bot: Ready) {
         log::info!("Trup is ready!");
+        {
+            let config = ctx.get_config().await;
+
+            match load_up_emotes(&ctx, config.guild).await {
+                Ok(emotes) => {
+                    ctx.data.write().await.insert::<UPEmotes>(Arc::new(emotes));
+                }
+                Err(err) => {
+                    log::warn!("Error loading emotes: {}", err);
+                }
+            }
+        }
 
         let _ = ctx
             .set_presence(
@@ -138,11 +150,9 @@ async fn unmute(
 
 async fn start_mute_handler(ctx: client::Context) {
     tokio::spawn(async move {
+        let (config, db) = ctx.get_config_and_db().await;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-            let data = ctx.data.read().await;
-            let config = data.get::<Config>().unwrap().clone();
-            let db = data.get::<Db>().unwrap().clone();
             let mutes = match db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {
@@ -167,10 +177,9 @@ async fn start_mute_handler(ctx: client::Context) {
 
 async fn start_attachment_log_handler(ctx: client::Context) {
     tokio::spawn(async move {
+        let config = ctx.get_config().await;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-            let data = ctx.data.read().await;
-            let config = data.get::<Config>().unwrap().clone();
 
             log_error!(
                 "Failed to clean up attachments",
@@ -178,4 +187,29 @@ async fn start_attachment_log_handler(ctx: client::Context) {
             );
         }
     });
+}
+
+async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> Result<UPEmotes> {
+    let all_emoji = guild.emojis(&ctx).await?;
+    Ok(UPEmotes {
+        pensibe: all_emoji
+            .iter()
+            .find(|x| x.name == "pensibe")
+            .context("no pensibe emote found")?
+            .clone(),
+        police: all_emoji
+            .iter()
+            .find(|x| x.name == "police")
+            .context("no police emote found")?
+            .clone(),
+        poggers: all_emoji
+            .iter()
+            .find(|x| x.name == "poggersphisch")
+            .context("no police poggers found")?
+            .clone(),
+        stares: all_emoji
+            .into_iter()
+            .filter(|x| x.name.starts_with("stare"))
+            .collect(),
+    })
 }

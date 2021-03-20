@@ -6,7 +6,7 @@ pub async fn message_update(
     _new: Option<Message>,
     event: MessageUpdateEvent,
 ) -> Result<()> {
-    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
 
     if Some(config.guild) != event.guild_id
         || event.edited_timestamp.is_none()

@@ -3,8 +3,7 @@ use super::*;
 #[command]
 #[usage("mute <user> <duration> [reason]")]
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
@@ -60,9 +59,7 @@ pub async fn do_mute(
     duration: std::time::Duration,
     reason: Option<&str>,
 ) -> Result<()> {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
-    let db = data.get::<Db>().unwrap().clone();
+    let (config, db) = ctx.get_config_and_db().await;
 
     let start_time = Utc::now();
     let end_time = start_time + chrono::Duration::from_std(duration.into()).unwrap();

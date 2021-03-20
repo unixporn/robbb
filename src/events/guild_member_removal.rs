@@ -6,7 +6,7 @@ pub async fn guild_member_removal(
     user: User,
     _member: Option<Member>,
 ) -> Result<()> {
-    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
     if config.guild != guild_id {
         return Ok(());
     }

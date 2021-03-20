@@ -28,8 +28,7 @@ async fn do_ban(
     mut args: Args,
     delete_days: u8,
 ) -> CommandResult {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
@@ -78,6 +77,7 @@ async fn do_ban(
         })
         .await;
 
-    msg.reply_success(&ctx, "Successfully yote!").await?;
+    msg.reply_success_mod_action(&ctx, "Successfully yote!")
+        .await?;
     Ok(())
 }

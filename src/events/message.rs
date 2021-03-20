@@ -10,7 +10,7 @@ use super::*;
 use reqwest::multipart;
 
 pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
-    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
 
     if msg.author.bot {
         return Ok(());
@@ -51,8 +51,7 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     if msg.attachments.is_empty() {
         return;
     }
-
-    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
 
     let msg_id = msg.id.clone();
     let channel_id = msg.channel_id.clone();
@@ -120,9 +119,8 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
 }
 
 async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
-    let db = data.get::<Db>().unwrap().clone();
+    let (config, db) = ctx.get_config_and_db().await;
+
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     if let Some(word) = blocklist_regex.find(&msg.content) {
         let word = word.as_str();
@@ -204,8 +202,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         };
 
     if is_spam {
-        let data = ctx.data.read().await;
-        let config = data.get::<Config>().unwrap().clone();
+        let config = ctx.get_config().await;
 
         let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
         let member = guild.member(&ctx, msg.author.id).await?;
@@ -238,8 +235,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     if !msg.attachments.is_empty() || !msg.embeds.is_empty() {
         if let Some(attachment) = msg.attachments.first() {
-            let data = ctx.data.read().await;
-            let db = data.get::<Db>().unwrap().clone();
+            let db = ctx.get_db().await;
             msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
                 .await
                 .context("Error reacting to showcase submission with ❤️")?;

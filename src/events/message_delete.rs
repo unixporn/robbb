@@ -12,7 +12,7 @@ pub async fn message_delete(
     deleted_message_id: MessageId,
     guild_id: Option<GuildId>,
 ) -> Result<()> {
-    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
     if Some(config.guild) != guild_id {
         return Ok(());
     };
@@ -78,7 +78,7 @@ pub async fn message_delete_bulk(
     deleted_message_ids: Vec<MessageId>,
     guild_id: Option<GuildId>,
 ) -> Result<()> {
-    let config = ctx.data.read().await.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
     if Some(config.guild) != guild_id {
         return Ok(());
     };

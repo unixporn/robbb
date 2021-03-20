@@ -38,8 +38,7 @@ pub async fn handle_set_fetch(
     lines: Vec<&str>,
     update: bool,
 ) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     if lines.is_empty() && msg.attachments.is_empty() {
         msg.reply_embed(&ctx, |e| {
@@ -116,8 +115,7 @@ pub async fn handle_set_fetch(
 #[command("fetch")]
 #[usage("fetch [user] [field]")]
 pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let mentioned_user_id = if let Ok(mentioned_user) = args.single_quoted::<String>() {
@@ -159,7 +157,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
                 e.title(format!("{}'s {}", member.user.name, field_name));
                 e.color_opt(color);
-                if desired_field == IMAGE_KEY {
+                if desired_field.to_lowercase() == IMAGE_KEY.to_lowercase() {
                     e.image(value);
                 } else if let Some(value) = format_fetch_field_value(&field_name, value) {
                     e.description(value);
@@ -184,11 +182,8 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                         }
                     } else if key == IMAGE_KEY {
                         e.image(value);
-                    } else {
-                        let value = format_fetch_field_value(&key, value);
-                        if let Some(value) = value {
-                            e.field(key, value, true);
-                        }
+                    } else if let Some(value) = format_fetch_field_value(&key, value) {
+                        e.field(key, value, true);
                     }
                 }
             })
