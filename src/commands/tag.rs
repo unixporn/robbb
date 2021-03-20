@@ -4,11 +4,9 @@ use super::*;
 #[command]
 #[usage("tag <name> | tag list")]
 #[sub_commands(list_tags, set_tag)]
-pub async fn tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn tag(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db = ctx.get_db().await;
-    let tag_name = args
-        .single_quoted::<String>()
-        .invalid_usage(&TAG_COMMAND_OPTIONS)?;
+    let tag_name = args.remains().invalid_usage(&TAG_COMMAND_OPTIONS)?;
 
     let tag = db
         .get_tag(tag_name)
