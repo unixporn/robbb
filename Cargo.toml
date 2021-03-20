@@ -25,3 +25,9 @@ url = "2"
 regex = "1"
 reqwest = { version = "0.11", features = ["multipart"] }
 tokio = { version = "1.2", features = ["full"]}
+tokio-util = { version = "0.6", features = ["compat"] }
+extend = "1.0"
+
+
+log = "0.4"
+pretty_env_logger = "0.4"

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::{db::mute, extensions::*};
+use crate::{log_error, UPEmotes};
 use anyhow::{Context, Result};
 
 use serenity::async_trait;
@@ -9,7 +10,7 @@ use serenity::prelude::*;
 
 use serenity::client;
 
-use crate::{db::Db, extensions::UserExt, util, Config};
+use crate::{db::Db, util, Config};
 use indoc::indoc;
 
 mod guild_member_addition;
@@ -24,7 +25,19 @@ pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: client::Context, _data_about_bot: Ready) {
-        println!("Trup is ready!");
+        log::info!("Trup is ready!");
+        {
+            let config = ctx.get_config().await;
+
+            match load_up_emotes(&ctx, config.guild).await {
+                Ok(emotes) => {
+                    ctx.data.write().await.insert::<UPEmotes>(Arc::new(emotes));
+                }
+                Err(err) => {
+                    log::warn!("Error loading emotes: {}", err);
+                }
+            }
+        }
 
         let _ = ctx
             .set_presence(
@@ -33,15 +46,15 @@ impl EventHandler for Handler {
             )
             .await;
 
-        start_mute_handler(ctx).await;
+        start_mute_handler(ctx.clone()).await;
+        start_attachment_log_handler(ctx).await;
     }
 
     async fn message(&self, ctx: client::Context, msg: Message) {
-        util::log_error_value(
-            message::message(ctx, msg)
-                .await
-                .context("Error while handling message event"),
-        );
+        log_error!(
+            "Error while handling message event",
+            message::message(ctx, msg).await
+        )
     }
 
     async fn message_update(
@@ -51,10 +64,9 @@ impl EventHandler for Handler {
         _new: Option<Message>,
         event: MessageUpdateEvent,
     ) {
-        util::log_error_value(
-            message_update::message_update(ctx, old_if_available, _new, event)
-                .await
-                .context("Error while handling message_update event"),
+        log_error!(
+            "Error while handling message_update event",
+            message_update::message_update(ctx, old_if_available, _new, event).await
         );
     }
 
@@ -65,10 +77,9 @@ impl EventHandler for Handler {
         deleted_message_id: MessageId,
         guild_id: Option<GuildId>,
     ) {
-        util::log_error_value(
-            message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id)
-                .await
-                .context("Error while handling message_delete event"),
+        log_error!(
+            "Error while handling message_delete event",
+            message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id).await
         );
     }
 
@@ -79,7 +90,8 @@ impl EventHandler for Handler {
         multiple_deleted_messages_ids: Vec<MessageId>,
         guild_id: Option<GuildId>,
     ) {
-        util::log_error_value(
+        log_error!(
+            "Error while handling message_delete event",
             message_delete::message_delete_bulk(
                 ctx,
                 channel_id,
@@ -87,7 +99,6 @@ impl EventHandler for Handler {
                 guild_id,
             )
             .await
-            .context("Error while handling message_delete event"),
         );
     }
 
@@ -97,10 +108,9 @@ impl EventHandler for Handler {
         guild_id: GuildId,
         new_member: Member,
     ) {
-        util::log_error_value(
-            guild_member_addition::guild_member_addition(ctx, guild_id, new_member)
-                .await
-                .context("Error while handling guild_member_addition event"),
+        log_error!(
+            "Error while handling guild_member_addition event",
+            guild_member_addition::guild_member_addition(ctx, guild_id, new_member).await
         );
     }
 
@@ -111,19 +121,17 @@ impl EventHandler for Handler {
         user: User,
         _member: Option<Member>,
     ) {
-        util::log_error_value(
-            guild_member_removal::guild_member_removal(ctx, guild_id, user, _member)
-                .await
-                .context("Error while handling guild_member_removal event"),
+        log_error!(
+            "Error while handling guild_member_removal event",
+            guild_member_removal::guild_member_removal(ctx, guild_id, user, _member).await
         );
     }
 
     async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
-        util::log_error_value(
-            reaction_add::reaction_add(ctx, event)
-                .await
-                .context("Error while handling reaction_addd event"),
-        )
+        log_error!(
+            "Error while handling reaction_addd event",
+            reaction_add::reaction_add(ctx, event).await
+        );
     }
 }
 
@@ -142,21 +150,19 @@ async fn unmute(
 
 async fn start_mute_handler(ctx: client::Context) {
     tokio::spawn(async move {
+        let (config, db) = ctx.get_config_and_db().await;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-            let data = ctx.data.read().await;
-            let config = data.get::<Config>().unwrap().clone();
-            let db = data.get::<Db>().unwrap().clone();
             let mutes = match db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {
-                    eprintln!("Failed to request expired mutes: {}", err);
+                    log::error!("Failed to request expired mutes: {}", err);
                     continue;
                 }
             };
             for mute in mutes {
                 if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
-                    eprintln!("Error handling mute removal: {}", err);
+                    log::error!("Error handling mute removal: {}", err);
                 } else {
                     config
                         .log_bot_action(&ctx, |e| {
@@ -167,4 +173,43 @@ async fn start_mute_handler(ctx: client::Context) {
             }
         }
     });
+}
+
+async fn start_attachment_log_handler(ctx: client::Context) {
+    tokio::spawn(async move {
+        let config = ctx.get_config().await;
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+
+            log_error!(
+                "Failed to clean up attachments",
+                crate::attachment_logging::cleanup(&config).await
+            );
+        }
+    });
+}
+
+async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> Result<UPEmotes> {
+    let all_emoji = guild.emojis(&ctx).await?;
+    Ok(UPEmotes {
+        pensibe: all_emoji
+            .iter()
+            .find(|x| x.name == "pensibe")
+            .context("no pensibe emote found")?
+            .clone(),
+        police: all_emoji
+            .iter()
+            .find(|x| x.name == "police")
+            .context("no police emote found")?
+            .clone(),
+        poggers: all_emoji
+            .iter()
+            .find(|x| x.name == "poggersphisch")
+            .context("no police poggers found")?
+            .clone(),
+        stares: all_emoji
+            .into_iter()
+            .filter(|x| x.name.starts_with("stare"))
+            .collect(),
+    })
 }

@@ -1,5 +1,5 @@
-use crate::extensions::CreateEmbedExt;
-use crate::{abort_with, db::Db, extensions::MessageExt, util, Config};
+use crate::extensions::{clientContextExt, CreateEmbedExt};
+use crate::{abort_with, db::Db, extensions::MessageExt, util};
 
 use super::checks::*;
 //use super::Config;
@@ -35,6 +35,7 @@ pub mod poll;
 pub mod purge;
 pub mod role;
 pub mod small;
+pub mod tag;
 pub mod top;
 pub mod unban;
 pub mod warn;
@@ -52,7 +53,8 @@ use pfp::*;
 use poll::*;
 use purge::*;
 use role::*;
-use small::*;
+use small::*;!
+use tag::*;
 use top::*;
 use unban::*;
 use warn::*;
@@ -64,7 +66,7 @@ lazy_static::lazy_static! {
 #[group]
 #[only_in(guilds)]
 #[commands(
-    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist
+    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag
 )]
 #[checks(moderator)]
 struct Moderator;
@@ -79,11 +81,11 @@ struct HelperOrMod;
 #[only_in(guilds)]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    invite
+    invite, tag, list_tags
 )]
 struct General;
 
-#[derive(Debug, Clone)]
+!#[derive(Debug, Clone)]
 pub struct BacktickedString(pub String);
 impl FromStr for BacktickedString {
     type Err = anyhow::Error;

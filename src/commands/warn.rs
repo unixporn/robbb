@@ -4,9 +4,7 @@ use super::*;
 #[command]
 #[usage("warn <user> <reason>")]
 pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
-    let db = data.get::<Db>().unwrap().clone();
+    let (config, db) = ctx.get_config_and_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let mentioned_user = &args
@@ -27,15 +25,23 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     .await?;
 
     let warn_count = db.count_warns(mentioned_user_id).await?;
+
+    let police_emote = ctx
+        .get_up_emotes()
+        .await
+        .map(|x| format!("{}", x.police))
+        .unwrap_or_default();
+
     let _ = msg
         .reply(
             &ctx,
             format!(
-                "{} has been warned by {} for the {} time for reason: {}",
+                "{} has been warned by {} for the {} time for reason: {}{}",
                 mentioned_user_id.mention(),
                 msg.author.id.mention(),
                 util::format_count(warn_count),
-                reason
+                reason,
+                &police_emote,
             ),
         )
         .await;

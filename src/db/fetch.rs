@@ -41,7 +41,7 @@ impl Db {
         if let Some(x) = value {
             Ok(Some(Fetch {
                 user: UserId(x.usr as u64),
-                info: serde_json::from_str(&x.info)?,
+                info: serde_json::from_str(&x.info).context("Failed to deserialize fetch data")?,
             }))
         } else {
             Ok(None)
@@ -75,7 +75,8 @@ impl Db {
             .map(|x| {
                 Ok(Fetch {
                     user: UserId(x.usr as u64),
-                    info: serde_json::from_str(&x.info)?,
+                    info: serde_json::from_str(&x.info)
+                        .context("Failed to deserialize fetch data")?,
                 })
             })
             .collect::<Result<_>>()?)

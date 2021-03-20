@@ -6,9 +6,7 @@ use super::*;
 #[command]
 #[usage("note <user> <content>")]
 pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
-    let db = data.get::<Db>().unwrap().clone();
+    let (config, db) = ctx.get_config_and_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
@@ -51,8 +49,7 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 #[command]
 #[usage("notes <user> [all|mod|warn|mute|blocklist]")]
 pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 

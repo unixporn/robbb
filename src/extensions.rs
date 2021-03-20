@@ -1,80 +1,60 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 use anyhow::{Context, Result};
 use chrono::Utc;
 
-use rand::prelude::IteratorRandom;
+use extend::ext;
 use serenity::{
     async_trait,
     builder::CreateEmbed,
     client,
     model::{
         channel::Message,
-        guild::{Emoji, Guild},
+        guild::Emoji,
         id::{ChannelId, GuildId},
         prelude::User,
     },
     utils::Colour,
 };
 
-use crate::Config;
+use crate::{db::Db, Config, UPEmotes};
 
-pub trait UserExt {
-    fn name_with_disc_and_id(&self) -> String;
+#[ext(pub)]
+#[async_trait]
+impl client::Context {
+    async fn get_config(&self) -> Arc<Config> {
+        self.data.read().await.get::<Config>().unwrap().clone()
+    }
+    async fn get_db(&self) -> Arc<Db> {
+        self.data.read().await.get::<Db>().unwrap().clone()
+    }
+    async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>) {
+        let data = self.data.read().await;
+        (
+            data.get::<Config>().unwrap().clone(),
+            data.get::<Db>().unwrap().clone(),
+        )
+    }
+
+    async fn get_up_emotes(&self) -> Option<Arc<UPEmotes>> {
+        self.data.read().await.get::<UPEmotes>().cloned()
+    }
+
+    async fn get_random_stare(&self) -> Option<Emoji> {
+        self.get_up_emotes().await?.random_stare()
+    }
 }
 
-impl UserExt for User {
+#[ext(pub)]
+impl User {
     fn name_with_disc_and_id(&self) -> String {
         format!("{}#{}({})", self.name, self.discriminator, self.id)
     }
 }
 
+#[ext(pub)]
 #[async_trait]
-pub trait GuildExt {
-    async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji>;
-    async fn send_embed<F>(
-        &self,
-        ctx: &client::Context,
-        channel_id: ChannelId,
-        build: F,
-    ) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync;
-}
-
-#[async_trait]
-impl GuildExt for Guild {
-    async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji> {
-        self.id.random_stare_emoji(&ctx).await
-    }
-
-    async fn send_embed<F>(
-        &self,
-        ctx: &client::Context,
-        channel_id: ChannelId,
-        build: F,
-    ) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
-    {
-        self.id.send_embed(ctx, channel_id, build).await
-    }
-}
-#[async_trait]
-impl GuildExt for GuildId {
-    async fn random_stare_emoji(&self, ctx: &client::Context) -> Option<Emoji> {
-        self.emojis(&ctx)
-            .await
-            .map(|emoji| {
-                let mut rng = rand::thread_rng();
-                emoji
-                    .into_iter()
-                    .filter(|e| e.name.starts_with("stare"))
-                    .choose(&mut rng)
-            })
-            .unwrap_or(None)
-    }
-
+impl GuildId {
     async fn send_embed<F>(
         &self,
         ctx: &client::Context,
@@ -98,29 +78,9 @@ impl GuildExt for GuildId {
     }
 }
 
+#[ext(pub)]
 #[async_trait]
-pub trait MessageExt {
-    async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync;
-
-    async fn reply_error(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message>;
-
-    async fn reply_success(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message>;
-
-    fn to_context_link(&self) -> String;
-}
-
-#[async_trait]
-impl MessageExt for Message {
+impl Message {
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
@@ -146,8 +106,12 @@ impl MessageExt for Message {
         ctx: &client::Context,
         s: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
+        let pensibe = ctx
+            .get_up_emotes()
+            .await
+            .map(|x| format!("{}", x.pensibe.clone()));
         self.reply_embed(&ctx, |e| {
-            e.description(format!("{}", s));
+            e.description(format!("{}{}", s, pensibe.unwrap_or_default()));
             e.color(0xfb4934);
         })
         .await
@@ -158,8 +122,30 @@ impl MessageExt for Message {
         ctx: &client::Context,
         s: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
+        let poggers = ctx
+            .get_up_emotes()
+            .await
+            .map(|x| format!("{}", x.poggers.clone()));
+
         self.reply_embed(&ctx, |e| {
-            e.description(format!("{}", s));
+            e.description(format!("{}{}", s, poggers.unwrap_or_default()));
+            e.color(0xb8bb26);
+        })
+        .await
+    }
+
+    async fn reply_success_mod_action(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message> {
+        let police = ctx
+            .get_up_emotes()
+            .await
+            .map(|x| format!("{}", x.police.clone()));
+
+        self.reply_embed(&ctx, |e| {
+            e.description(format!("{}{}", s, police.unwrap_or_default()));
             e.color(0xb8bb26);
         })
         .await
@@ -170,15 +156,9 @@ impl MessageExt for Message {
     }
 }
 
+#[ext(pub)]
 #[async_trait]
-pub trait ChannelIdExt {
-    async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync;
-}
-
-#[async_trait]
-impl ChannelIdExt for ChannelId {
+impl ChannelId {
     async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
@@ -198,16 +178,12 @@ impl ChannelIdExt for ChannelId {
 }
 
 pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
-
-    let guild = config.guild;
-    let emoji = guild.random_stare_emoji(&ctx).await;
+    let stare = ctx.get_random_stare().await;
 
     move |e: &mut CreateEmbed| {
         e.timestamp(&Utc::now());
         e.footer(|f| {
-            if let Some(emoji) = emoji {
+            if let Some(emoji) = stare {
                 f.icon_url(emoji.url());
             }
             f.text("\u{200b}")
@@ -215,15 +191,21 @@ pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut Crea
     }
 }
 
-pub trait CreateEmbedExt {
-    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed;
-}
-
-impl CreateEmbedExt for CreateEmbed {
+#[ext(pub)]
+impl CreateEmbed {
     fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed {
         if let Some(c) = c {
             self.color(c);
         }
         self
+    }
+}
+
+#[ext(pub, name = StrExt)]
+impl<T: AsRef<str>> T {
+    fn split_once(&self, c: char) -> Option<(&str, &str)> {
+        let s: &str = self.as_ref();
+        let index = s.find(c)?;
+        Some(s.split_at(index))
     }
 }

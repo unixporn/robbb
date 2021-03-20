@@ -1,6 +1,7 @@
+use crate::extensions::*;
 #[allow(unused_imports)]
 use db::Db;
-use extensions::{GuildExt, MessageExt};
+use rand::prelude::IteratorRandom;
 use serenity::client::bridge::gateway::GatewayIntents;
 #[allow(unused_imports)]
 use serenity::client::{self, Client};
@@ -9,11 +10,13 @@ use serenity::framework::standard::{macros::hook, CommandResult, Reason};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
-use std::sync::Arc;
+use std::io::Write;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::util::*;
 use anyhow::Result;
 
+pub mod attachment_logging;
 pub mod checks;
 pub mod commands;
 pub mod db;
@@ -23,7 +26,25 @@ pub mod util;
 
 use commands::*;
 
-struct Config {
+#[derive(Debug, Clone)]
+pub struct UPEmotes {
+    pensibe: Emoji,
+    police: Emoji,
+    poggers: Emoji,
+    stares: Vec<Emoji>,
+}
+impl UPEmotes {
+    pub fn random_stare(&self) -> Option<Emoji> {
+        let mut rng = rand::thread_rng();
+        self.stares.iter().choose(&mut rng).cloned()
+    }
+}
+
+impl TypeMapKey for UPEmotes {
+    type Value = Arc<UPEmotes>;
+}
+
+pub struct Config {
     pub discord_token: String,
 
     pub guild: GuildId,
@@ -39,6 +60,9 @@ struct Config {
     pub channel_auto_mod: ChannelId,
     pub channel_bot_messages: ChannelId,
     pub channel_bot_traffic: ChannelId,
+
+    pub attachment_cache_path: PathBuf,
+    pub attachment_cache_max_size: usize,
 }
 
 impl Config {
@@ -60,6 +84,8 @@ impl Config {
             channel_auto_mod: ChannelId(parse_required_env_var("CHANNEL_AUTO_MOD")?),
             channel_bot_messages: ChannelId(parse_required_env_var("CHANNEL_BOT_MESSAGES")?),
             channel_bot_traffic: ChannelId(parse_required_env_var("CHANNEL_BOT_TRAFFIC")?),
+            attachment_cache_path: parse_required_env_var("ATTACHMENT_CACHE_PATH")?,
+            attachment_cache_max_size: parse_required_env_var("ATTACHMENT_CACHE_MAX_SIZE")?,
         })
     }
 
@@ -71,7 +97,23 @@ impl Config {
             .guild
             .send_embed(&ctx, self.channel_modlog, build_embed)
             .await;
-        util::log_error_value(result);
+        log_error!(result);
+    }
+    async fn log_automod_action<F>(&self, ctx: &client::Context, build_embed: F)
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync,
+    {
+        let result = self
+            .guild
+            .send_embed(&ctx, self.channel_auto_mod, build_embed)
+            .await;
+        log_error!(result);
+    }
+
+    #[allow(unused)]
+    async fn is_mod(&self, ctx: &client::Context, user_id: UserId) -> Result<bool> {
+        let user = user_id.to_user(&ctx).await?;
+        Ok(user.has_role(&ctx, self.guild, self.role_mod).await?)
     }
 }
 
@@ -81,6 +123,8 @@ impl TypeMapKey for Config {
 
 #[tokio::main]
 async fn main() {
+    init_logger();
+
     let config = Config::from_environment().expect("Failed to load experiment");
 
     let db = Db::new().await.unwrap();
@@ -106,12 +150,11 @@ async fn main() {
     {
         let mut data = client.data.write().await;
         data.insert::<Config>(Arc::new(config));
-
         data.insert::<Db>(Arc::new(db));
     };
 
     if let Err(why) = client.start().await {
-        println!("An error occurred while running the client: {:?}", why);
+        log::error!("An error occurred while running the client: {:?}", why);
     }
 }
 
@@ -121,7 +164,7 @@ async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: Dispat
     match &error {
         DispatchError::CheckFailed(required, Reason::Log(log))
         | DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
-            eprintln!("Check for {} failed with: {}", required, log);
+            log::warn!("Check for {} failed with: {}", required, log);
         }
         _ => {}
     };
@@ -131,12 +174,12 @@ async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: Dispat
 
 fn display_dispatch_error(err: DispatchError) -> String {
     match err {
-        DispatchError::CheckFailed(required, reason) => match reason {
+        DispatchError::CheckFailed(_required, reason) => match reason {
             Reason::User(reason)
             | Reason::UserAndLog {
                 user: reason,
                 log: _,
-            } => format!("{}\nRequires {}", reason, required),
+            } => reason,
             _ => "You're not allowed to use this command".to_string(),
         },
         DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),
@@ -161,7 +204,7 @@ fn display_dispatch_error(err: DispatchError) -> String {
             given, max
         ),
         _ => {
-            eprintln!("Unhandled dispatch error: {:?}", err);
+            log::warn!("Unhandled dispatch error: {:?}", err);
             "Failed to run command".to_string()
         }
     }
@@ -185,9 +228,11 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
             None => match err.downcast::<serenity::Error>() {
                 Ok(err) => {
                     let err = *err;
-                    eprintln!(
+                    log::warn!(
                         "Serenity error [handling {}]: {} ({:?})",
-                        command_name, &err, &err
+                        command_name,
+                        &err,
+                        &err
                     );
                     match err {
                         serenity::Error::Http(err) => match *err {
@@ -212,13 +257,52 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                 }
                 Err(err) => {
                     let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                    eprintln!(
-                        "Internal error [handling {}]: {} ({:?})",
-                        command_name, &err, &err
+                    log::warn!(
+                        "Internal error [handling {}]: {} ({:#?})",
+                        command_name,
+                        &err,
+                        &err
                     );
                 }
             },
         },
         Ok(()) => {}
     }
+}
+
+fn init_logger() {
+    let mut builder = pretty_env_logger::formatted_timed_builder();
+    builder
+        .format(|buf, r| {
+            let ts = buf.timestamp();
+            let level = buf.default_styled_level(r.level());
+            let mut bold = buf.style();
+            bold.set_bold(true);
+
+            let module_or_file = if r.file().is_some() && r.file().unwrap().len() < 80 {
+                format!(
+                    "{}:{}",
+                    r.file().unwrap_or_default(),
+                    r.line().unwrap_or_default()
+                )
+            } else {
+                format!("{}", r.module_path().unwrap_or_default())
+            };
+
+            writeln!(
+                buf,
+                "{} {} [{}] {} {}",
+                ts,
+                level,
+                module_or_file,
+                bold.value(">"),
+                r.args()
+            )
+        })
+        .filter_module("trup_rs", log::LevelFilter::Debug);
+
+    if let Some(log_var) = std::env::var("RUST_LOG").ok() {
+        builder.parse_filters(&log_var);
+    }
+    builder.init();
 }

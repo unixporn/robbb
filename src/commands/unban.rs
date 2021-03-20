@@ -3,8 +3,7 @@ use super::*;
 #[command]
 #[usage("unban <user>")]
 pub async fn unban(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let config = data.get::<Config>().unwrap().clone();
+    let config = ctx.get_config().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 

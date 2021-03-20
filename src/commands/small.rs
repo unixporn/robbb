@@ -47,15 +47,27 @@ pub async fn repo(ctx: &client::Context, msg: &Message) -> CommandResult {
 /// set your profiles description.
 #[command]
 #[usage("desc <text>")]
+#[aliases("description")]
 pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
-    let value = args.remains().map(|x| x.to_string());
-    db.set_description(msg.author.id, value).await?;
+    if let Some(value) = args.remains().map(|x| x.to_string()) {
+        db.set_description(msg.author.id, Some(value)).await?;
+        msg.reply_success(&ctx, "Successfully updated your description!")
+            .await?;
+    } else {
+        if let Some(value) = db
+            .get_profile(msg.author.id)
+            .await?
+            .and_then(|x| x.description)
+        {
+            msg.reply_success(&ctx, value).await?;
+        } else {
+            msg.reply_error(&ctx, "You need to set your description first")
+                .await?;
+        }
+    }
 
-    msg.reply_success(&ctx, "Successfully updated your description!")
-        .await?;
     Ok(())
 }
 
@@ -63,17 +75,20 @@ pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 #[command]
 #[usage("git <url>")]
 pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
-    let value = args.remains().map(|x| x.to_string());
-    if value.as_ref().map(|x| util::validate_url(&x)) == Some(false) {
-        abort_with!(UserErr::other("Malformed URL"));
+    if let Some(value) = args.remains().map(|x| x.to_string()) {
+        db.set_git(msg.author.id, Some(value)).await?;
+        msg.reply_success(&ctx, "Successfully updated your git-url!")
+            .await?;
+    } else {
+        if let Some(value) = db.get_profile(msg.author.id).await?.and_then(|x| x.git) {
+            msg.reply_success(&ctx, value).await?;
+        } else {
+            msg.reply_error(&ctx, "You need to set your git-link first")
+                .await?;
+        }
     }
-    db.set_git(msg.author.id, value).await?;
-
-    msg.reply_success(&ctx, "Successfully updated your git-url!")
-        .await?;
     Ok(())
 }
 
@@ -81,17 +96,25 @@ pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 #[command]
 #[usage("dotfiles <url>")]
 pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap().clone();
+    let db = ctx.get_db().await;
 
-    let value = args.remains().map(|x| x.to_string());
-    if value.as_ref().map(|x| util::validate_url(&x)) == Some(false) {
-        abort_with!(UserErr::other("Malformed URL"));
+    if let Some(value) = args.remains().map(|x| x.to_string()) {
+        db.set_dotfiles(msg.author.id, Some(value)).await?;
+        msg.reply_success(&ctx, "Successfully updated your dotfiles!")
+            .await?;
+    } else {
+        if let Some(value) = db
+            .get_profile(msg.author.id)
+            .await?
+            .and_then(|x| x.dotfiles)
+        {
+            msg.reply_success(&ctx, value).await?;
+        } else {
+            msg.reply_error(&ctx, "You need to set your dotfiles first")
+                .await?;
+        }
     }
-    db.set_dotfiles(msg.author.id, value).await?;
 
-    msg.reply_success(&ctx, "Successfully updated your dotfiles!")
-        .await?;
     Ok(())
 }
 
