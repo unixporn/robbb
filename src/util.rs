@@ -79,3 +79,11 @@ pub fn validate_url(value: &str) -> bool {
         .map(|url| !url.scheme().is_empty() && url.host().is_some() && url.domain().is_some())
         .unwrap_or(false)
 }
+
+pub fn pluralize(s: &str) -> String {
+    use regex::Regex;
+    lazy_static::lazy_static! {
+        static ref PLURAL_Y_REGEX: Regex = Regex::new("ys$").unwrap();
+    }
+    PLURAL_Y_REGEX.replace(&format!("{}s", s), "ies").into()
+}

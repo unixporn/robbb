@@ -67,7 +67,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
                 .take(10);
 
             msg.reply_embed(&ctx, |e| {
-                e.title(format!("Top {}s", field_name));
+                e.title(format!("Top {}", util::pluralize(&field_name)));
                 e.description(
                     top_ten_field_value_counts
                         .enumerate()

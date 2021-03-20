@@ -233,20 +233,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 }
 
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
-    if !msg.attachments.is_empty() || !msg.embeds.is_empty() {
-        if let Some(attachment) = msg.attachments.first() {
-            let db = ctx.get_db().await;
-            msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
-                .await
-                .context("Error reacting to showcase submission with ❤️")?;
-
-            db.update_fetch(
-                msg.author.id,
-                hashmap! {"image".to_string() => attachment.url.to_string() },
-            )
-            .await?;
-        }
-    } else {
+    if msg.attachments.is_empty() && msg.embeds.is_empty() {
         msg.delete(&ctx)
             .await
             .context("Failed to delete invalid showcase submission")?;
@@ -256,6 +243,19 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
                     If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup
                 "))
             }).await.context("Failed to send DM about invalid showcase submission")?;
+    } else {
+        if let Some(attachment) = msg.attachments.first() {
+            let db = ctx.get_db().await;
+            msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
+                .await
+                .context("Error reacting to showcase submission with ❤️")?;
+
+            db.update_fetch(
+                msg.author.id,
+                hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
+            )
+            .await?;
+        }
     }
     Ok(())
 }

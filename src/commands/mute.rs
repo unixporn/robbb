@@ -25,7 +25,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     do_mute(&ctx, guild, msg.author.id, member, *duration, reason).await?;
 
-    msg.reply_success(
+    msg.reply_success_mod_action(
         &ctx,
         format!(
             "{} has been muted for {}",

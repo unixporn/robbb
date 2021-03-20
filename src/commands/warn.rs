@@ -29,7 +29,7 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let police_emote = ctx
         .get_up_emotes()
         .await
-        .map(|x| format!("{}", x.police))
+        .map(|x| format!(" {}", x.police))
         .unwrap_or_default();
 
     let _ = msg

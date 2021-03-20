@@ -109,7 +109,7 @@ impl Message {
         let pensibe = ctx
             .get_up_emotes()
             .await
-            .map(|x| format!("{}", x.pensibe.clone()));
+            .map(|x| format!(" {}", x.pensibe.clone()));
         self.reply_embed(&ctx, |e| {
             e.description(format!("{}{}", s, pensibe.unwrap_or_default()));
             e.color(0xfb4934);
@@ -125,7 +125,7 @@ impl Message {
         let poggers = ctx
             .get_up_emotes()
             .await
-            .map(|x| format!("{}", x.poggers.clone()));
+            .map(|x| format!(" {}", x.poggers.clone()));
 
         self.reply_embed(&ctx, |e| {
             e.description(format!("{}{}", s, poggers.unwrap_or_default()));
@@ -142,7 +142,7 @@ impl Message {
         let police = ctx
             .get_up_emotes()
             .await
-            .map(|x| format!("{}", x.police.clone()));
+            .map(|x| format!(" {}", x.police.clone()));
 
         self.reply_embed(&ctx, |e| {
             e.description(format!("{}{}", s, police.unwrap_or_default()));

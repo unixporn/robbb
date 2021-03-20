@@ -34,7 +34,8 @@ pub async fn message_delete(
         return Ok(());
     }
 
-    handle_ghostping(&ctx, &msg).await;
+    // TODO do we want this?
+    //handle_ghostping(&ctx, &msg).await;
 
     let deletor = find_deletor(&ctx, &config, &msg).await?;
     let channel_name = channel_id
@@ -162,7 +163,9 @@ async fn find_deletor(
 }
 
 /// if the deleted message was a ghostping, send a message to the pinged user.
+#[allow(unused)]
 async fn handle_ghostping(ctx: &client::Context, msg: &Message) {
+    // TODO make this not fire in showcase etc
     if !msg.mentions.is_empty() {
         let _ = msg
             .channel_id
