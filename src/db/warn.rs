@@ -51,8 +51,8 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
         sqlx::query!(
-            r#"delete from warn where usr=? and create_date=(select max(create_date) from warn where usr=?)"#,
-            user, user,
+            r#"delete from warn as w where usr=? and create_date=(select max(create_date) from warn where usr=w.usr)"#,
+            user,
         ).execute(&mut conn).await?;
         Ok(())
     }

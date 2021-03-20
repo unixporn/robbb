@@ -94,8 +94,8 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
         sqlx::query!(
-            r#"delete from note where usr=? and create_date=(select max(create_date) from note where usr=?)"#,
-            user, user,
+            r#"delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)"#,
+            user,
         ).execute(&mut conn).await?;
         Ok(())
     }
