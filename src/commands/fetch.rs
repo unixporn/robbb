@@ -161,10 +161,10 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                 e.color_opt(color);
                 if desired_field == IMAGE_KEY {
                     e.image(value);
+                } else if let Some(value) = format_fetch_field_value(&field_name, value) {
+                    e.description(value);
                 } else {
-                    if let Some(value) = format_fetch_field_value(&field_name, value) {
-                        e.description(value);
-                    }
+                    e.description("Not set");
                 }
             })
             .await?;
