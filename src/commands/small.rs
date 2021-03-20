@@ -117,3 +117,10 @@ pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> Comma
 
     Ok(())
 }
+
+#[command]
+#[usage("invite")]
+pub async fn invite(ctx: &client::Context, msg: &Message) -> CommandResult {
+    msg.reply(&ctx, "https://discord.gg/TnJ4h5K").await?;
+    Ok(())
+}
