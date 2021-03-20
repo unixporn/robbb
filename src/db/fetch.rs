@@ -20,9 +20,8 @@ impl Db {
             let info = serde_json::to_string(&info)?;
 
             sqlx::query!(
-                "insert into fetch (usr, info) values (?, ?) on conflict(usr) do update set info=?",
+                "insert into fetch (usr, info) values (?1, ?2) on conflict(usr) do update set info=?2",
                 user,
-                info,
                 info,
             )
             .execute(&mut conn)

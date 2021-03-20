@@ -108,10 +108,9 @@ impl Db {
         sqlx::query!(
             r#"
                 SELECT * FROM note
-                WHERE usr=? AND (? IS NULL OR note_type=?)
+                WHERE usr=?1 AND (?2 IS NULL OR note_type=?2)
                 ORDER BY create_date DESC"#,
             user_id,
-            note_type_value,
             note_type_value,
         )
         .fetch_all(&mut conn)
