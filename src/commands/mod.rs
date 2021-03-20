@@ -81,7 +81,7 @@ struct HelperOrMod;
 #[only_in(guilds)]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, list_tags
+    tag, list_tags, invite
 )]
 struct General;
 
