@@ -240,7 +240,7 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                 Err(err) => {
                     let _ = msg.reply_error(&ctx, "Something went wrong").await;
                     log::warn!(
-                        "Internal error [handling {}]: {} ({:?})",
+                        "Internal error [handling {}]: {} ({:#?})",
                         command_name,
                         &err,
                         &err

@@ -64,19 +64,19 @@ pub async fn handle_set_fetch(
         .collect::<HashMap<String, String>>();
 
     for (key, value) in info.iter_mut() {
-        if !ALLOWED_KEYS.contains(&key.as_ref()) {
+        if !NORMAL_FETCH_KEYS.contains(&key.as_ref()) {
             abort_with!(UserErr::Other(format!("Illegal fetch field: {}", key)))
         }
         match key.as_str() {
-            "Memory" => {
+            MEMORY_KEY => {
                 *value = byte_unit::Byte::from_str(&value)
                     .user_error("Malformed value provided for Memory")?
-                    .get_appropriate_unit(false)
-                    .to_string();
+                    .get_bytes()
+                    .to_string()
             }
-            "image" => {
+            IMAGE_KEY => {
                 if !util::validate_url(&value) {
-                    abort_with!(UserErr::other("Got malformed url for image"))
+                    abort_with!(UserErr::other("Got malformed url for Image"))
                 }
             }
             _ => {}
@@ -96,7 +96,7 @@ pub async fn handle_set_fetch(
         });
 
     if let Some(image) = image {
-        info.insert("image".to_string(), image);
+        info.insert(IMAGE_KEY.to_string(), image);
     }
 
     if update {
@@ -139,7 +139,9 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     }
 
     // all data shown in fetch, including the profile values
-    let mut all_data: HashMap<String, String> = fetch_info.map(|x| x.info).unwrap_or_default();
+    let mut all_data: Vec<(String, String)> = fetch_info
+        .map(|x| x.info.into_iter().collect())
+        .unwrap_or_default();
     if let Some(profile) = profile {
         all_data.extend(profile.into_values_map());
     }
@@ -150,17 +152,19 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     match desired_field {
         // Handle fetching a single field
         Some(desired_field) => {
-            let value = all_data.get(&desired_field).cloned()
+            let (field_name, value) = all_data.into_iter().find(|(k, _)| k.to_lowercase() == desired_field.to_lowercase())
                 .user_error("Failed to get that value. Maybe the user hasn't set it, or maybe the field does not exist?")?;
 
             msg.reply_embed(&ctx, |e| {
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
-                e.title(format!("{}'s {}", member.user.name, desired_field));
+                e.title(format!("{}'s {}", member.user.name, field_name));
                 e.color_opt(color);
-                if desired_field == "image" {
+                if desired_field == IMAGE_KEY {
                     e.image(value);
                 } else {
-                    e.description(value);
+                    if let Some(value) = format_fetch_field_value(&field_name, value) {
+                        e.description(value);
+                    }
                 }
             })
             .await?;
@@ -173,18 +177,19 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                 e.title(format!("Fetch {}", member.user.tag()));
                 e.color_opt(color);
 
-                if let Some(image_url) = all_data.get("Distro").and_then(|d| find_distro_image(d)) {
-                    e.thumbnail(image_url);
-                }
-
-                // remove image here, such that it is not included in the main fetch fields
-                if let Some(image_url) = all_data.remove("image") {
-                    e.image(image_url);
-                }
-
-                // set main fetch fields
                 for (key, value) in all_data {
-                    e.field(key, value, true);
+                    if key == DISTRO_KEY {
+                        if let Some(image_url) = find_distro_image(&value) {
+                            e.thumbnail(image_url);
+                        }
+                    } else if key == IMAGE_KEY {
+                        e.image(value);
+                    } else {
+                        let value = format_fetch_field_value(&key, value);
+                        if let Some(value) = value {
+                            e.field(key, value, true);
+                        }
+                    }
                 }
             })
             .await?;
@@ -194,6 +199,29 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     Ok(())
 }
 
+/// convert the field-value into the desired format.
+/// Returns `None` if the string is empty, as empty values must not be included in embeds.
+pub fn format_fetch_field_value(field_name: &str, value: String) -> Option<String> {
+    if value.is_empty() {
+        None
+    } else {
+        match field_name {
+            MEMORY_KEY => Some(format_bytes(&value)),
+            _ => Some(value),
+        }
+    }
+}
+
+fn format_bytes(s: &str) -> String {
+    let as_num = s.parse::<u128>();
+    match as_num {
+        Ok(n) => byte_unit::Byte::from_bytes(n)
+            .get_appropriate_unit(false)
+            .to_string(),
+        Err(_) => s.to_string(),
+    }
+}
+
 fn find_distro_image(distro: &str) -> Option<&str> {
     DISTRO_IMAGES
         .iter()
@@ -201,8 +229,13 @@ fn find_distro_image(distro: &str) -> Option<&str> {
         .map(|(_, url)| *url)
 }
 
+pub const IMAGE_KEY: &'static str = "image";
+pub const MEMORY_KEY: &'static str = "Memory";
+pub const DISTRO_KEY: &'static str = "Demory";
+
 lazy_static! {
-    pub static ref ALLOWED_KEYS: [&'static str; 14] = [
+    /// All the non-special fetch keys. This does not include IMAGE_KEY or the profile-keys.
+    pub static ref NORMAL_FETCH_KEYS: [&'static str; 14] = [
         "Distro",
         "Kernel",
         "Terminal",
@@ -214,9 +247,9 @@ lazy_static! {
         "Shell",
         "GTK3 Theme",
         "GTK Icon Theme",
-        "Cpu",
-        "Gpu",
-        "Memory",
+        "CPU",
+        "GPU",
+        MEMORY_KEY,
     ];
     static ref DISTRO_IMAGES: Vec<(&'static str, &'static str)> = vec![
         ("nixos", "https://nixos.org/logo/nixos-hires.png"),

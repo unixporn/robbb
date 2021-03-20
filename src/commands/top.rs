@@ -19,19 +19,20 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     let fetches = db.get_all_fetches().await?;
 
     let field = field.and_then(|field| {
-        super::fetch::ALLOWED_KEYS
+        super::fetch::NORMAL_FETCH_KEYS
             .iter()
             .find(|x| x.to_lowercase() == field.to_lowercase())
             .map(|x| x.to_string())
     });
 
-    if let Some(field) = field {
+    if let Some(field_name) = field {
         let value_pattern = args.single_quoted::<BacktickedString>().ok().map(|x| x.0);
 
         let field_value_counts = fetches
             .into_iter()
-            .filter_map(|mut x| x.info.remove(&field))
+            .filter_map(|mut x| x.info.remove(&field_name))
             .filter(|x| !x.is_empty() && x != "0")
+            .filter_map(|value| format_fetch_field_value(&field_name, value))
             .counts();
 
         if let Some(value_pattern) = value_pattern {
@@ -47,7 +48,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
             let percentage = (matching_value_count as f64 / total_field_values as f64) * 100f64;
 
             msg.reply_embed(&ctx, |e| {
-                e.title(format!("Stats for matching {}s", field));
+                e.title(format!("Stats for matching {}s", field_name));
                 e.description(indoc::formatdoc!(
                     "**Total**: {}
                      **Percentage**: {:.2}
@@ -67,7 +68,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
                 .take(10);
 
             msg.reply_embed(&ctx, |e| {
-                e.title(format!("Top {}s", field));
+                e.title(format!("Top {}s", field_name));
                 e.description(
                     top_ten_field_value_counts
                         .enumerate()
@@ -88,7 +89,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     } else {
         let mut data = HashMap::<String, Vec<String>>::new();
         for fetch in fetches {
-            for field_name in super::fetch::ALLOWED_KEYS.iter() {
+            for field_name in super::fetch::NORMAL_FETCH_KEYS.iter() {
                 let data_value = data.entry(field_name.to_string()).or_insert_with(Vec::new);
                 if let Some(field) = fetch.info.get(*field_name) {
                     data_value.push(field.clone());
@@ -103,6 +104,9 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
                 .counts()
                 .into_iter()
                 .max_by_key(|(_, cnt)| *cnt)?;
+
+            let most_popular_value = format_fetch_field_value(&field_name, most_popular_value)?;
+
             Some((
                 field_name,
                 most_popular_value,
