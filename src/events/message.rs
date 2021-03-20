@@ -34,6 +34,9 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         Ok(_) => {}
         err => log_error!("blocklist-handling", err),
     };
+
+    handle_highlighting(&ctx, &msg).await;
+
     match handle_quote(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(_) => {}
@@ -45,6 +48,10 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     };
 
     Ok(())
+}
+
+async fn handle_highlighting(ctx: &client::Context, msg: &Message) {
+    let db = ctx.get_db().await;
 }
 
 async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {

@@ -7,6 +7,7 @@ use sqlx::SqlitePool;
 
 pub mod blocklist;
 pub mod fetch;
+pub mod highlights;
 pub mod mute;
 pub mod note;
 pub mod profile;

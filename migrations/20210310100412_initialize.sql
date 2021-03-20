@@ -50,4 +50,7 @@ CREATE TABLE IF NOT EXISTS tag (
     official boolean not null
 );
 
-
+CREATE TABLE IF NOT EXISTS highlights (
+    word text primary key,
+    user integer not null,
+)
