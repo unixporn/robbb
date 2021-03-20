@@ -62,7 +62,11 @@ pub async fn blocklist_remove(ctx: &client::Context, msg: &Message, args: Args) 
 #[command("get")]
 #[usage("blocklist get")]
 pub async fn blocklist_get(ctx: &client::Context, msg: &Message) -> CommandResult {
-    let db = ctx.get_db().await;
+    let (config, db) = ctx.get_config_and_db().await;
+
+    if msg.channel_id != config.channel_mod_bot_stuff {
+        abort_with!("This can only be used in the mod-internal bot channel");
+    }
 
     let entries = db.get_blocklist().await?;
 

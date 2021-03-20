@@ -35,7 +35,7 @@ async fn do_ban(
     let permission_level = checks::get_permission_level(&ctx, &msg).await?;
     if permission_level == PermissionLevel::Helper {
         if Utc::now().signed_duration_since(msg.author.created_at()) > Duration::days(3) {
-            abort_with!(UserErr::other("You can't ban an account older than 3 days"));
+            abort_with!("You can't ban an account older than 3 days");
         }
     }
 

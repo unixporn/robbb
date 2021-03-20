@@ -74,7 +74,7 @@ async fn handle_multi_poll(ctx: &client::Context, msg: &Message, args: Args) -> 
 async fn handle_yes_no_poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let question = args.remains().invalid_usage(&POLL_COMMAND_OPTIONS)?;
     if question.len() > 255 {
-        abort_with!(UserErr::other("The question is too long :("))
+        abort_with!("The question is too long :(")
     }
     msg.channel_id
         .send_message(&ctx, |m| {

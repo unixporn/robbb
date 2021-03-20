@@ -27,21 +27,21 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     match handle_spam_protect(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(_) => {}
-        err => log_error!("Spam-protection", err),
+        err => log_error!("error while handling spam-protection", err),
     };
     match handle_blocklist(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(_) => {}
-        err => log_error!("blocklist-handling", err),
+        err => log_error!("error while handling blocklist", err),
     };
     match handle_quote(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(_) => {}
-        err => log_error!("Handling a quoted message", err),
+        err => log_error!("error while Handling a quoted message", err),
     };
     match handle_message_txt(&ctx, &msg).await {
         Ok(_) => return Ok(()),
-        err => log_error!("handling a message.txt upload", err),
+        err => log_error!("error while handling a message.txt upload", err),
     };
 
     Ok(())

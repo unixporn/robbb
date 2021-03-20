@@ -75,7 +75,7 @@ pub async fn handle_set_fetch(
             }
             IMAGE_KEY => {
                 if !util::validate_url(&value) {
-                    abort_with!(UserErr::other("Got malformed url for Image"))
+                    abort_with!("Got malformed url for Image")
                 }
             }
             _ => {}
@@ -133,7 +133,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         db.get_fetch(mentioned_user_id),
     )?;
     if fetch_info.is_none() && profile.is_none() {
-        abort_with!(UserErr::other("This user has not set their fetch :/"))
+        abort_with!("This user has not set their fetch :/")
     }
 
     // all data shown in fetch, including the profile values
