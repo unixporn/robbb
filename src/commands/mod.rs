@@ -78,7 +78,8 @@ struct HelperOrMod;
 #[group]
 #[only_in(guilds)]
 #[commands(
-    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
+    invite
 )]
 struct General;
 
