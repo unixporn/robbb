@@ -221,6 +221,6 @@ impl<T: AsRef<str>> T {
     fn split_once_at<'a>(&'a self, c: char) -> Option<(&'a str, &'a str)> {
         let s: &str = self.as_ref();
         let index = s.find(c)?;
-        Some(s.split_at(index))
+        Some((&s[..index], &s[index + c.len_utf8()..]))
     }
 }

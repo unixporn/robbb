@@ -132,24 +132,27 @@ async fn top_all_values(
             }
         }
     }
-    let maxes = data.into_iter().filter_map(|(field_name, values)| {
-        let (most_popular_value, most_popular_cnt) = values
-            .iter()
-            .filter(|x| !x.is_empty() && x != &"0")
-            .counts()
-            .into_iter()
-            .max_by_key(|(_, cnt)| *cnt)?;
+    let maxes = data
+        .into_iter()
+        .sorted()
+        .filter_map(|(field_name, values)| {
+            let (most_popular_value, most_popular_cnt) = values
+                .iter()
+                .filter(|x| !x.is_empty() && x != &"0")
+                .counts()
+                .into_iter()
+                .max_by_key(|(_, cnt)| *cnt)?;
 
-        let most_popular_value =
-            format_fetch_field_value(&field_name, most_popular_value.to_string())?;
+            let most_popular_value =
+                format_fetch_field_value(&field_name, most_popular_value.to_string())?;
 
-        Some((
-            field_name,
-            most_popular_value,
-            most_popular_cnt,
-            ((most_popular_cnt as f64 / values.len() as f64) * 100f64),
-        ))
-    });
+            Some((
+                field_name,
+                most_popular_value,
+                most_popular_cnt,
+                ((most_popular_cnt as f64 / values.len() as f64) * 100f64),
+            ))
+        });
 
     let top_values_text = maxes
         .map(|(field, value, _cnt, perc)| format!("**{}**: {} ({:.2}%)", field, value, perc))

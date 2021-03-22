@@ -82,7 +82,7 @@ async fn get_fetch_and_profile_data_of(
     let (profile, fetch_info) = tokio::try_join!(db.get_profile(user_id), db.get_fetch(user_id))?;
 
     let mut all_data: Vec<(String, String)> = fetch_info
-        .map(|x| x.info.into_iter().collect())
+        .map(|x| x.info.into_iter().sorted().collect())
         .unwrap_or_default();
     if let Some(profile) = profile {
         all_data.extend(profile.into_values_map());
