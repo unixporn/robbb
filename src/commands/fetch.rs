@@ -1,4 +1,4 @@
-use crate::extensions::CreateEmbedExt;
+use crate::extensions::{CreateEmbedExt, MessageExt, StrExt};
 use anyhow::*;
 use lazy_static::lazy_static;
 
@@ -48,21 +48,42 @@ pub async fn handle_set_fetch(
         return Ok(());
     }
 
-    let mut info = lines
+    let mut info = sanitize_fetch(parse_setfetch(lines))?;
+
+    let image_url: Option<String> = msg.find_image_urls().first().cloned();
+
+    if let Some(image) = image_url {
+        info.insert(IMAGE_KEY.to_string(), image);
+    }
+
+    if update {
+        db.update_fetch(msg.author.id, info).await?;
+        msg.reply_success(&ctx, "Successfully updated your fetch data!")
+            .await?;
+    } else {
+        db.set_fetch(msg.author.id, info).await?;
+        msg.reply_success(&ctx, "Successfully set your fetch data!")
+            .await?;
+    }
+
+    Ok(())
+}
+
+/// parse key:value formatted lines into a hashmap.
+pub fn parse_setfetch(lines: Vec<&str>) -> HashMap<String, String> {
+    lines
         .into_iter()
         .filter_map(|line| {
-            const DELIM: &str = ":";
-            let pos = line.find(DELIM)?;
-            let key = &line[..pos];
-            let value = &line[pos + DELIM.len()..];
-
-            Some((key, value))
+            line.split_once_at(':')
+                .map(|(l, r)| (l.trim().to_string(), r.trim().to_string()))
         })
-        .map(|(key, value)| (key.trim().to_string(), value.trim().to_string()))
         .filter(|(k, v)| !k.is_empty() && !v.is_empty())
-        .collect::<HashMap<String, String>>();
+        .collect::<HashMap<String, String>>()
+}
 
-    for (key, value) in info.iter_mut() {
+/// Sanitize field values and check validity of user-provided fetch data.
+fn sanitize_fetch(mut fetch: HashMap<String, String>) -> Result<HashMap<String, String>, UserErr> {
+    for (key, value) in fetch.iter_mut() {
         if !NORMAL_FETCH_KEYS.contains(&key.as_ref()) {
             abort_with!(UserErr::Other(format!("Illegal fetch field: {}", key)))
         }
@@ -81,34 +102,7 @@ pub async fn handle_set_fetch(
             _ => {}
         }
     }
-
-    let image = msg
-        .embeds
-        .iter()
-        .find_map(|embed| embed.image.clone())
-        .map(|image| image.url)
-        .or_else(|| {
-            msg.attachments
-                .iter()
-                .find(|a| a.dimensions().is_some())
-                .map(|a| a.url.to_string())
-        });
-
-    if let Some(image) = image {
-        info.insert(IMAGE_KEY.to_string(), image);
-    }
-
-    if update {
-        db.update_fetch(msg.author.id, info).await?;
-        msg.reply_success(&ctx, "Successfully updated your fetch data!")
-            .await?;
-    } else {
-        db.set_fetch(msg.author.id, info).await?;
-        msg.reply_success(&ctx, "Successfully set your fetch data!")
-            .await?;
-    }
-
-    Ok(())
+    Ok(fetch)
 }
 
 /// Fetch a users system information.
@@ -118,31 +112,18 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let db = ctx.get_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user_id = if let Ok(mentioned_user) = args.single_quoted::<String>() {
-        disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
+    let mentioned_user_id = match args.single_quoted::<String>() {
+        Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
             .await?
-            .ok_or(UserErr::MentionedUserNotFound)?
-    } else {
-        msg.author.id
+            .ok_or(UserErr::MentionedUserNotFound)?,
+        Err(_) => msg.author.id,
     };
 
     let desired_field = args.single_quoted::<String>().ok();
 
-    let (profile, fetch_info) = tokio::try_join!(
-        db.get_profile(mentioned_user_id),
-        db.get_fetch(mentioned_user_id),
-    )?;
-    if fetch_info.is_none() && profile.is_none() {
-        abort_with!("This user has not set their fetch :/")
-    }
-
-    // all data shown in fetch, including the profile values
-    let mut all_data: Vec<(String, String)> = fetch_info
-        .map(|x| x.info.into_iter().collect())
-        .unwrap_or_default();
-    if let Some(profile) = profile {
-        all_data.extend(profile.into_values_map());
-    }
+    let all_data = get_fetch_and_profile_data_of(&db, mentioned_user_id)
+        .await?
+        .user_error("This user has not set their fetch :/")?;
 
     let member = guild.member(&ctx, mentioned_user_id).await?;
     let color = member.colour(&ctx).await;
@@ -150,14 +131,14 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     match desired_field {
         // Handle fetching a single field
         Some(desired_field) => {
-            let (field_name, value) = all_data.into_iter().find(|(k, _)| k.to_lowercase() == desired_field.to_lowercase())
+            let (field_name, value) = all_data.into_iter().find(|(k, _)| str::eq_ignore_ascii_case(k, &desired_field))
                 .user_error("Failed to get that value. Maybe the user hasn't set it, or maybe the field does not exist?")?;
 
             msg.reply_embed(&ctx, |e| {
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
                 e.title(format!("{}'s {}", member.user.name, field_name));
                 e.color_opt(color);
-                if desired_field.to_lowercase() == IMAGE_KEY.to_lowercase() {
+                if str::eq_ignore_ascii_case(&desired_field, IMAGE_KEY) {
                     e.image(value);
                 } else if let Some(value) = format_fetch_field_value(&field_name, value) {
                     e.description(value);
@@ -194,6 +175,27 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     Ok(())
 }
 
+/// load all data shown in fetch, including profile values from the database.
+/// Returns `None` if neither a fetch or any profile values are set.
+async fn get_fetch_and_profile_data_of(
+    db: &Db,
+    user_id: UserId,
+) -> Result<Option<Vec<(String, String)>>> {
+    let (profile, fetch_info) = tokio::try_join!(db.get_profile(user_id), db.get_fetch(user_id))?;
+
+    let mut all_data: Vec<(String, String)> = fetch_info
+        .map(|x| x.info.into_iter().collect())
+        .unwrap_or_default();
+    if let Some(profile) = profile {
+        all_data.extend(profile.into_values_map());
+    }
+    if all_data.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(all_data))
+    }
+}
+
 /// convert the field-value into the desired format.
 /// Returns `None` if the string is empty, as empty values must not be included in embeds.
 pub fn format_fetch_field_value(field_name: &str, value: String) -> Option<String> {
@@ -205,6 +207,13 @@ pub fn format_fetch_field_value(field_name: &str, value: String) -> Option<Strin
             _ => Some(value),
         }
     }
+}
+
+pub fn find_fetch_key_matching(s: &str) -> Option<&str> {
+    NORMAL_FETCH_KEYS
+        .iter()
+        .find(|x| str::eq_ignore_ascii_case(x, s))
+        .map(|x| *x)
 }
 
 fn format_bytes(s: &str) -> String {

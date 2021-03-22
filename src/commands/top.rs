@@ -20,9 +20,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     let fetches = db.get_all_fetches().await?;
 
     if let Some(field_name) = field_name {
-        let field_name = super::fetch::NORMAL_FETCH_KEYS
-            .iter()
-            .find(|x| x.to_lowercase() == field_name.to_lowercase())
+        let field_name = super::fetch::find_fetch_key_matching(&field_name)
             .user_error("Not a valid fetch field")?;
 
         let value_pattern = args.single_quoted::<String>().ok();

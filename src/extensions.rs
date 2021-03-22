@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 
 use extend::ext;
+use itertools::Itertools;
 use serenity::{
     async_trait,
     builder::CreateEmbed,
@@ -81,6 +82,20 @@ impl GuildId {
 #[ext(pub)]
 #[async_trait]
 impl Message {
+    fn find_image_urls(&self) -> Vec<String> {
+        self.embeds
+            .iter()
+            .filter_map(|embed| embed.image.clone())
+            .map(|image| image.url)
+            .chain(
+                self.attachments
+                    .iter()
+                    .find(|a| a.dimensions().is_some())
+                    .map(|a| a.url.to_string()),
+            )
+            .collect_vec()
+    }
+
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
@@ -203,7 +218,7 @@ impl CreateEmbed {
 
 #[ext(pub, name = StrExt)]
 impl<T: AsRef<str>> T {
-    fn split_once(&self, c: char) -> Option<(&str, &str)> {
+    fn split_once_at<'a>(&'a self, c: char) -> Option<(&'a str, &'a str)> {
         let s: &str = self.as_ref();
         let index = s.find(c)?;
         Some(s.split_at(index))
