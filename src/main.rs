@@ -121,6 +121,11 @@ impl TypeMapKey for Config {
     type Value = Arc<Config>;
 }
 
+pub struct FrameworkKey;
+impl TypeMapKey for FrameworkKey {
+    type Value = Arc<StandardFramework>;
+}
+
 #[tokio::main]
 async fn main() {
     init_logger();
@@ -128,6 +133,20 @@ async fn main() {
     let config = Config::from_environment().expect("Failed to load experiment");
 
     let db = Db::new().await.unwrap();
+
+    // we're manually calling the framework, to only run commands if none of our
+    // message_create event handler filters say no.
+    // currently, serenity still _requires_ a framework to be configured as long as the feature is enabled,
+    // thus this stub framework is necessary for now.
+    // Soon, with a rework of the command framework, this will be solved.
+    let stub_framework = StandardFramework::new();
+
+    let mut client = Client::builder(&config.discord_token)
+        .event_handler(events::Handler)
+        .framework(stub_framework)
+        .intents(GatewayIntents::all())
+        .await
+        .expect("Error creating client");
 
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("!").delimiters(vec![" ", "\n"]))
@@ -138,19 +157,13 @@ async fn main() {
         .group(&GENERAL_GROUP)
         .help(&help::MY_HELP);
 
-    let mut client = Client::builder(&config.discord_token)
-        .event_handler(events::Handler)
-        .framework(framework)
-        .intents(GatewayIntents::all())
-        .await
-        .expect("Error creating client");
-
     client.cache_and_http.cache.set_max_messages(500).await;
 
     {
         let mut data = client.data.write().await;
         data.insert::<Config>(Arc::new(config));
         data.insert::<Db>(Arc::new(db));
+        data.insert::<FrameworkKey>(Arc::new(framework));
     };
 
     if let Err(why) = client.start().await {

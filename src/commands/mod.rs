@@ -68,13 +68,13 @@ lazy_static::lazy_static! {
 #[commands(
     restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag
 )]
-#[checks(moderator)]
+#[checks(moderator, channel_allows_commands)]
 struct Moderator;
 
 #[group]
 #[only_in(guilds)]
 #[commands(ban, delban, mute)]
-#[checks(helper_or_mod)]
+#[checks(helper_or_mod, channel_allows_commands)]
 struct HelperOrMod;
 
 #[group]
@@ -83,6 +83,7 @@ struct HelperOrMod;
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
     tag, invite
 )]
+#[checks(channel_allows_commands)]
 struct General;
 
 pub async fn disambiguate_user_mention(
