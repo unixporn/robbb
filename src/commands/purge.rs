@@ -12,9 +12,9 @@ impl FromStr for DeletionRange {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(humantime::Duration::from_str(s)
-            .map(|d| DeletionRange::Duration(d.into()))
-            .or_else(|_| s.parse::<usize>().map(DeletionRange::Amount))?)
+        Ok(s.parse::<usize>().map(DeletionRange::Amount).or_else(|_| {
+            humantime::Duration::from_str(s).map(|d| DeletionRange::Duration(d.into()))
+        })?)
     }
 }
 
