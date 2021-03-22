@@ -138,7 +138,10 @@ async fn fetch_note_values(
 ) -> Result<Vec<NotesEntry>> {
     let mut entries = Vec::new();
 
-    if filter.is_none() || filter == Some(NoteType::ManualNote) {
+    if filter.is_none()
+        || filter == Some(NoteType::ManualNote)
+        || filter == Some(NoteType::BlocklistViolation)
+    {
         let notes = db
             .get_notes(user_id, filter)
             .await?

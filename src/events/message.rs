@@ -329,7 +329,9 @@ async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<()> 
         m.title("Open message.txt in browser");
         m.url(download_url);
         m.color_opt(color);
-        m.description("Discord sucks, so here's an easier way to read that file.");
+        m.description(
+            "Discord forces you to download the file, so here's an easier way to read that file.",
+        );
     })
     .await?;
     Ok(())

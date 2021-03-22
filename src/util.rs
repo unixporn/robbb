@@ -90,3 +90,9 @@ pub fn pluralize(s: &str) -> String {
     }
     PLURAL_Y_REGEX.replace(&format!("{}s", s), "ies").into()
 }
+
+/// Parse a string that is surrounded by backticks, removing said backticks.
+/// Returns a [UserErr::Other] in case the string is not properly surrounded in `
+pub fn parse_backticked_string(s: &str) -> Option<&str> {
+    s.strip_prefix('`').and_then(|x| x.strip_suffix('`'))
+}

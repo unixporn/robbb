@@ -4,7 +4,7 @@ use crate::checks;
 
 use super::*;
 
-/// Ban a user from the server
+/// Ban a user from the server. use `delban` to also delete the messages he sent within the last day.
 #[command]
 #[usage("ban <@user> <reason>")]
 #[aliases("yeet")]
@@ -17,6 +17,7 @@ pub async fn ban(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 #[command]
 #[usage("delban <@user> <reason>")]
 #[aliases("delyeet")]
+#[help_available(false)]
 pub async fn delban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     do_ban(ctx, msg, args, 1).await?;
     Ok(())
@@ -32,16 +33,16 @@ async fn do_ban(
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
-    let permission_level = checks::get_permission_level(&ctx, &msg).await?;
-    if permission_level == PermissionLevel::Helper {
-        if Utc::now().signed_duration_since(msg.author.created_at()) > Duration::days(3) {
-            abort_with!("You can't ban an account older than 3 days");
-        }
-    }
-
     let mentioned_user = &args
         .single::<UserId>()
         .invalid_usage(&BAN_COMMAND_OPTIONS)?;
+
+    let permission_level = checks::get_permission_level(&ctx, &msg).await?;
+    if permission_level == PermissionLevel::Helper {
+        if Utc::now().signed_duration_since(mentioned_user.created_at()) > Duration::days(3) {
+            abort_with!("You can't ban an account older than 3 days");
+        }
+    }
 
     let reason = args.remains().invalid_usage(&BAN_COMMAND_OPTIONS)?;
 

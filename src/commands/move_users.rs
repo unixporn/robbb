@@ -16,7 +16,7 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
     let embed_builder = build_embed_builder(&ctx).await;
     let continuation_msg = channel
         .send_message(&ctx, |m| {
-            m.content(format!("{} {}", msg.author.mention(), mentions,));
+            m.content(mentions);
             m.embed(|e| {
                 embed_builder(e);
                 e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));

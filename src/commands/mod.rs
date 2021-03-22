@@ -17,7 +17,7 @@ use serenity::{
     },
     model::prelude::*,
 };
-use std::{collections::HashSet, str::FromStr};
+use std::collections::HashSet;
 use thiserror::Error;
 
 pub mod ban;
@@ -81,22 +81,9 @@ struct HelperOrMod;
 #[only_in(guilds)]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, list_tags, invite
+    tag, invite
 )]
 struct General;
-
-#[derive(Debug, Clone)]
-pub struct BacktickedString(pub String);
-impl FromStr for BacktickedString {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        s.strip_prefix('`')
-            .and_then(|x| x.strip_suffix('`'))
-            .map(|x| BacktickedString(x.to_string()))
-            .context("must be surrounded in backticks")
-    }
-}
 
 pub async fn disambiguate_user_mention(
     ctx: &client::Context,
