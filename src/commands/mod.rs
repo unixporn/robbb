@@ -1,3 +1,4 @@
+use crate::embeds;
 use crate::extensions::{clientContextExt, CreateEmbedExt};
 use crate::{abort_with, db::Db, extensions::MessageExt, util};
 

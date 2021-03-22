@@ -83,21 +83,23 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let notes = fetch_note_values(&db, mentioned_user_id, note_filter).await?;
 
-    msg.reply_embed(&ctx, |e| {
+    let fields = notes.iter().map(|note| {
+        (
+            format!("{} - {}", note.note_type, util::format_date_ago(note.date)),
+            format!("{} - {}", note.description, note.moderator.mention(),),
+        )
+    });
+
+    embeds::PaginatedFieldsEmbed::create(&ctx, fields, |e| {
         e.title("Notes");
         e.description(format!("Notes about {}", mentioned_user_id.mention()));
         e.author(|a| {
             avatar_url.map(|url| a.icon_url(url));
             a
         });
-        for note in notes {
-            e.field(
-                format!("{} - {}", note.note_type, util::format_date_ago(note.date)),
-                format!("{} - {}", note.description, note.moderator.mention(),),
-                false,
-            );
-        }
     })
+    .await
+    .send(&ctx, &msg)
     .await?;
 
     Ok(())

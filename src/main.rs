@@ -18,6 +18,7 @@ pub mod attachment_logging;
 pub mod checks;
 pub mod commands;
 pub mod db;
+pub mod embeds;
 pub mod events;
 pub mod extensions;
 pub mod util;

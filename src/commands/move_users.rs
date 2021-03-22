@@ -1,4 +1,5 @@
-use crate::extensions::{build_embed_builder, ChannelIdExt};
+use crate::embeds::basic_create_embed;
+use crate::extensions::ChannelIdExt;
 
 use super::*;
 /// Move a conversation to a different channel.
@@ -13,21 +14,21 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
         .filter_map(|x| Some(x.ok()?.mention()))
         .join(" ");
 
-    let embed_builder = build_embed_builder(&ctx).await;
-    let continuation_msg = channel
-        .send_message(&ctx, |m| {
-            m.content(mentions);
-            m.embed(|e| {
-                embed_builder(e);
-                e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
-                e.description(indoc::formatdoc!(
-                    "Continuation from {}
+    let create_embed = {
+        let mut e = basic_create_embed(&ctx).await;
+
+        e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
+        e.description(indoc::formatdoc!(
+            "Continuation from {}
                     [Conversation]({})",
-                    msg.channel_id.mention(),
-                    msg.link()
-                ))
-            })
-        })
+            msg.channel_id.mention(),
+            msg.link()
+        ));
+        e
+    };
+
+    let continuation_msg = channel
+        .send_message(&ctx, |m| m.content(mentions).set_embed(create_embed))
         .await?;
 
     let _ = msg

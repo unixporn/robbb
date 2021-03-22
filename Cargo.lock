@@ -1456,6 +1456,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serenity_utils"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19368e88b3d6183b52704a2fbc1e5788ad4100876eddaa7217e1c8e1d2d2535c"
+dependencies = [
+ "serenity",
+ "tokio",
+]
+
+[[package]]
 name = "sha-1"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1843,6 +1853,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
+ "serenity_utils",
  "sqlx",
  "thiserror",
  "tokio",

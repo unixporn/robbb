@@ -1,5 +1,7 @@
 use serenity::framework::standard::{Check, Command};
 
+use crate::embeds::PaginatedFieldsEmbed;
+
 use super::*;
 
 #[help]
@@ -95,18 +97,21 @@ async fn reply_help_full(
     msg: &Message,
     commands: &[&CommandOptions],
 ) -> Result<Message> {
-    msg.reply_embed(&ctx, move |e| {
+    let fields = commands.iter().map(|command| {
+        let command_name = command.names.first().expect("Command had no name");
+        let name = match command.usage {
+            Some(usage) => format!("**{}** - ``{}``", command_name, usage),
+            None => format!("**{}**", command_name),
+        };
+        let description = command.desc.unwrap_or("No description").to_string();
+        (name, description)
+    });
+
+    PaginatedFieldsEmbed::create(&ctx, fields, |e| {
         e.title("Help");
-        for command in commands {
-            let command_name = command.names.first().expect("Command had no name");
-            let name = match command.usage {
-                Some(usage) => format!("**{}** - ``{}``", command_name, usage),
-                None => format!("**{}**", command_name),
-            };
-            let description = command.desc.unwrap_or("No description").to_string();
-            e.field(name, description, false);
-        }
     })
+    .await
+    .send(&ctx, &msg)
     .await
 }
 

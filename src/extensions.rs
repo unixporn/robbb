@@ -1,7 +1,6 @@
 use std::{fmt::Display, sync::Arc};
 
 use anyhow::{Context, Result};
-use chrono::Utc;
 
 use extend::ext;
 use itertools::Itertools;
@@ -18,7 +17,7 @@ use serenity::{
     utils::Colour,
 };
 
-use crate::{db::Db, Config, UPEmotes};
+use crate::{db::Db, embeds::basic_create_embed, Config, UPEmotes};
 
 #[ext(pub)]
 #[async_trait]
@@ -65,15 +64,10 @@ impl GuildId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let build_basics = build_embed_builder(&ctx).await;
+        let mut create_embed = basic_create_embed(&ctx).await;
+        build(&mut create_embed);
         Ok(channel_id
-            .send_message(&ctx, |m| {
-                m.embed(|e| {
-                    build_basics(e);
-                    build(e);
-                    e
-                })
-            })
+            .send_message(&ctx, |m| m.set_embed(create_embed))
             .await
             .context("Failed to send embed message")?)
     }
@@ -100,17 +94,14 @@ impl Message {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let build_basics = build_embed_builder(&ctx).await;
+        let mut create_embed = basic_create_embed(&ctx).await;
+        build(&mut create_embed);
 
         self.channel_id
             .send_message(&ctx, move |m| {
                 m.allowed_mentions(|f| f.replied_user(false));
                 m.reference_message(self);
-                m.embed(move |e| {
-                    build_basics(e);
-                    build(e);
-                    e
-                })
+                m.set_embed(create_embed)
             })
             .await
             .context("Failed to send embed")
@@ -178,31 +169,12 @@ impl ChannelId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let build_basics = build_embed_builder(&ctx).await;
+        let mut create_embed = basic_create_embed(&ctx).await;
+        build(&mut create_embed);
         Ok(self
-            .send_message(&ctx, |m| {
-                m.embed(|e| {
-                    build_basics(e);
-                    build(e);
-                    e
-                })
-            })
+            .send_message(&ctx, |m| m.set_embed(create_embed))
             .await
             .context("Failed to send embed message")?)
-    }
-}
-
-pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
-    let stare = ctx.get_random_stare().await;
-
-    move |e: &mut CreateEmbed| {
-        e.timestamp(&Utc::now());
-        e.footer(|f| {
-            if let Some(emoji) = stare {
-                f.icon_url(emoji.url());
-            }
-            f.text("\u{200b}")
-        });
     }
 }
 
