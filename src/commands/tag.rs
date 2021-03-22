@@ -2,7 +2,7 @@ use super::*;
 
 /// Get the text stored in a tag.
 #[command]
-#[usage("tag <name> | tag list")]
+#[usage("tag <name> OR tag list")]
 #[sub_commands(list_tags, set_tag)]
 pub async fn tag(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db = ctx.get_db().await;
