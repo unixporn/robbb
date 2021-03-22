@@ -1,5 +1,6 @@
 use super::*;
 
+/// Mute a user for a given amount of time.
 #[command]
 #[usage("mute <user> <duration> [reason]")]
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -51,6 +52,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     Ok(())
 }
 
+/// mute the user and add the mute-entry to the database.
 pub async fn do_mute(
     ctx: &client::Context,
     guild: Guild,

@@ -1,200 +1,9 @@
-use crate::extensions::{CreateEmbedExt, MessageExt, StrExt};
-use anyhow::*;
-use lazy_static::lazy_static;
-
-use super::*;
-use std::collections::HashMap;
-
-const SETFETCH_USAGE: &'static str = indoc::indoc!("
-    Run this: 
-    `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh`
-    and follow the instructions. It's recommended that you download and read the script before running it, 
-    as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
-
-    **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-    **NOTE**: If you're trying to manually change a value, it needs a newline after !setfetch (update).
-    **NOTE**: !git, !dotfiles, and !desc are different commands"
-);
-
-/// Run without arguments to see instructions.
-#[command("setfetch")]
-#[usage("setfetch [update]")]
-#[sub_commands(set_fetch_update)]
-pub async fn set_fetch(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let lines = args.rest().lines().collect_vec();
-    handle_set_fetch(ctx, msg, lines, false).await
-}
-
-#[command("update")]
-#[usage("setfetch update")]
-pub async fn set_fetch_update(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let lines = args.rest().lines().collect_vec();
-    handle_set_fetch(ctx, msg, lines, true).await
-}
-
-pub async fn handle_set_fetch(
-    ctx: &client::Context,
-    msg: &Message,
-    lines: Vec<&str>,
-    update: bool,
-) -> CommandResult {
-    let db = ctx.get_db().await;
-
-    if lines.is_empty() && msg.attachments.is_empty() {
-        msg.reply_embed(&ctx, |e| {
-            e.title("Usage").description(SETFETCH_USAGE);
-        })
-        .await?;
-        return Ok(());
-    }
-
-    let mut info = sanitize_fetch(parse_setfetch(lines))?;
-
-    let image_url: Option<String> = msg.find_image_urls().first().cloned();
-
-    if let Some(image) = image_url {
-        info.insert(IMAGE_KEY.to_string(), image);
-    }
-
-    if update {
-        db.update_fetch(msg.author.id, info).await?;
-        msg.reply_success(&ctx, "Successfully updated your fetch data!")
-            .await?;
-    } else {
-        db.set_fetch(msg.author.id, info).await?;
-        msg.reply_success(&ctx, "Successfully set your fetch data!")
-            .await?;
-    }
-
-    Ok(())
-}
-
-/// parse key:value formatted lines into a hashmap.
-pub fn parse_setfetch(lines: Vec<&str>) -> HashMap<String, String> {
-    lines
-        .into_iter()
-        .filter_map(|line| {
-            line.split_once_at(':')
-                .map(|(l, r)| (l.trim().to_string(), r.trim().to_string()))
-        })
-        .filter(|(k, v)| !k.is_empty() && !v.is_empty())
-        .collect::<HashMap<String, String>>()
-}
-
-/// Sanitize field values and check validity of user-provided fetch data.
-fn sanitize_fetch(mut fetch: HashMap<String, String>) -> Result<HashMap<String, String>, UserErr> {
-    for (key, value) in fetch.iter_mut() {
-        if !NORMAL_FETCH_KEYS.contains(&key.as_ref()) {
-            abort_with!(UserErr::Other(format!("Illegal fetch field: {}", key)))
-        }
-        match key.as_str() {
-            MEMORY_KEY => {
-                *value = byte_unit::Byte::from_str(&value)
-                    .user_error("Malformed value provided for Memory")?
-                    .get_bytes()
-                    .to_string()
-            }
-            IMAGE_KEY => {
-                if !util::validate_url(&value) {
-                    abort_with!("Got malformed url for Image")
-                }
-            }
-            _ => {}
-        }
-    }
-    Ok(fetch)
-}
-
-/// Fetch a users system information.
-#[command("fetch")]
-#[usage("fetch [user] [field]")]
-pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
-
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user_id = match args.single_quoted::<String>() {
-        Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
-            .await?
-            .ok_or(UserErr::MentionedUserNotFound)?,
-        Err(_) => msg.author.id,
-    };
-
-    let desired_field = args.single_quoted::<String>().ok();
-
-    let all_data = get_fetch_and_profile_data_of(&db, mentioned_user_id)
-        .await?
-        .user_error("This user has not set their fetch :/")?;
-
-    let member = guild.member(&ctx, mentioned_user_id).await?;
-    let color = member.colour(&ctx).await;
-
-    match desired_field {
-        // Handle fetching a single field
-        Some(desired_field) => {
-            let (field_name, value) = all_data.into_iter().find(|(k, _)| str::eq_ignore_ascii_case(k, &desired_field))
-                .user_error("Failed to get that value. Maybe the user hasn't set it, or maybe the field does not exist?")?;
-
-            msg.reply_embed(&ctx, |e| {
-                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
-                e.title(format!("{}'s {}", member.user.name, field_name));
-                e.color_opt(color);
-                if str::eq_ignore_ascii_case(&desired_field, IMAGE_KEY) {
-                    e.image(value);
-                } else if let Some(value) = format_fetch_field_value(&field_name, value) {
-                    e.description(value);
-                } else {
-                    e.description("Not set");
-                }
-            })
-            .await?;
-        }
-
-        // Handle fetching all fields
-        None => {
-            msg.reply_embed(&ctx, |e| {
-                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
-                e.title(format!("Fetch {}", member.user.tag()));
-                e.color_opt(color);
-
-                for (key, value) in all_data {
-                    if key == DISTRO_KEY {
-                        if let Some(image_url) = find_distro_image(&value) {
-                            e.thumbnail(image_url);
-                        }
-                    } else if key == IMAGE_KEY {
-                        e.image(value);
-                    } else if let Some(value) = format_fetch_field_value(&key, value) {
-                        e.field(key, value, true);
-                    }
-                }
-            })
-            .await?;
-        }
-    }
-
-    Ok(())
-}
-
-/// load all data shown in fetch, including profile values from the database.
-/// Returns `None` if neither a fetch or any profile values are set.
-async fn get_fetch_and_profile_data_of(
-    db: &Db,
-    user_id: UserId,
-) -> Result<Option<Vec<(String, String)>>> {
-    let (profile, fetch_info) = tokio::try_join!(db.get_profile(user_id), db.get_fetch(user_id))?;
-
-    let mut all_data: Vec<(String, String)> = fetch_info
-        .map(|x| x.info.into_iter().collect())
-        .unwrap_or_default();
-    if let Some(profile) = profile {
-        all_data.extend(profile.into_values_map());
-    }
-    if all_data.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(all_data))
-    }
-}
+pub use super::*;
+use lazy_static::*;
+pub mod fetch;
+pub mod setfetch;
+pub use fetch::*;
+pub use setfetch::*;
 
 /// convert the field-value into the desired format.
 /// Returns `None` if the string is empty, as empty values must not be included in embeds.
@@ -209,13 +18,7 @@ pub fn format_fetch_field_value(field_name: &str, value: String) -> Option<Strin
     }
 }
 
-pub fn find_fetch_key_matching(s: &str) -> Option<&str> {
-    NORMAL_FETCH_KEYS
-        .iter()
-        .find(|x| str::eq_ignore_ascii_case(x, s))
-        .map(|x| *x)
-}
-
+/// parse a string as a number of bytes, then format bytes as a human readable string.
 fn format_bytes(s: &str) -> String {
     let as_num = s.parse::<u128>();
     match as_num {
@@ -224,6 +27,13 @@ fn format_bytes(s: &str) -> String {
             .to_string(),
         Err(_) => s.to_string(),
     }
+}
+
+pub fn find_fetch_key_matching(s: &str) -> Option<&str> {
+    NORMAL_FETCH_KEYS
+        .iter()
+        .find(|x| str::eq_ignore_ascii_case(x, s))
+        .map(|x| *x)
 }
 
 fn find_distro_image(distro: &str) -> Option<&str> {
