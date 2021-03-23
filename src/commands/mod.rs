@@ -39,6 +39,7 @@ pub mod tag;
 pub mod top;
 pub mod unban;
 pub mod warn;
+pub mod highlights;
 use ban::*;
 use blocklist::*;
 pub use errors::*;
@@ -58,6 +59,7 @@ use tag::*;
 use top::*;
 use unban::*;
 use warn::*;
+use highlights::*;
 
 lazy_static::lazy_static! {
     pub static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "\u{1f1e6}","\u{1f1e7}", "\u{1f1e8}", "\u{1f1e9}", "\u{1f1f0}", "\u{1f1f1}", "\u{1f1f2}", "\u{1f1f3}", "\u{1f1f4}" ];
@@ -81,7 +83,7 @@ struct HelperOrMod;
 #[only_in(guilds)]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, list_tags, invite
+    tag, list_tags, invite, add_highlight, get_highlights
 )]
 struct General;
 
