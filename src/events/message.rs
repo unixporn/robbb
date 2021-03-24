@@ -184,9 +184,9 @@ async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> 
 }
 
 async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    let account_age_secs = Utc::now().timestamp() - msg.author.created_at().timestamp();
+    let account_age = Utc::now() - msg.author.created_at();
 
-    if msg.mentions.is_empty() || (account_age_secs / 60 / 60) > 24 {
+    if msg.mentions.is_empty() || account_age > chrono::Duration::hours(24) {
         return Ok(false);
     }
 
