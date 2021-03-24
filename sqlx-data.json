@@ -1,3 +1,509 @@
 {
-  "db": "SQLite"
+  "db": "SQLite",
+  "0442fa7e4127ab16e3f2320c8ea184c54d1d5f56efad059e8c2eb6e0fa77aa8f": {
+    "query": "select * from mute where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "guildid",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "start_time",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "end_time",
+          "ordinal": 5,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "reason",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "active",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ]
+    }
+  },
+  "1c405e112c2d3214854e7a9d581a1cfde3c6e026a829155993831ac980d48217": {
+    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\" from warn where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "create_date!",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "21ddb04219c79de6bf88f4f5b6fbdc850b73a67fc3d7c5915912625929f76e99": {
+    "query": "delete from warn as w where usr=? and create_date=(select max(create_date) from warn where usr=w.usr)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "270180bd034c0134635b29bc20bebab94d2ba8f613a79a49eaf999c8ac805d81": {
+    "query": "select pattern as \"pattern!\" from blocked_regexes",
+    "describe": {
+      "columns": [
+        {
+          "name": "pattern!",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        true
+      ]
+    }
+  },
+  "30d7db9f6e9e49c8612cc86d72a1075f22009de00d062e71a1758ce2edddbf66": {
+    "query": "insert into fetch (usr, info) values (?1, ?2) on conflict(usr) do update set info=?2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "33e5cf5d7b9b2a5d6c017ae6e1bf25d1c61017193abcc1269e5790983199479a": {
+    "query": "insert into profile (usr, git, dotfiles, description) values (?1, NULL, ?2, NULl)\n                on conflict(usr) do update set dotfiles=?2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "37a6b73df856c851aa9c14104d100d70266cc6647df89b14214547e1cbcf86ee": {
+    "query": "insert into warn (moderator, usr, reason, create_date) values(?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
+  "3e0646c911027ad95d299003c0c88fc8bc2c5b4b7d25551fb9624b6974f7d2cb": {
+    "query": "select * from profile where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "usr",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "git",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "dotfiles",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "65c4d052bc870845c896116e536dca622423fe384f2c59f4368f2e804b788701": {
+    "query": "insert into profile (usr, git, dotfiles, description) values (?1, ?2, NULL, NULL)\n                on conflict(usr) do update set git=?2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "6783360f279251696fdfba274fddcb5b97082dcb86033e77820cb8c3243edeab": {
+    "query": "\n                SELECT * FROM note\n                WHERE usr=?1 AND (?2 IS NULL OR note_type=?2)\n                ORDER BY create_date DESC",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "content",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "note_type",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 5,
+          "type_info": "Datetime"
+        }
+      ],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "7193a2b848e2268d56a3dcb4b925014d951f30c1aec8f572230375a2ec9feb39": {
+    "query": "select * from fetch",
+    "describe": {
+      "columns": [
+        {
+          "name": "usr",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "info",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "81a21148a4d13b344dd0b6a8653b8d641d405c5917a22aac3908c38875c4363a": {
+    "query": "select count(*) from warn where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "count(*)",
+          "ordinal": 0,
+          "type_info": "Int"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "8249a85d3acfec589ed807883c4dd140bb2ddffa5f63bba17c64c30eeea31d45": {
+    "query": "select name as \"name!\", moderator, content, official from tag where name=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "name!",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "content",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "official",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "aceea99bc515eb29168f82d5985b6a29a6d5766b6ff3147df95c71572013dbf8": {
+    "query": "delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "ba2ed31c3a7d31ff8476225947432cd359dd5590556f96d5a0e4a337deeca4eb": {
+    "query": "delete from tag where name=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {
+    "query": "delete from blocked_regexes where pattern=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "c386b69aa794524cc9f561bff2ccc7eecbcf70db2259117b3b8ed77372c0eea6": {
+    "query": "update mute set active = false where id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "d82c132238221a207fe200e0b55d5982af95bb4c65f2e4f1b5b0b35d7067eb8d": {
+    "query": "insert into note (moderator, usr, content, create_date, note_type) values(?, ?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 5
+      },
+      "nullable": []
+    }
+  },
+  "dbe7847eb59535d213b80e8d322bd36203174963556e806b34a1e787d4814cbc": {
+    "query": "insert into blocked_regexes(pattern, added_by) values (?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "e0164c571bf9ef15af0408e7c941e1f997a55408123fd7c5ac9288f06a3c9ec7": {
+    "query": "insert into tag (name, moderator, content, official) values (?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 7
+      },
+      "nullable": []
+    }
+  },
+  "e280cbd13dd17e67ee50e8e01f0a7a7a3b3d0c6067553e74556a1c8c8216bd88": {
+    "query": "insert into mute (guildid, moderator, usr, reason, start_time, end_time, active) values(?, ?, ?, ?, ?, ?, true)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 6
+      },
+      "nullable": []
+    }
+  },
+  "e4c175b9833610b928fa0b19616aeed28c5dd0d0d95b149264b97264a29055eb": {
+    "query": "select * from mute \n            where cast(strftime('%s', end_time) as integer) < cast(strftime('%s', datetime('now')) as integer)\n              and active",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "guildid",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "start_time",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "end_time",
+          "ordinal": 5,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "reason",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "active",
+          "ordinal": 7,
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ]
+    }
+  },
+  "eb70d1603c247c330ce591420fc391180193dc5d6eaf42de6c0928a38dc6ec6d": {
+    "query": "select * from fetch where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "usr",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "info",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "f4b8e4fe777d4895dcf411cebb388f38960efe6860bea5bd6110ee487472c796": {
+    "query": "insert into profile (usr, git, dotfiles, description) values (?1, NULL, NULL, ?2)\n                on conflict(usr) do update set description=?2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  }
 }
