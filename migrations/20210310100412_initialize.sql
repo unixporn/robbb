@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS tag (
 );
 
 CREATE TABLE IF NOT EXISTS highlights (
-    word text primary key,
+    id integer primary key asc,
+    word text not null,
     user integer not null
 );

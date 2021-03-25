@@ -1,5 +1,5 @@
 use super::*;
-use anyhow::*;
+
 
 impl Db {
     pub async fn get_highlights(&self) -> Result<HashMap<String, Vec<UserId>>> {
@@ -14,22 +14,29 @@ impl Db {
                 .fetch_all(&mut conn)
                 .await?
                 .into_iter()
-                .map(|x| (x.word.unwrap(), x.user)).collect::<Vec<(String, i64)>>();
-            let map = gen_map(q);
+                .map(|x| (x.word, x.user))
+                .collect::<Vec<(String, i64)>>();
+            let map = gen_map(q).await;
             cache.replace(map.clone());
             return Ok(map);
         }
     }
-    /*
-    pub async fn get_higlights_user(&self, id: UserId) -> Result<Vec<String>> {
-        let conn = self.pool.acquire().await?;
-        Ok(sqlx::query!("select * from highlights where user=?", id)
-            .fetch_all(&mut conn)
-            .await?
-            .into_iter()
-            .map(|x| (x.word, x.user))
-            .collect::<Vec<String>>())
-    }*/
+
+    pub async fn remove_highlight(&self, user: UserId, word: String) -> Result<()> {
+        let mut cache = self.highlight_cache.lock().await;
+        let mut conn = self.pool.acquire().await?;
+        let user = user.0 as i64;
+        sqlx::query!("delete from highlights where word=? and user=?", word, user)
+            .execute(&mut conn)
+            .await?;
+        if let Some(ref mut cache) = cache.as_mut() {
+            if cache.remove(&word).is_none() {
+                bail!("Can't remove a highlight that doesn't exist.")
+            }
+        }
+        Ok(())
+    }
+
     pub async fn set_highlight(&self, user: UserId, word: String) -> Result<()> {
         let mut cache = self.highlight_cache.lock().await;
         let mut conn = self.pool.acquire().await?;
@@ -38,7 +45,9 @@ impl Db {
             "insert into highlights (word, user) values (?, ?)",
             word,
             user
-        ).execute(&mut conn).await?;
+        )
+        .execute(&mut conn)
+        .await?;
         let user = user as u64;
         if let Some(ref mut cache) = cache.as_mut() {
             if cache.get(&word).is_some() {
@@ -49,20 +58,20 @@ impl Db {
         }
         Ok(())
     }
+}
 
-} 
-fn gen_map(iter: Vec<(String, i64)>) -> HashMap<String, Vec<UserId>> {
+async fn gen_map(iter: Vec<(String, i64)>) -> HashMap<String, Vec<UserId>> {
     let mut cache: HashMap<String, Vec<UserId>> = HashMap::new();
     for i in iter {
         // checks if a highlight with that string already exists,
         // if it does it appends the user to the lift of to be pinged users.
         if cache.get(&i.0).is_some() {
-            cache.entry(i.clone().0).and_modify(|f| f.push(UserId::from(i.clone().1 as u64)));
+            cache
+                .entry(i.clone().0)
+                .and_modify(|f| f.push(UserId::from(i.clone().1 as u64)));
         } else {
-            cache.insert(i.0, vec![UserId::from(i.1 as u64 )]);
+            cache.insert(i.0, vec![UserId::from(i.1 as u64)]);
         }
     }
     return cache.clone();
-
 }
-

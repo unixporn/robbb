@@ -6,6 +6,7 @@ use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
 
+
 use super::*;
 use reqwest::multipart;
 
@@ -35,7 +36,10 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         err => log_error!("blocklist-handling", err),
     };
 
-    handle_highlighting(&ctx, &msg).await;
+    match handle_highlighting(&ctx, &msg).await {
+        Ok(_) => {}
+        err => log_error!("error while checking/handling highlights", err),
+    }
 
     match handle_quote(&ctx, &msg).await {
         Ok(true) => return Ok(()),
@@ -50,8 +54,48 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     Ok(())
 }
 
-async fn handle_highlighting(ctx: &client::Context, msg: &Message) {
+async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()> {
     let db = ctx.get_db().await;
+    let highlights = db.get_highlights().await?;
+
+    for i in &mut msg
+        .content
+        .split_whitespace()
+        .into_iter()
+        .map(|p| p.to_string())
+    {
+        // checks if the database contains our word
+        if let Some(m) = highlights.get(&i.to_string()) {
+            // iterates over each user that subscribed to that highlight and send them a message 
+            for x in m {
+                let channel = msg.channel(&ctx).await.unwrap().guild().unwrap().name;
+                let guild = msg.guild(&ctx).await.unwrap().name;
+                // this is all the embed builder :wheeze:
+                let _ = x
+                    .to_user(&ctx)
+                    .await
+                    .unwrap()
+                    .dm(&ctx, |d| {
+                        d.embed(|e| {
+                            e.title(format!("{}", i));
+                            e.url(format!("{}", msg.link()));
+                            e.description(format!("A highlighted word was said in {}", guild));
+                            e.author(|a| {
+                                a.name(&msg.author.tag());
+                                a.icon_url(&msg.author.avatar_url().unwrap_or_default())
+                            });
+                            e.timestamp(&msg.timestamp);
+                            e.footer(|f| {
+                                f.text(format!("#{}", channel))
+                                
+                            })
+                        })
+                    })
+                    .await;
+            }
+        }
+    }
+    Ok(())
 }
 
 async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
