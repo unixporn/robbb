@@ -59,7 +59,8 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                         if let Some(image_url) = find_distro_image(&value) {
                             e.thumbnail(image_url);
                         }
-                    } else if key == IMAGE_KEY {
+                    }
+                    if key == IMAGE_KEY {
                         e.image(value);
                     } else if let Some(value) = format_fetch_field_value(&key, value) {
                         e.field(key, value, true);

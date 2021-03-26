@@ -15,8 +15,8 @@ const SETFETCH_USAGE: &'static str = indoc::indoc!("
 
 /// Run without arguments to see instructions.
 #[command("setfetch")]
-#[usage("setfetch [update]")]
-#[sub_commands(set_fetch_update)]
+#[usage("setfetch [update | clear]")]
+#[sub_commands(set_fetch_update, set_fetch_clear)]
 pub async fn set_fetch(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let lines = args.rest().lines().collect_vec();
     do_set_fetch(ctx, msg, lines, false).await
@@ -27,6 +27,16 @@ pub async fn set_fetch(ctx: &client::Context, msg: &Message, args: Args) -> Comm
 pub async fn set_fetch_update(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let lines = args.rest().lines().collect_vec();
     do_set_fetch(ctx, msg, lines, true).await
+}
+
+#[command("clear")]
+#[usage("setfetch clear")]
+pub async fn set_fetch_clear(ctx: &client::Context, msg: &Message) -> CommandResult {
+    let db = ctx.get_db().await;
+    db.set_fetch(msg.author.id, HashMap::new()).await?;
+    msg.reply_success(&ctx, "Successfully cleared your fetch data!")
+        .await?;
+    Ok(())
 }
 
 async fn do_set_fetch(
@@ -75,7 +85,7 @@ fn parse_setfetch(lines: Vec<&str>) -> Result<HashMap<String, String>> {
         .map(|line| {
             line.split_once_at(':')
                 .map(|(l, r)| (l.trim().to_string(), r.trim().to_string()))
-                .filter(|(k, v)| !k.is_empty() && !v.is_empty())
+                .filter(|(k, _)| !k.is_empty())
                 .context("Malformed line")
         })
         .collect::<Result<HashMap<String, String>>>()
