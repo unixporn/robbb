@@ -40,10 +40,7 @@ impl EventHandler for Handler {
         }
 
         let _ = ctx
-            .set_presence(
-                Some(Activity::competing("being the very best")),
-                OnlineStatus::Online,
-            )
+            .set_presence(Some(Activity::listening("!help")), OnlineStatus::Online)
             .await;
 
         start_mute_handler(ctx.clone()).await;
