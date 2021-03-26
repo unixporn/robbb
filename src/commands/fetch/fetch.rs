@@ -62,6 +62,8 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                     }
                     if key == IMAGE_KEY {
                         e.image(value);
+                    } else if key == DESCRIPTION_KEY {
+                        e.description(value);
                     } else if let Some(value) = format_fetch_field_value(&key, value) {
                         e.field(key, value, true);
                     }
@@ -83,7 +85,7 @@ async fn get_fetch_and_profile_data_of(
     let (profile, fetch_info) = tokio::try_join!(db.get_profile(user_id), db.get_fetch(user_id))?;
 
     let mut all_data: Vec<(String, String)> = fetch_info
-        .map(|x| x.info.into_iter().sorted().collect())
+        .map(|x| x.get_values_ordered())
         .unwrap_or_default();
     if let Some(profile) = profile {
         all_data.extend(profile.into_values_map());
