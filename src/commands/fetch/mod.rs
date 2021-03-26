@@ -52,6 +52,7 @@ fn find_distro_image(distro: &str) -> Option<&str> {
 pub const IMAGE_KEY: &'static str = "image";
 pub const MEMORY_KEY: &'static str = "Memory";
 pub const DISTRO_KEY: &'static str = "Distro";
+pub const DESCRIPTION_KEY: &'static str = "description";
 
 lazy_static! {
     /// All the non-special fetch keys. This does not include IMAGE_KEY or the profile-keys.
