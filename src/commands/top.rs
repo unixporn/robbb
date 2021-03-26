@@ -23,9 +23,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
         let field_name = super::fetch::find_fetch_key_matching(&field_name)
             .user_error("Not a valid fetch field")?;
 
-        let value_pattern = args.single_quoted::<String>().ok();
-
-        if let Some(value_pattern) = value_pattern {
+        if let Some(value_pattern) = args.remains() {
             let value_pattern = util::parse_backticked_string(&value_pattern)
                 .user_error("Must be surrounded in \\`backticks\\`")?;
 
