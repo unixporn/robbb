@@ -45,7 +45,9 @@ async fn do_set_fetch(
         return Ok(());
     }
 
-    let mut info = sanitize_fetch(parse_setfetch(lines))?;
+    let mut info = sanitize_fetch(
+        parse_setfetch(lines).user_error("Illegal format, please use `field: value` syntax.")?,
+    )?;
 
     let image_url: Option<String> = msg.find_image_urls().first().cloned();
 
@@ -67,15 +69,16 @@ async fn do_set_fetch(
 }
 
 /// parse key:value formatted lines into a hashmap.
-fn parse_setfetch(lines: Vec<&str>) -> HashMap<String, String> {
+fn parse_setfetch(lines: Vec<&str>) -> Result<HashMap<String, String>> {
     lines
         .into_iter()
-        .filter_map(|line| {
+        .map(|line| {
             line.split_once_at(':')
                 .map(|(l, r)| (l.trim().to_string(), r.trim().to_string()))
+                .filter(|(k, v)| !k.is_empty() && !v.is_empty())
+                .context("Malformed line")
         })
-        .filter(|(k, v)| !k.is_empty() && !v.is_empty())
-        .collect::<HashMap<String, String>>()
+        .collect::<Result<HashMap<String, String>>>()
 }
 
 /// Sanitize field values and check validity of user-provided fetch data.
