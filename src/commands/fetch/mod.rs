@@ -12,7 +12,13 @@ pub fn format_fetch_field_value(field_name: &str, value: String) -> Option<Strin
         None
     } else {
         match field_name {
-            MEMORY_KEY => Some(format_bytes(&value)),
+            MEMORY_KEY => {
+                if value == "0" {
+                    None
+                } else {
+                    Some(format_bytes(&value))
+                }
+            }
             _ => Some(value),
         }
     }
