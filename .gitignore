@@ -3,3 +3,5 @@
 trup.db-*
 trup.db
 cache
+base.db
+base.db-*
