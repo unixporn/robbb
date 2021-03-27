@@ -43,7 +43,7 @@ impl Db {
         })
     }
 
-    pub async fn get_tag(&self, name: String) -> Result<Option<Tag>> {
+    pub async fn get_tag(&self, name: &str) -> Result<Option<Tag>> {
         let mut conn = self.pool.acquire().await?;
         Ok(sqlx::query!(
             r#"select name as "name!", moderator, content, official from tag where name=?"#,

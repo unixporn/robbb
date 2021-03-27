@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 serenity = { version = "0.10", features = ["collector"]}
+serenity_utils = "0.6"
 anyhow = "1.0"
 chrono = "0.4"
 chrono-humanize = "0.1"
@@ -16,7 +17,7 @@ lazy_static = "1.4"
 rand = "0.8"
 humantime = "2"
 thiserror = "1.0"
-sqlx = { version ="0.5", features = ["runtime-tokio-rustls", "all", "any", "chrono"] }
+sqlx = { version ="0.5", features = ["runtime-tokio-rustls", "sqlite", "chrono", "offline"] }
 serde_json = "1"
 serde = "1"
 maplit = "1"
@@ -24,7 +25,7 @@ byte-unit = "4.0"
 url = "2"
 regex = "1"
 reqwest = { version = "0.11", features = ["multipart"] }
-tokio = { version = "1.2", features = ["full"]}
+tokio = { version = "1.2", features = ["macros", "fs", "rt-multi-thread"]}
 tokio-util = { version = "0.6", features = ["compat"] }
 extend = "1.0"
 

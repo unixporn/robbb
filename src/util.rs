@@ -4,6 +4,9 @@ use std::env;
 /// return with an error value immediately.
 #[macro_export]
 macro_rules! abort_with {
+    ($err:literal) => {
+        return Err(UserErr::other($err).into());
+    };
     ($err:expr) => {
         return Err($err.into());
     };
@@ -86,4 +89,10 @@ pub fn pluralize(s: &str) -> String {
         static ref PLURAL_Y_REGEX: Regex = Regex::new("ys$").unwrap();
     }
     PLURAL_Y_REGEX.replace(&format!("{}s", s), "ies").into()
+}
+
+/// Parse a string that is surrounded by backticks, removing said backticks.
+/// Returns a [UserErr::Other] in case the string is not properly surrounded in `
+pub fn parse_backticked_string(s: &str) -> Option<&str> {
+    s.strip_prefix('`').and_then(|x| x.strip_suffix('`'))
 }

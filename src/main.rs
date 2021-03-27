@@ -1,9 +1,7 @@
 use crate::extensions::*;
-#[allow(unused_imports)]
 use db::Db;
 use rand::prelude::IteratorRandom;
 use serenity::client::bridge::gateway::GatewayIntents;
-#[allow(unused_imports)]
 use serenity::client::{self, Client};
 use serenity::framework::standard::DispatchError;
 use serenity::framework::standard::{macros::hook, CommandResult, Reason};
@@ -20,6 +18,7 @@ pub mod attachment_logging;
 pub mod checks;
 pub mod commands;
 pub mod db;
+pub mod embeds;
 pub mod events;
 pub mod extensions;
 pub mod util;
@@ -57,6 +56,7 @@ pub struct Config {
     pub channel_showcase: ChannelId,
     pub channel_feedback: ChannelId,
     pub channel_modlog: ChannelId,
+    pub channel_mod_bot_stuff: ChannelId,
     pub channel_auto_mod: ChannelId,
     pub channel_bot_messages: ChannelId,
     pub channel_bot_traffic: ChannelId,
@@ -82,6 +82,7 @@ impl Config {
             channel_feedback: ChannelId(parse_required_env_var("CHANNEL_FEEDBACK")?),
             channel_modlog: ChannelId(parse_required_env_var("CHANNEL_MODLOG")?),
             channel_auto_mod: ChannelId(parse_required_env_var("CHANNEL_AUTO_MOD")?),
+            channel_mod_bot_stuff: ChannelId(parse_required_env_var("CHANNEL_MOD_BOT_STUFF")?),
             channel_bot_messages: ChannelId(parse_required_env_var("CHANNEL_BOT_MESSAGES")?),
             channel_bot_traffic: ChannelId(parse_required_env_var("CHANNEL_BOT_TRAFFIC")?),
             attachment_cache_path: parse_required_env_var("ATTACHMENT_CACHE_PATH")?,
@@ -121,6 +122,11 @@ impl TypeMapKey for Config {
     type Value = Arc<Config>;
 }
 
+pub struct FrameworkKey;
+impl TypeMapKey for FrameworkKey {
+    type Value = Arc<StandardFramework>;
+}
+
 #[tokio::main]
 async fn main() {
     init_logger();
@@ -128,6 +134,20 @@ async fn main() {
     let config = Config::from_environment().expect("Failed to load experiment");
 
     let db = Db::new().await.unwrap();
+
+    // we're manually calling the framework, to only run commands if none of our
+    // message_create event handler filters say no.
+    // currently, serenity still _requires_ a framework to be configured as long as the feature is enabled,
+    // thus this stub framework is necessary for now.
+    // Soon, with a rework of the command framework, this will be solved.
+    let stub_framework = StandardFramework::new();
+
+    let mut client = Client::builder(&config.discord_token)
+        .event_handler(events::Handler)
+        .framework(stub_framework)
+        .intents(GatewayIntents::all())
+        .await
+        .expect("Error creating client");
 
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("!").delimiters(vec![" ", "\n"]))
@@ -138,19 +158,13 @@ async fn main() {
         .group(&GENERAL_GROUP)
         .help(&help::MY_HELP);
 
-    let mut client = Client::builder(&config.discord_token)
-        .event_handler(events::Handler)
-        .framework(framework)
-        .intents(GatewayIntents::all())
-        .await
-        .expect("Error creating client");
-
     client.cache_and_http.cache.set_max_messages(500).await;
 
     {
         let mut data = client.data.write().await;
         data.insert::<Config>(Arc::new(config));
         data.insert::<Db>(Arc::new(db));
+        data.insert::<FrameworkKey>(Arc::new(framework));
     };
 
     if let Err(why) = client.start().await {

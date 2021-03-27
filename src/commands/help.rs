@@ -1,5 +1,7 @@
 use serenity::framework::standard::{Check, Command};
 
+use crate::embeds::PaginatedFieldsEmbed;
+
 use super::*;
 
 #[help]
@@ -56,18 +58,35 @@ async fn reply_help_single(
     msg: &Message,
     command: &Command,
 ) -> Result<Message> {
+    let command_name = command.options.names.first().unwrap_or(&"");
     msg.reply_embed(&ctx, move |e| {
-        e.title(format!(
-            "Help for {}",
-            command.options.names.first().unwrap_or(&"")
-        ));
-        command.options.desc.map(|d| e.description(d));
-        command
-            .options
-            .usage
-            .map(|u| e.field("Usage", format!("> {}", u), false));
+        e.title(format!("Help for {}", command_name));
+        if let Some(desc) = command.options.desc {
+            e.description(desc);
+        }
+        if let Some(usage) = command.options.usage {
+            e.field("Usage", format!("> ``{} ``", usage), false);
+        }
         if !command.options.examples.is_empty() {
             e.field("Examples", command.options.examples.join("\n"), false);
+        }
+
+        if !command.options.sub_commands.is_empty() {
+            let subcommands_text = command
+                .options
+                .sub_commands
+                .iter()
+                .map(|subcommand| {
+                    let subcommand_name = subcommand.options.names.first().unwrap_or(&"");
+                    if let Some(usage) = subcommand.options.usage {
+                        format!("**{} {}** - ``{} ``", command_name, subcommand_name, usage)
+                    } else {
+                        format!("**{} {}**", command_name, subcommand_name)
+                    }
+                })
+                .join("\n");
+
+            e.field("Subcommands", subcommands_text, false);
         }
     })
     .await
@@ -78,18 +97,21 @@ async fn reply_help_full(
     msg: &Message,
     commands: &[&CommandOptions],
 ) -> Result<Message> {
-    msg.reply_embed(&ctx, move |e| {
+    let fields = commands.iter().map(|command| {
+        let command_name = command.names.first().expect("Command had no name");
+        let name = match command.usage {
+            Some(usage) => format!("**{}** - ``{}``", command_name, usage),
+            None => format!("**{}**", command_name),
+        };
+        let description = command.desc.unwrap_or("No description").to_string();
+        (name, description)
+    });
+
+    PaginatedFieldsEmbed::create(&ctx, fields, |e| {
         e.title("Help");
-        for command in commands {
-            let command_name = command.names.first().expect("Command had no name");
-            let name = match command.usage {
-                Some(usage) => format!("**{}** - `{}`", command_name, usage),
-                None => format!("**{}**", command_name),
-            };
-            let description = command.desc.unwrap_or("No description").to_string();
-            e.field(name, description, false);
-        }
     })
+    .await
+    .send(&ctx, &msg)
     .await
 }
 

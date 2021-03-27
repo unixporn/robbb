@@ -5,6 +5,7 @@ use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
+use serenity::framework::Framework;
 
 use super::*;
 use reqwest::multipart;
@@ -26,13 +27,13 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 
     match handle_spam_protect(&ctx, &msg).await {
         Ok(true) => return Ok(()),
-        Ok(_) => {}
-        err => log_error!("Spam-protection", err),
+        Ok(false) => {}
+        err => log_error!("error while handling spam-protection", err),
     };
     match handle_blocklist(&ctx, &msg).await {
         Ok(true) => return Ok(()),
-        Ok(_) => {}
-        err => log_error!("blocklist-handling", err),
+        Ok(false) => {}
+        err => log_error!("error while handling blocklist", err),
     };
 
     match handle_highlighting(&ctx, &msg).await {
@@ -42,13 +43,24 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 
     match handle_quote(&ctx, &msg).await {
         Ok(true) => return Ok(()),
-        Ok(_) => {}
-        err => log_error!("Handling a quoted message", err),
+        Ok(false) => {}
+        err => log_error!("error while Handling a quoted message", err),
     };
     match handle_message_txt(&ctx, &msg).await {
-        Ok(_) => return Ok(()),
-        err => log_error!("handling a message.txt upload", err),
+        Ok(true) => return Ok(()),
+        Ok(false) => {}
+        err => log_error!("error while handling a message.txt upload", err),
     };
+
+    let framework = ctx
+        .data
+        .read()
+        .await
+        .get::<crate::FrameworkKey>()
+        .unwrap()
+        .clone();
+
+    framework.dispatch(ctx, msg).await;
 
     Ok(())
 }
@@ -218,12 +230,13 @@ async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> 
 }
 
 async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    let account_age_millis = Utc::now().timestamp() - msg.author.created_at().timestamp();
+    let account_age = Utc::now() - msg.author.created_at();
 
-    if msg.mentions.is_empty() && (account_age_millis / 1000 / 60 / 60) > 24 {
+    if msg.mentions.is_empty() || account_age > chrono::Duration::hours(24) {
         return Ok(false);
     }
 
+    // TODO should the messages be cached here? given the previous checks this is rare enough to probably not matter.
     let msgs = msg
         .channel_id
         .messages(&ctx, |m| m.before(msg.id).limit(10))
@@ -338,10 +351,10 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
     Ok(())
 }
 
-async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<()> {
+async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<bool> {
     let message_txt_file = match msg.attachments.iter().find(|a| a.filename == "message.txt") {
         Some(attachment) => attachment,
-        None => return Ok(()),
+        None => return Ok(false),
     };
 
     // Upload the file to 0x0.st via URL
@@ -375,8 +388,10 @@ async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<()> 
         m.title("Open message.txt in browser");
         m.url(download_url);
         m.color_opt(color);
-        m.description("Discord sucks, so here's an easier way to read that file.");
+        m.description(
+            "Discord forces you to download the file, so here's an easier way to read that file.",
+        );
     })
     .await?;
-    Ok(())
+    Ok(true)
 }

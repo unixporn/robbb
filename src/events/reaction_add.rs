@@ -18,20 +18,23 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
 
     if is_poll {
         // This is rather imperfect, but discord API sucks :/
-        serenity::futures::future::join_all(
-            msg.reactions
-                .iter()
-                .filter(|r| r.reaction_type != event.emoji)
-                .map(|r| {
-                    ctx.http.delete_reaction(
-                        msg.channel_id.0,
-                        msg.id.0,
-                        Some(user.id.0),
-                        &r.reaction_type,
-                    )
-                }),
-        )
-        .await;
+        // we're pretty much deleteing all other reactions and are giving it the user to delete the reaction from,
+        // such that discord API knows which of the reactions to remove. If the user hasn't reacted
+        // with that emote, it'll error, but we don't really care :/
+        for r in msg.reactions {
+            if r.reaction_type != event.emoji {
+                crate::log_error!(
+                    ctx.http
+                        .delete_reaction(
+                            msg.channel_id.0,
+                            msg.id.0,
+                            Some(user.id.0),
+                            &r.reaction_type
+                        )
+                        .await
+                );
+            }
+        }
     }
     Ok(())
 }

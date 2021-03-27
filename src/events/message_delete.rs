@@ -34,6 +34,20 @@ pub async fn message_delete(
         return Ok(());
     }
 
+    if msg.content.starts_with("!") {
+        let close_messages = msg
+            .channel_id
+            .messages(&ctx, |m| m.after(deleted_message_id).limit(5))
+            .await?;
+        let bot_reply = close_messages.iter().find(|x| {
+            x.message_reference.as_ref().and_then(|x| x.message_id) == Some(deleted_message_id)
+                && x.author.bot
+        });
+        if let Some(bot_reply) = bot_reply {
+            log_error!(bot_reply.delete(&ctx).await);
+        }
+    }
+
     // TODO do we want this?
     //handle_ghostping(&ctx, &msg).await;
 

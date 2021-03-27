@@ -40,10 +40,7 @@ impl EventHandler for Handler {
         }
 
         let _ = ctx
-            .set_presence(
-                Some(Activity::competing("being the very best")),
-                OnlineStatus::Online,
-            )
+            .set_presence(Some(Activity::listening("!help")), OnlineStatus::Online)
             .await;
 
         start_mute_handler(ctx.clone()).await;
@@ -129,7 +126,7 @@ impl EventHandler for Handler {
 
     async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
         log_error!(
-            "Error while handling reaction_addd event",
+            "Error while handling reaction_add event",
             reaction_add::reaction_add(ctx, event).await
         );
     }
@@ -141,9 +138,9 @@ async fn unmute(
     db: &Arc<Db>,
     mute: &mute::Mute,
 ) -> Result<()> {
+    db.set_mute_inactive(mute.id).await?;
     let mut member = config.guild.member(&ctx, mute.user).await?;
     member.remove_roles(&ctx, &[config.role_mute]).await?;
-    db.set_mute_inactive(mute.id).await?;
 
     Ok(())
 }
@@ -152,7 +149,7 @@ async fn start_mute_handler(ctx: client::Context) {
     tokio::spawn(async move {
         let (config, db) = ctx.get_config_and_db().await;
         loop {
-            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             let mutes = match db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {

@@ -52,16 +52,25 @@ pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
     let db = ctx.get_db().await;
 
     if let Some(value) = args.remains().map(|x| x.to_string()) {
-        db.set_description(msg.author.id, Some(value)).await?;
-        msg.reply_success(&ctx, "Successfully updated your description!")
-            .await?;
+        if value == "clear" {
+            db.set_description(msg.author.id, None).await?;
+            msg.reply_success(&ctx, "Successfully cleared your description!")
+                .await?;
+        } else {
+            db.set_description(msg.author.id, Some(value)).await?;
+            msg.reply_success(&ctx, "Successfully updated your description!")
+                .await?;
+        }
     } else {
         if let Some(value) = db
             .get_profile(msg.author.id)
             .await?
             .and_then(|x| x.description)
         {
-            msg.reply_success(&ctx, value).await?;
+            msg.reply_embed(&ctx, |e| {
+                e.description(value);
+            })
+            .await?;
         } else {
             msg.reply_error(&ctx, "You need to set your description first")
                 .await?;
@@ -78,12 +87,21 @@ pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
     let db = ctx.get_db().await;
 
     if let Some(value) = args.remains().map(|x| x.to_string()) {
-        db.set_git(msg.author.id, Some(value)).await?;
-        msg.reply_success(&ctx, "Successfully updated your git-url!")
-            .await?;
+        if value == "clear" {
+            db.set_git(msg.author.id, None).await?;
+            msg.reply_success(&ctx, "Successfully cleared your git-url!")
+                .await?;
+        } else {
+            db.set_git(msg.author.id, Some(value)).await?;
+            msg.reply_success(&ctx, "Successfully updated your git-url!")
+                .await?;
+        }
     } else {
         if let Some(value) = db.get_profile(msg.author.id).await?.and_then(|x| x.git) {
-            msg.reply_success(&ctx, value).await?;
+            msg.reply_embed(&ctx, |e| {
+                e.description(value);
+            })
+            .await?;
         } else {
             msg.reply_error(&ctx, "You need to set your git-link first")
                 .await?;
@@ -99,16 +117,25 @@ pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> Comma
     let db = ctx.get_db().await;
 
     if let Some(value) = args.remains().map(|x| x.to_string()) {
-        db.set_dotfiles(msg.author.id, Some(value)).await?;
-        msg.reply_success(&ctx, "Successfully updated your dotfiles!")
-            .await?;
+        if value == "clear" {
+            db.set_dotfiles(msg.author.id, None).await?;
+            msg.reply_success(&ctx, "Successfully cleared your dotfiles!")
+                .await?;
+        } else {
+            db.set_dotfiles(msg.author.id, Some(value)).await?;
+            msg.reply_success(&ctx, "Successfully updated your dotfiles!")
+                .await?;
+        }
     } else {
         if let Some(value) = db
             .get_profile(msg.author.id)
             .await?
             .and_then(|x| x.dotfiles)
         {
-            msg.reply_success(&ctx, value).await?;
+            msg.reply_embed(&ctx, |e| {
+                e.description(value);
+            })
+            .await?;
         } else {
             msg.reply_error(&ctx, "You need to set your dotfiles first")
                 .await?;
@@ -118,6 +145,7 @@ pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> Comma
     Ok(())
 }
 
+/// Sends the server invite link
 #[command]
 #[usage("invite")]
 pub async fn invite(ctx: &client::Context, msg: &Message) -> CommandResult {

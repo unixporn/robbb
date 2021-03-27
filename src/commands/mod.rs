@@ -1,3 +1,4 @@
+use crate::embeds;
 use crate::extensions::{clientContextExt, CreateEmbedExt};
 use crate::{abort_with, db::Db, extensions::MessageExt, util};
 
@@ -17,7 +18,7 @@ use serenity::{
     },
     model::prelude::*,
 };
-use std::{collections::HashSet, str::FromStr};
+use std::collections::HashSet;
 use thiserror::Error;
 
 pub mod ban;
@@ -70,52 +71,25 @@ lazy_static::lazy_static! {
 #[commands(
     restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag
 )]
-#[checks(moderator)]
+#[checks(moderator, channel_allows_commands)]
 struct Moderator;
 
 #[group]
 #[only_in(guilds)]
 #[commands(ban, delban, mute)]
-#[checks(helper_or_mod)]
+#[checks(helper_or_mod, channel_allows_commands)]
 struct HelperOrMod;
 
 #[group]
 #[only_in(guilds)]
 #[commands(
-    info,
-    modping,
-    pfp,
-    move_users,
-    repo,
-    set_fetch,
-    fetch,
-    desc,
-    git,
-    dotfiles,
-    poll,
-    role,
-    top,
-    tag,
-    list_tags,
-    invite,
-    add_highlight,
-    get_highlights,
-    remove_highlight
+    add_highlight, get_highlights, remove_highlight, info, modping, pfp, 
+  move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, 
+  top, tag, invite
+
 )]
+#[checks(channel_allows_commands)]
 struct General;
-
-#[derive(Debug, Clone)]
-pub struct BacktickedString(pub String);
-impl FromStr for BacktickedString {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        s.strip_prefix('`')
-            .and_then(|x| x.strip_suffix('`'))
-            .map(|x| BacktickedString(x.to_string()))
-            .context("must be surrounded in backticks")
-    }
-}
 
 pub async fn disambiguate_user_mention(
     ctx: &client::Context,

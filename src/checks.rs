@@ -7,6 +7,16 @@ use serenity::framework::standard::Reason;
 use serenity::model::prelude::*;
 
 #[check]
+#[name = "channel_allows_commands"]
+pub async fn channel_allows_commands(ctx: &client::Context, msg: &Message) -> Result<(), Reason> {
+    let config = ctx.get_config().await;
+    if msg.channel_id == config.channel_showcase || msg.channel_id == config.channel_feedback {
+        Err(Reason::Unknown)
+    } else {
+        Ok(())
+    }
+}
+#[check]
 #[name = "moderator"]
 pub async fn moderator_check(ctx: &client::Context, msg: &Message) -> Result<(), Reason> {
     let config = ctx.get_config().await;

@@ -2,13 +2,11 @@ use super::*;
 
 /// Get the text stored in a tag.
 #[command]
-#[usage("tag <name>")]
+#[usage("tag <name> OR tag list")]
 #[sub_commands(list_tags, set_tag)]
-pub async fn tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn tag(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db = ctx.get_db().await;
-    let tag_name = args
-        .single_quoted::<String>()
-        .invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
+    let tag_name = args.remains().invalid_usage(&TAG_COMMAND_OPTIONS)?;
 
     let tag = db
         .get_tag(tag_name)
@@ -17,12 +15,16 @@ pub async fn tag(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
 
     let moderator = tag.moderator.to_user(&ctx).await?;
 
-    msg.reply_embed(&ctx, |e| {
-        e.title(&tag.name);
-        e.description(&tag.content);
-        e.footer(|f| f.text(format!("Written by {}", moderator.tag())));
-    })
-    .await?;
+    if util::validate_url(&tag.content) {
+        msg.reply(&ctx, &tag.content).await?;
+    } else {
+        msg.reply_embed(&ctx, |e| {
+            e.title(&tag.name);
+            e.description(&tag.content);
+            e.footer(|f| f.text(format!("Written by {}", moderator.tag())));
+        })
+        .await?;
+    }
 
     Ok(())
 }
@@ -63,7 +65,7 @@ pub async fn set_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> Co
 
 /// Save a new tag or update an old one.
 #[command("deletetag")]
-#[usage("deletetag <name> ")]
+#[usage("deletetag <name>")]
 pub async fn delete_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;
     let tag_name = args

@@ -2,7 +2,8 @@ use super::*;
 
 /// Warn a user for a given reason.
 #[command]
-#[usage("warn <user> <reason>")]
+#[usage("warn <user> <reason> | warn undo <user>")]
+#[sub_commands(undo_warn)]
 pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let (config, db) = ctx.get_config_and_db().await;
 
@@ -58,5 +59,26 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             e.field("Reason", reason, false);
         })
         .await;
+    Ok(())
+}
+
+/// Undo the most recent warning on a user
+#[command("undo")]
+#[usage("warn undo <user>")]
+pub async fn undo_warn(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let mentioned_user = &args
+        .single_quoted::<String>()
+        .invalid_usage(&WARN_COMMAND_OPTIONS)?;
+    let mentioned_user_id = disambiguate_user_mention(&ctx, &guild, msg, mentioned_user)
+        .await?
+        .ok_or(UserErr::MentionedUserNotFound)?;
+
+    let db = ctx.get_db().await;
+    db.undo_latest_warn(mentioned_user_id).await?;
+
+    msg.reply_success(&ctx, "Successfully removed the warning!")
+        .await?;
+
     Ok(())
 }

@@ -4,7 +4,8 @@ use super::*;
 
 /// Write a note about a user.
 #[command]
-#[usage("note <user> <content>")]
+#[usage("note <user> <content> | note undo <user>")]
+#[sub_commands(undo_note)]
 pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let (config, db) = ctx.get_config_and_db().await;
 
@@ -82,22 +83,45 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let notes = fetch_note_values(&db, mentioned_user_id, note_filter).await?;
 
-    msg.reply_embed(&ctx, |e| {
+    let fields = notes.iter().map(|note| {
+        (
+            format!("{} - {}", note.note_type, util::format_date_ago(note.date)),
+            format!("{} - {}", note.description, note.moderator.mention(),),
+        )
+    });
+
+    embeds::PaginatedFieldsEmbed::create(&ctx, fields, |e| {
         e.title("Notes");
         e.description(format!("Notes about {}", mentioned_user_id.mention()));
         e.author(|a| {
             avatar_url.map(|url| a.icon_url(url));
             a
         });
-        for note in notes {
-            e.field(
-                format!("{} - {}", note.note_type, util::format_date_ago(note.date)),
-                format!("{} - {}", note.description, note.moderator.mention(),),
-                false,
-            );
-        }
     })
+    .await
+    .send(&ctx, &msg)
     .await?;
+
+    Ok(())
+}
+
+/// Remove the most recent note on a user
+#[command("undo")]
+#[usage("note undo <user>")]
+pub async fn undo_note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let mentioned_user = &args
+        .single_quoted::<String>()
+        .invalid_usage(&WARN_COMMAND_OPTIONS)?;
+    let mentioned_user_id = disambiguate_user_mention(&ctx, &guild, msg, mentioned_user)
+        .await?
+        .ok_or(UserErr::MentionedUserNotFound)?;
+
+    let db = ctx.get_db().await;
+    db.undo_latest_note(mentioned_user_id).await?;
+
+    msg.reply_success(&ctx, "Successfully removed the note!")
+        .await?;
 
     Ok(())
 }
@@ -116,7 +140,10 @@ async fn fetch_note_values(
 ) -> Result<Vec<NotesEntry>> {
     let mut entries = Vec::new();
 
-    if filter.is_none() || filter == Some(NoteType::ManualNote) {
+    if filter.is_none()
+        || filter == Some(NoteType::ManualNote)
+        || filter == Some(NoteType::BlocklistViolation)
+    {
         let notes = db
             .get_notes(user_id, filter)
             .await?

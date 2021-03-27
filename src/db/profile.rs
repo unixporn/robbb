@@ -35,11 +35,10 @@ impl Db {
 
         let user = user.0 as i64;
         sqlx::query!(
-            "insert into profile (usr, git, dotfiles, description) values (?, ?, NULL, NULL)
-                on conflict(usr) do update set git=?",
+            "insert into profile (usr, git, dotfiles, description) values (?1, ?2, NULL, NULL)
+                on conflict(usr) do update set git=?2",
             user,
             value,
-            value
         )
         .execute(&mut conn)
         .await?;
@@ -51,11 +50,10 @@ impl Db {
 
         let user = user.0 as i64;
         sqlx::query!(
-            "insert into profile (usr, git, dotfiles, description) values (?, NULL, ?, NULl)
-                on conflict(usr) do update set dotfiles=?",
+            "insert into profile (usr, git, dotfiles, description) values (?1, NULL, ?2, NULl)
+                on conflict(usr) do update set dotfiles=?2",
             user,
             value,
-            value
         )
         .execute(&mut conn)
         .await?;
@@ -67,11 +65,10 @@ impl Db {
 
         let user = user.0 as i64;
         sqlx::query!(
-            "insert into profile (usr, git, dotfiles, description) values (?, NULL, NULL, ?)
-                on conflict(usr) do update set description=?",
+            "insert into profile (usr, git, dotfiles, description) values (?1, NULL, NULL, ?2)
+                on conflict(usr) do update set description=?2",
             user,
             value,
-            value
         )
         .execute(&mut conn)
         .await?;

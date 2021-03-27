@@ -1,9 +1,9 @@
 use std::{fmt::Display, sync::Arc};
 
 use anyhow::{Context, Result};
-use chrono::Utc;
 
 use extend::ext;
+use itertools::Itertools;
 use serenity::{
     async_trait,
     builder::CreateEmbed,
@@ -17,7 +17,7 @@ use serenity::{
     utils::Colour,
 };
 
-use crate::{db::Db, Config, UPEmotes};
+use crate::{db::Db, embeds::basic_create_embed, Config, UPEmotes};
 
 #[ext(pub)]
 #[async_trait]
@@ -64,15 +64,10 @@ impl GuildId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let build_basics = build_embed_builder(&ctx).await;
+        let mut create_embed = basic_create_embed(&ctx).await;
+        build(&mut create_embed);
         Ok(channel_id
-            .send_message(&ctx, |m| {
-                m.embed(|e| {
-                    build_basics(e);
-                    build(e);
-                    e
-                })
-            })
+            .send_message(&ctx, |m| m.set_embed(create_embed))
             .await
             .context("Failed to send embed message")?)
     }
@@ -81,21 +76,32 @@ impl GuildId {
 #[ext(pub)]
 #[async_trait]
 impl Message {
+    fn find_image_urls(&self) -> Vec<String> {
+        self.embeds
+            .iter()
+            .filter_map(|embed| embed.image.clone())
+            .map(|image| image.url)
+            .chain(
+                self.attachments
+                    .iter()
+                    .find(|a| a.dimensions().is_some())
+                    .map(|a| a.url.to_string()),
+            )
+            .collect_vec()
+    }
+
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let build_basics = build_embed_builder(&ctx).await;
+        let mut create_embed = basic_create_embed(&ctx).await;
+        build(&mut create_embed);
 
         self.channel_id
             .send_message(&ctx, move |m| {
                 m.allowed_mentions(|f| f.replied_user(false));
                 m.reference_message(self);
-                m.embed(move |e| {
-                    build_basics(e);
-                    build(e);
-                    e
-                })
+                m.set_embed(create_embed)
             })
             .await
             .context("Failed to send embed")
@@ -163,31 +169,12 @@ impl ChannelId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let build_basics = build_embed_builder(&ctx).await;
+        let mut create_embed = basic_create_embed(&ctx).await;
+        build(&mut create_embed);
         Ok(self
-            .send_message(&ctx, |m| {
-                m.embed(|e| {
-                    build_basics(e);
-                    build(e);
-                    e
-                })
-            })
+            .send_message(&ctx, |m| m.set_embed(create_embed))
             .await
             .context("Failed to send embed message")?)
-    }
-}
-
-pub async fn build_embed_builder(ctx: &client::Context) -> impl FnOnce(&mut CreateEmbed) {
-    let stare = ctx.get_random_stare().await;
-
-    move |e: &mut CreateEmbed| {
-        e.timestamp(&Utc::now());
-        e.footer(|f| {
-            if let Some(emoji) = stare {
-                f.icon_url(emoji.url());
-            }
-            f.text("\u{200b}")
-        });
     }
 }
 
@@ -203,9 +190,9 @@ impl CreateEmbed {
 
 #[ext(pub, name = StrExt)]
 impl<T: AsRef<str>> T {
-    fn split_once(&self, c: char) -> Option<(&str, &str)> {
+    fn split_once_at<'a>(&'a self, c: char) -> Option<(&'a str, &'a str)> {
         let s: &str = self.as_ref();
         let index = s.find(c)?;
-        Some(s.split_at(index))
+        Some((&s[..index], &s[index + c.len_utf8()..]))
     }
 }

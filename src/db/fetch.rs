@@ -12,6 +12,19 @@ pub struct Fetch {
     pub info: HashMap<String, String>,
 }
 
+impl Fetch {
+    pub fn get_values_ordered(mut self) -> Vec<(String, String)> {
+        let mut entries: Vec<(String, String)> = crate::commands::fetch::NORMAL_FETCH_KEYS
+            .iter()
+            .filter_map(|x| Some((x.to_string(), self.info.remove(*x)?)))
+            .collect();
+        if let Some(image) = self.info.remove(crate::commands::fetch::IMAGE_KEY) {
+            entries.push((crate::commands::fetch::IMAGE_KEY.to_string(), image));
+        }
+        entries
+    }
+}
+
 impl Db {
     pub async fn set_fetch(&self, user: UserId, info: HashMap<String, String>) -> Result<Fetch> {
         let mut conn = self.pool.acquire().await?;
@@ -20,9 +33,8 @@ impl Db {
             let info = serde_json::to_string(&info)?;
 
             sqlx::query!(
-                "insert into fetch (usr, info) values (?, ?) on conflict(usr) do update set info=?",
+                "insert into fetch (usr, info) values (?1, ?2) on conflict(usr) do update set info=?2",
                 user,
-                info,
                 info,
             )
             .execute(&mut conn)

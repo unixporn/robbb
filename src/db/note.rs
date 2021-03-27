@@ -90,6 +90,16 @@ impl Db {
         })
     }
 
+    pub async fn undo_latest_note(&self, user: UserId) -> Result<()> {
+        let mut conn = self.pool.acquire().await?;
+        let user = user.0 as i64;
+        sqlx::query!(
+            r#"delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)"#,
+            user,
+        ).execute(&mut conn).await?;
+        Ok(())
+    }
+
     pub async fn get_notes(&self, user_id: UserId, filter: Option<NoteType>) -> Result<Vec<Note>> {
         let mut conn = self.pool.acquire().await?;
         let user_id = user_id.0 as i64;
@@ -98,10 +108,9 @@ impl Db {
         sqlx::query!(
             r#"
                 SELECT * FROM note
-                WHERE usr=? AND (? IS NULL OR note_type=?)
+                WHERE usr=?1 AND (?2 IS NULL OR note_type=?2)
                 ORDER BY create_date DESC"#,
             user_id,
-            note_type_value,
             note_type_value,
         )
         .fetch_all(&mut conn)
