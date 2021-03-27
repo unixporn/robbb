@@ -14,7 +14,7 @@ Now written in a _good_ language!
 
 The bot reads the data it needs from environment variables.
 To see which values have to be set, check out the provided [.env.example](./.env.example) file.
-you can use `export $(.env)` to export the variables from a .env file in your current environment.
+you can use `export $(cat .env)` to export the variables from a .env file in your current environment.
 
 ### Extra information 
 
