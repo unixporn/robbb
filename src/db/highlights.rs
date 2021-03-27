@@ -1,5 +1,5 @@
 use super::*;
-
+use itertools::Itertools;
 
 impl Db {
     pub async fn get_highlights(&self) -> Result<HashMap<String, Vec<UserId>>> {
@@ -14,11 +14,10 @@ impl Db {
                 .fetch_all(&mut conn)
                 .await?
                 .into_iter()
-                .map(|x| (x.word, x.user))
-                .collect::<Vec<(String, i64)>>();
-            let map = gen_map(q).await;
-            cache.replace(map.clone());
-            return Ok(map);
+                .map(|x| (x.word, UserId::from(x.user as u64)))
+                .into_group_map();
+            cache.replace(q.clone());
+            return Ok(q.clone());
         }
     }
 
@@ -58,20 +57,4 @@ impl Db {
         }
         Ok(())
     }
-}
-
-async fn gen_map(iter: Vec<(String, i64)>) -> HashMap<String, Vec<UserId>> {
-    let mut cache: HashMap<String, Vec<UserId>> = HashMap::new();
-    for i in iter {
-        // checks if a highlight with that string already exists,
-        // if it does it appends the user to the lift of to be pinged users.
-        if cache.get(&i.0).is_some() {
-            cache
-                .entry(i.clone().0)
-                .and_modify(|f| f.push(UserId::from(i.clone().1 as u64)));
-        } else {
-            cache.insert(i.0, vec![UserId::from(i.1 as u64)]);
-        }
-    }
-    return cache.clone();
 }

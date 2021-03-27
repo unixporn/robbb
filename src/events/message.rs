@@ -6,7 +6,6 @@ use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
 
-
 use super::*;
 use reqwest::multipart;
 
@@ -66,7 +65,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
     {
         // checks if the database contains our word
         if let Some(m) = highlights.get(&i.to_string()) {
-            // iterates over each user that subscribed to that highlight and send them a message 
+            // iterates over each user that subscribed to that highlight and send them a message
             for x in m {
                 let channel = msg.channel(&ctx).await.unwrap().guild().unwrap().name;
                 let guild = msg.guild(&ctx).await.unwrap().name;
@@ -85,10 +84,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
                                 a.icon_url(&msg.author.avatar_url().unwrap_or_default())
                             });
                             e.timestamp(&msg.timestamp);
-                            e.footer(|f| {
-                                f.text(format!("#{}", channel))
-                                
-                            })
+                            e.footer(|f| f.text(format!("#{}", channel)))
                         })
                     })
                     .await;
