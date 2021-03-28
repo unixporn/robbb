@@ -96,3 +96,14 @@ pub fn pluralize(s: &str) -> String {
 pub fn parse_backticked_string(s: &str) -> Option<&str> {
     s.strip_prefix('`').and_then(|x| x.strip_suffix('`'))
 }
+
+/// Determine if a file is an image based on the file extension
+pub fn is_image_file(s: &str) -> bool {
+    match s.split('.').last() {
+        Some(ext) => match ext {
+            "png" | "jpg" | "jpeg" | "gif" | "webp" => true,
+            _ => false,
+        },
+        None => false,
+    }
+}

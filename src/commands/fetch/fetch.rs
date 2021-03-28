@@ -1,4 +1,4 @@
-use crate::extensions::{CreateEmbedExt, MessageExt};
+use crate::extensions::*;
 use anyhow::*;
 
 use super::*;
