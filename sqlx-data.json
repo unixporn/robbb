@@ -372,6 +372,16 @@
       "nullable": []
     }
   },
+  "ca78c01f4edc76c9a6b58e2c57907d9ef1439024c11a7f78630635014da16114": {
+    "query": "insert into highlights (word, user) values (?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
   "d82c132238221a207fe200e0b55d5982af95bb4c65f2e4f1b5b0b35d7067eb8d": {
     "query": "insert into note (moderator, usr, content, create_date, note_type) values(?, ?, ?, ?, ?)",
     "describe": {
@@ -392,12 +402,52 @@
       "nullable": []
     }
   },
+  "df84d2906bcfd74824d2e80c4582040c05113231fea91e7b0b3423673ca5a18e": {
+    "query": "select * from highlights",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "word",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "user",
+          "ordinal": 2,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "e0164c571bf9ef15af0408e7c941e1f997a55408123fd7c5ac9288f06a3c9ec7": {
     "query": "insert into tag (name, moderator, content, official) values (?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?",
     "describe": {
       "columns": [],
       "parameters": {
         "Right": 7
+      },
+      "nullable": []
+    }
+  },
+  "e24a215400586f1a059d432bc0c408b9c75259c887ced977dc5f8958f37adc5d": {
+    "query": "delete from highlights where word=? and user=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
       },
       "nullable": []
     }
