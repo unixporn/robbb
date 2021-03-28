@@ -100,7 +100,7 @@ async fn top_for_field(
         .map(|(i, (value, count))| {
             format!(
                 "**{}**. {} ({}, {:.2}%)",
-                i,
+                i + 1,
                 value,
                 count,
                 (count as f64 / total_field_values as f64) * 100f64
