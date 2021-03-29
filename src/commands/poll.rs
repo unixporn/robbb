@@ -38,9 +38,11 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 /// Have others select one of many options.
 #[command("multi")]
 #[usage("poll multi [title] <one option per line>")]
-async fn poll_multi(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let mut lines = args.rest().lines().collect_vec();
-    let title = lines.first().and_then(|line| line.strip_prefix("multi "));
+async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
+    let lines = msg.content.lines().collect_vec();
+    let title = lines.first();
+    let mut lines = lines.clone();
+
     if !lines.is_empty() {
         lines.remove(0);
     }
@@ -65,9 +67,28 @@ async fn poll_multi(ctx: &client::Context, msg: &Message, args: Args) -> Command
     msg.channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| {
+                e.title("Poll");
                 match title {
-                    Some(title) => e.title(format!("Poll: {}", title)),
-                    None => e.title("Poll"),
+                    Some(title) => {
+                        let mut splits = title.trim().split(' ').collect_vec();
+                        match splits.last() {
+                            Some(word) => {
+                                if word.clone() != "multi" {
+                                    e.description(
+                                        splits
+                                            .split_off(
+                                                splits.iter().position(|&i| i == "multi").unwrap(),
+                                            )
+                                            .join(" "),
+                                    )
+                                } else {
+                                    e.description("")
+                                }
+                            }
+                            None => e.description(""),
+                        }
+                    }
+                    None => e.description(""),
                 };
                 for (emoji, option) in options.iter() {
                     e.field(format!("Option {}", emoji), option, false);
