@@ -21,7 +21,8 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
     msg.channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| {
-                e.title(format!("Poll: {}", question));
+                e.title("Poll");
+                e.description(question);
                 e.footer(|f| f.text(format!("From: {}", msg.author.tag())))
             });
             m.reactions(vec![
