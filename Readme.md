@@ -26,7 +26,7 @@ You need to have developer mode turned on for that to be possible.
 - ROLE_*: IDs of relevant roles, easily copied from Server Settings -> Roles.
 - ROLE_COLOR: Unlike other ROLE variables, this is a comma (`,`) separated list, ex.: `ROLES_COLOR=825158129711972372,635627141123538966`
 - CHANNEL_*: Channel IDs, based on which the bot performs moderation or responses
-- ATTACHMENT_CACHE_*: Don't worry about it
+- ATTACHMENT_CACHE_*: Location (directory) and size of local message attachments cache (in case they get deleted)
 
 
 ## Database
