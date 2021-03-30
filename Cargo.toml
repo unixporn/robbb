@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["elkowar <5300871+elkowar@users.noreply.github.com>"]
 edition = "2018"
 
+build = "build.rs"
+
 
 [dependencies]
 serenity = { version = "0.10", features = ["collector"]}
