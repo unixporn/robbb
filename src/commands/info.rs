@@ -19,6 +19,11 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let color = member.colour(&ctx).await;
 
+    let mut color_roles = String::new();
+    for i in &member.roles {
+        color_roles.push_str(&format!("{} (#{}) ", i.mention(), i.to_role_cached(&ctx).await.context("couldn't get the cached role")?.colour.hex().to_string()));
+    }
+
     msg.reply_embed(&ctx, |e| {
         e.title(member.user.tag());
         e.thumbnail(member.user.face());
@@ -33,7 +38,7 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         if !member.roles.is_empty() {
             e.field(
                 "Roles",
-                member.roles.iter().map(|x| x.mention()).join(" "),
+                color_roles,
                 false,
             );
         }
