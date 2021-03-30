@@ -1,15 +1,24 @@
 use super::*;
 use crate::Arc;
 
-/// add a new highlight for the user
-#[command("add_highlight")]
-#[usage("!add_highlight <word, can have spaces>")]
-pub async fn add_highlight(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+#[command("highlights")]
+#[sub_commands(highlights_add, highlights_get, highlights_remove)]
+#[usage("!highlights <add | get | remove>")]
+pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
+    abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS))
+}
+
+/// add a highlight for your user
+#[command("add")]
+#[usage("!highlights add <word>")]
+pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let args = args.message().trim().to_string();
     if args.contains(" ") {
         abort_with!(UserErr::Other("Highlight can't contain a space for implementation/performance reasons".to_string()));
     } else if args.is_empty() {
         abort_with!(UserErr::InvalidUsage("You must provide a argument"));
+    } else if args.len() < 3 {
+        abort_with!(UserErr::Other("highlight has to be larger than 2 characters".to_string()));
     }
 
     let db: Arc<Db> = ctx.get_db().await;
@@ -43,9 +52,9 @@ pub async fn add_highlight(ctx: &client::Context, msg: &Message, args: Args) -> 
 }
 
 /// get all highlights for your user
-#[command("get_highlights")]
-#[usage("!get_highlights")]
-pub async fn get_highlights(ctx: &client::Context, msg: &Message) -> CommandResult {
+#[command("get")]
+#[usage("!highlights get")]
+pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResult {
     let db: Arc<Db> = ctx.get_db().await;
     let highlights = db.get_highlights().await?;
 
@@ -64,9 +73,9 @@ pub async fn get_highlights(ctx: &client::Context, msg: &Message) -> CommandResu
 }
 
 /// removes a highlight
-#[command("remove_highlight")]
-#[usage("!remove_highlight <highlight, can contain spaces")]
-pub async fn remove_highlight(
+#[command("remove")]
+#[usage("!highlights remove <highlight>")]
+pub async fn highlights_remove(
     ctx: &client::Context,
     msg: &Message,
     mut args: Args,

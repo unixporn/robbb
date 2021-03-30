@@ -83,7 +83,7 @@ struct HelperOrMod;
 #[group]
 #[only_in(guilds)]
 #[commands(
-    add_highlight, get_highlights, remove_highlight, info, modping, pfp, 
+   highlights, info, modping, pfp, 
   move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, 
   top, tag, invite
 
