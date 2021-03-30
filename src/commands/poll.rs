@@ -1,4 +1,5 @@
 use super::*;
+use crate::extensions::StrExt;
 use regex::Regex;
 
 lazy_static::lazy_static! {
@@ -40,7 +41,10 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 #[usage("poll multi [title] <one option per line>")]
 async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
     let lines = msg.content.lines().collect_vec();
-    let title = lines.first();
+    let title = lines
+        .first()
+        .map(|line| line.split_at_word("multi").1)
+        .unwrap();
     let mut lines = lines.clone();
 
     if !lines.is_empty() {
@@ -68,28 +72,7 @@ async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
         .send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Poll");
-                match title {
-                    Some(title) => {
-                        let mut splits = title.trim().split(' ').collect_vec();
-                        match splits.last() {
-                            Some(word) => {
-                                if word.clone() != "multi" {
-                                    e.description(
-                                        splits
-                                            .split_off(
-                                                splits.iter().position(|&i| i == "multi").unwrap(),
-                                            )
-                                            .join(" "),
-                                    )
-                                } else {
-                                    e.description("")
-                                }
-                            }
-                            None => e.description(""),
-                        }
-                    }
-                    None => e.description(""),
-                };
+                e.description(title);
                 for (emoji, option) in options.iter() {
                     e.field(format!("Option {}", emoji), option, false);
                 }

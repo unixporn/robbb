@@ -195,4 +195,27 @@ impl<T: AsRef<str>> T {
         let index = s.find(c)?;
         Some((&s[..index], &s[index + c.len_utf8()..]))
     }
+
+    fn split_at_word<'a>(&'a self, split_at: &str) -> (String, String) {
+        let str: &str = self.as_ref();
+        let mut result = (String::from(""), String::from(""));
+        let mut splits = str.trim().split(' ').collect_vec();
+        match splits.last() {
+            Some(word) => {
+                println!("\nLast Word: {}\n", word);
+                if word.clone() != split_at {
+                    result.1 = splits
+                        .split_off(splits.iter().position(|&i| i == split_at).unwrap() + 1)
+                        .join(" ");
+                    println!("\nDescription: {}\n", result.1);
+                    result.0 = splits.join(" ");
+                    println!("\nCutted: {}\n", result.0)
+                } else {
+                    result.0 = String::from(str.clone())
+                }
+            }
+            None => result.0 = String::from(""),
+        }
+        return result;
+    }
 }
