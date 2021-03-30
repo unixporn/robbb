@@ -9,6 +9,7 @@ ADD --chown=rust:rust src src
 # cargo doesn't rebuild without this
 RUN printf "\n// nothing" >>src/main.rs
 
+ARG VERSION
 RUN cargo build --release
 
 FROM alpine
