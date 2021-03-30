@@ -30,4 +30,12 @@ impl Db {
             blocklist_cache: Arc::new(Mutex::new(None)),
         })
     }
+
+    pub async fn run_migrations(&self) -> Result<()> {
+        sqlx::migrate!("./migrations")
+            .run(&self.pool)
+            .await
+            .context("Failed to run database migrations")?;
+        Ok(())
+    }
 }
