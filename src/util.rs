@@ -96,3 +96,19 @@ pub fn pluralize(s: &str) -> String {
 pub fn parse_backticked_string(s: &str) -> Option<&str> {
     s.strip_prefix('`').and_then(|x| x.strip_suffix('`'))
 }
+
+/// Determine if a file is an image based on the file extension
+pub fn is_image_file(s: &str) -> bool {
+    match s.split('.').last() {
+        Some(ext) => match ext {
+            "png" | "jpg" | "jpeg" | "gif" | "webp" => true,
+            _ => false,
+        },
+        None => false,
+    }
+}
+
+/// Return the bot version, as read from the VERSION environment variable at build time.
+pub fn bot_version() -> &'static str {
+    option_env!("VERSION").unwrap_or("<no version>")
+}

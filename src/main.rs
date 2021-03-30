@@ -133,7 +133,8 @@ async fn main() {
 
     let config = Config::from_environment().expect("Failed to load experiment");
 
-    let db = Db::new().await.unwrap();
+    let db = Db::new().await.expect("Failed to initialize database");
+    db.run_migrations().await.unwrap();
 
     // we're manually calling the framework, to only run commands if none of our
     // message_create event handler filters say no.

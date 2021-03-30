@@ -1,5 +1,6 @@
 /target
 .env
+flake.lock
 trup.db-*
 trup.db
 cache

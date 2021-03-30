@@ -4,21 +4,10 @@ use super::*;
 #[command]
 #[usage("role [role-name]")]
 #[aliases("roles")]
-pub async fn role(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn role(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let config = ctx.get_config().await;
 
-    if args.is_empty() {
-        msg.reply_embed(&ctx, |e| {
-            e.title("Available roles");
-            e.description(config.roles_color.iter().map(|r| r.mention()).join("\n"));
-            e.footer(|f| f.text(format!("Usage: {}", &ROLE_COMMAND_OPTIONS.usage.unwrap())));
-        })
-        .await?;
-    } else {
-        let chosen_role_name = args
-            .single::<String>()
-            .invalid_usage(&ROLE_COMMAND_OPTIONS)?;
-
+    if let Some(chosen_role_name) = args.remains() {
         let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
         let chosen_role = config
             .roles_color
@@ -45,6 +34,13 @@ pub async fn role(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             msg.reply_success(&ctx, "Success! Removed your role!")
                 .await?;
         }
+    } else {
+        msg.reply_embed(&ctx, |e| {
+            e.title("Available roles");
+            e.description(config.roles_color.iter().map(|r| r.mention()).join("\n"));
+            e.footer(|f| f.text(format!("Usage: {}", &ROLE_COMMAND_OPTIONS.usage.unwrap())));
+        })
+        .await?;
     }
 
     Ok(())
