@@ -5,6 +5,7 @@ ADD --chown=rust:rust Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" >src/main.rs && cargo build --release && rm -rf src
 
 ADD --chown=rust:rust sqlx-data.json .
+ADD --chown=rust:rust migrations migrations
 ADD --chown=rust:rust src src
 # cargo doesn't rebuild without this
 RUN printf "\n// nothing" >>src/main.rs
