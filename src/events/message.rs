@@ -258,16 +258,17 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
             }).await.context("Failed to send DM about invalid showcase submission")?;
     } else {
         if let Some(attachment) = msg.attachments.first() {
-            let db = ctx.get_db().await;
             msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
                 .await
                 .context("Error reacting to showcase submission with ❤️")?;
 
-            db.update_fetch(
-                msg.author.id,
-                hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
-            )
-            .await?;
+            if crate::util::is_image_file(&attachment.filename) {
+                let db = ctx.get_db().await;
+                db.update_fetch(
+                    msg.author.id,
+                    hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
+                ).await?;
+            }
         }
     }
     Ok(())

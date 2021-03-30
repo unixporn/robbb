@@ -1,6 +1,6 @@
 use crate::embeds;
-use crate::extensions::{clientContextExt, CreateEmbedExt};
-use crate::{abort_with, db::Db, extensions::MessageExt, util};
+use crate::extensions::*;
+use crate::{abort_with, db::Db, util};
 
 use super::checks::*;
 //use super::Config;
@@ -39,6 +39,7 @@ pub mod small;
 pub mod tag;
 pub mod top;
 pub mod unban;
+pub mod version;
 pub mod warn;
 use ban::*;
 use blocklist::*;
@@ -58,6 +59,7 @@ use small::*;
 use tag::*;
 use top::*;
 use unban::*;
+use version::*;
 use warn::*;
 
 lazy_static::lazy_static! {
@@ -82,7 +84,7 @@ struct HelperOrMod;
 #[only_in(guilds)]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, invite
+    tag, invite, version
 )]
 #[checks(channel_allows_commands)]
 struct General;

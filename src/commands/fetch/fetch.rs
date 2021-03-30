@@ -1,4 +1,3 @@
-use crate::extensions::{CreateEmbedExt, MessageExt};
 use anyhow::*;
 
 use super::*;
@@ -21,7 +20,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let all_data = get_fetch_and_profile_data_of(&db, mentioned_user_id)
         .await?
-        .user_error("This user has not set their fetch :/")?;
+        .user_error("This user has not set their fetch")?;
 
     let member = guild.member(&ctx, mentioned_user_id).await?;
     let color = member.colour(&ctx).await;
