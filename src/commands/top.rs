@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::db::fetch::Fetch;
@@ -85,6 +86,7 @@ async fn top_for_field(
         .filter_map(|mut x| x.info.remove(field_name))
         .filter(|x| !x.is_empty() && x != "0")
         .filter_map(|value| format_fetch_field_value(field_name, value))
+        .map(|value| canonicalize_top_value(&value))
         .counts();
 
     let total_field_values: usize = field_value_counts.iter().map(|(_, n)| n).sum();
@@ -137,6 +139,7 @@ async fn top_all_values(
             let (most_popular_value, most_popular_cnt) = values
                 .iter()
                 .filter(|x| !x.is_empty() && x != &"0")
+                .map(|value| canonicalize_top_value(&value))
                 .counts()
                 .into_iter()
                 .max_by_key(|(_, cnt)| *cnt)?;
@@ -163,4 +166,25 @@ async fn top_all_values(
     .await
     .context("sending reply to top-command")?;
     Ok(())
+}
+
+/// Given some value that has a canonical value, return that value.
+/// I.e.: "nvim" => "neovim".
+fn canonicalize_top_value(value: &str) -> String {
+    let value = value.to_lowercase();
+    EQUIVALENT_VALUES
+        .iter()
+        .find(|values| values.contains(&value.as_str()))
+        .and_then(|x| x.first())
+        .map(|x| x.to_string())
+        .unwrap_or(value)
+}
+
+lazy_static! {
+    static ref EQUIVALENT_VALUES: Vec<Vec<&'static str>> = vec![
+        vec!["neovim", "nvim"],
+        vec!["x11", "xorg"],
+        vec!["arch linux", "arch"],
+        vec!["visual studio code", "code", "vscode"]
+    ];
 }
