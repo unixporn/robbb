@@ -107,3 +107,12 @@ pub fn is_image_file(s: &str) -> bool {
         None => false,
     }
 }
+
+/// Return the bot version, formatted as <rev>.<hash>
+pub fn bot_version() -> String {
+    format!(
+        "{}.{}",
+        std::env::var("GIT_REV").unwrap_or_else(|_| "<no rev>".to_string()),
+        std::env::var("GIT_HASH").unwrap_or_else(|_| "<no hash>".to_string()),
+    )
+}
