@@ -202,14 +202,11 @@ impl<T: AsRef<str>> T {
         let mut splits = str.trim().split(' ').collect_vec();
         match splits.last() {
             Some(word) => {
-                println!("\nLast Word: {}\n", word);
                 if word.clone() != split_at {
                     result.1 = splits
                         .split_off(splits.iter().position(|&i| i == split_at).unwrap() + 1)
                         .join(" ");
-                    println!("\nDescription: {}\n", result.1);
                     result.0 = splits.join(" ");
-                    println!("\nCutted: {}\n", result.0)
                 } else {
                     result.0 = String::from(str.clone())
                 }
