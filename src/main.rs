@@ -129,6 +129,8 @@ impl TypeMapKey for FrameworkKey {
 
 #[tokio::main]
 async fn main() {
+    loop { }
+
     init_logger();
 
     let config = Config::from_environment().expect("Failed to load experiment");
