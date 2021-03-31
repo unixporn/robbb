@@ -26,26 +26,6 @@ impl Db {
         end_time: DateTime<Utc>,
     ) -> Result<Mute> {
         let mut conn = self.pool.acquire().await?;
-        //TODO: Get existing active mutes for user
-        let exmutes = {
-            let user = user.0 as i64;
-            sqlx::query!("select * from mute where usr=?1 and active=true", 
-                user
-            )
-            .fetch_all(&mut conn).await?
-            .into_iter()
-            .map(|x|{Mute {
-                id: x.id,
-                guild_id: GuildId(x.guildid as u64),
-                moderator: UserId(x.moderator as u64),
-                user: UserId(x.usr as u64),
-                reason: x.reason.unwrap_or_default(),
-                start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
-                end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
-
-            }})
-            .collect()
-        };
 
         let id = {
             let guild_id = guild_id.0 as i64;
@@ -101,6 +81,25 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
         Ok(sqlx::query!("select * from mute where usr=?", id)
+            .fetch_all(&mut conn)
+            .await?
+            .into_iter()
+            .map(|x| Mute {
+                id: x.id,
+                guild_id: GuildId(x.guildid as u64),
+                moderator: UserId(x.moderator as u64),
+                user: UserId(x.usr as u64),
+                reason: x.reason.unwrap_or_default(),
+                start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
+                end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
+            })
+            .collect())
+    }
+
+    pub async fn get_active_mutes(&self, user_id: UserId) -> Result<Vec<Mute>> {
+        let mut conn = self.pool.acquire().await?;
+        let id = user_id.0 as i64;
+        Ok(sqlx::query!("select * from mute where usr=? and active=true", id)
             .fetch_all(&mut conn)
             .await?
             .into_iter()
