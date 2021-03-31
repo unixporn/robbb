@@ -197,22 +197,13 @@ impl<T: AsRef<str>> T {
     }
 
     fn split_at_word<'a>(&'a self, split_at: &str) -> (String, String) {
-        let str: &str = self.as_ref();
-        let mut result = (String::from(""), String::from(""));
-        let mut splits = str.trim().split(' ').collect_vec();
-        match splits.last() {
-            Some(word) => {
-                if word.clone() != split_at {
-                    result.1 = splits
-                        .split_off(splits.iter().position(|&i| i == split_at).unwrap() + 1)
-                        .join(" ");
-                    result.0 = splits.join(" ");
-                } else {
-                    result.0 = String::from(str.clone())
-                }
+        let mut words = self.as_ref().trim().split(' ').collect_vec();
+        match words.iter().position(|w| w == &split_at) {
+            Some(word_ind) => {
+                let right_side = words.split_off(word_ind + 1).join(" ");
+                return (words.join(" "), right_side);
             }
-            None => result.0 = String::from(""),
+            None => return (String::from(self.as_ref()), String::new()),
         }
-        return result;
     }
 }
