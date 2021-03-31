@@ -41,9 +41,7 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 #[usage("poll multi [title] <one option per line>")]
 async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
     let lines = msg.content.lines().collect_vec();
-    let title = lines
-        .first()
-        .map(|line| line.split_at_word("multi").1);
+    let title = lines.first().map(|line| line.split_at_word("multi").1);
     let mut lines = lines.clone();
 
     if !lines.is_empty() {
@@ -72,7 +70,7 @@ async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
             m.embed(|e| {
                 e.title("Poll");
                 if let Some(title) = title {
-                e.description(title);
+                    e.description(title);
                 }
                 for (emoji, option) in options.iter() {
                     e.field(format!("Option {}", emoji), option, false);
