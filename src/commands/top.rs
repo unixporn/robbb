@@ -144,8 +144,7 @@ async fn top_all_values(
                 .into_iter()
                 .max_by_key(|(_, cnt)| *cnt)?;
 
-            let most_popular_value =
-                format_fetch_field_value(&field_name, most_popular_value)?;
+            let most_popular_value = format_fetch_field_value(&field_name, most_popular_value)?;
 
             Some((
                 field_name,
