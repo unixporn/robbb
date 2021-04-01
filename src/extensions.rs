@@ -196,14 +196,22 @@ impl<T: AsRef<str>> T {
         Some((&s[..index], &s[index + c.len_utf8()..]))
     }
 
+    /// Splits the string into two parts, separated by the given word.
+    /// Ex. `"foo bar baz".split_at_word("bar") // ---> ("foo", "baz")`
     fn split_at_word<'a>(&'a self, split_at: &str) -> (String, String) {
         let mut words = self.as_ref().trim().split(' ').collect_vec();
         match words.iter().position(|w| w == &split_at) {
             Some(word_ind) => {
                 let right_side = words.split_off(word_ind + 1).join(" ");
-                return (words.join(" "), right_side);
+                words.pop();
+                println!(
+                    "First section:{}\t Last Section:{}",
+                    words.join(" "),
+                    right_side
+                );
+                (words.join(" "), right_side)
             }
-            None => return (String::from(self.as_ref()), String::new()),
+            None => (String::from(self.as_ref()), String::new()),
         }
     }
 }

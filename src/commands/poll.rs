@@ -40,15 +40,11 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 #[command("multi")]
 #[usage("poll multi [title] <one option per line>")]
 async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
-    let lines = msg.content.lines().collect_vec();
-    let title = lines.first().map(|line| line.split_at_word("multi").1);
-    let mut lines = lines.clone();
+    let mut lines_iter = msg.content.lines();
+    let title = lines_iter.next().map(|line| line.split_at_word("multi").1);
+    let options_lines = lines_iter.collect_vec();
 
-    if !lines.is_empty() {
-        lines.remove(0);
-    }
-
-    if lines.len() > SELECTION_EMOJI.len() || lines.len() < 2 {
+    if options_lines.len() > SELECTION_EMOJI.len() || options_lines.len() < 2 {
         abort_with!(UserErr::Other(format!(
             "There must be between 2 and {} options",
             SELECTION_EMOJI.len()
@@ -57,13 +53,13 @@ async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
 
     msg.delete(&ctx).await?;
 
-    let lines = lines.into_iter().map(|line| {
+    let options_lines = options_lines.into_iter().map(|line| {
         POLL_OPTION_START_OF_LINE_PATTERN
             .replace(line, "")
             .to_string()
     });
 
-    let options = SELECTION_EMOJI.iter().zip(lines).collect_vec();
+    let options = SELECTION_EMOJI.iter().zip(options_lines).collect_vec();
 
     msg.channel_id
         .send_message(&ctx, |m| {
