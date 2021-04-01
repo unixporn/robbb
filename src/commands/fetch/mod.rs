@@ -1,5 +1,6 @@
 pub use super::*;
 use lazy_static::*;
+#[allow(clippy::module_inception)]
 pub mod fetch;
 pub mod setfetch;
 pub use fetch::*;
@@ -39,7 +40,7 @@ pub fn find_fetch_key_matching(s: &str) -> Option<&str> {
     NORMAL_FETCH_KEYS
         .iter()
         .find(|x| str::eq_ignore_ascii_case(x, s))
-        .map(|x| *x)
+        .copied()
 }
 
 fn find_distro_image(distro: &str) -> Option<&str> {
@@ -49,10 +50,10 @@ fn find_distro_image(distro: &str) -> Option<&str> {
         .map(|(_, url)| *url)
 }
 
-pub const IMAGE_KEY: &'static str = "image";
-pub const MEMORY_KEY: &'static str = "Memory";
-pub const DISTRO_KEY: &'static str = "Distro";
-pub const DESCRIPTION_KEY: &'static str = "description";
+pub const IMAGE_KEY: &str = "image";
+pub const MEMORY_KEY: &str = "Memory";
+pub const DISTRO_KEY: &str = "Distro";
+pub const DESCRIPTION_KEY: &str = "description";
 
 lazy_static! {
     /// All the non-special fetch keys. This does not include IMAGE_KEY or the profile-keys.

@@ -65,8 +65,8 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     }
     let config = ctx.get_config().await;
 
-    let msg_id = msg.id.clone();
-    let channel_id = msg.channel_id.clone();
+    let msg_id = msg.id;
+    let channel_id = msg.channel_id;
 
     let attachments = msg.attachments.clone();
     tokio::spawn(async move {
@@ -223,8 +223,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let duration = std::time::Duration::from_secs(60 * 30);
 
-        crate::commands::mute::do_mute(&ctx, guild, bot_id, member, duration.clone(), Some("spam"))
-            .await?;
+        crate::commands::mute::do_mute(&ctx, guild, bot_id, member, duration, Some("spam")).await?;
         config
             .log_bot_action(&ctx, |e| {
                 e.description(format!(
@@ -256,19 +255,17 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
                     If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup
                 "))
             }).await.context("Failed to send DM about invalid showcase submission")?;
-    } else {
-        if let Some(attachment) = msg.attachments.first() {
-            msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
-                .await
-                .context("Error reacting to showcase submission with ❤️")?;
+    } else if let Some(attachment) = msg.attachments.first() {
+        msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
+            .await
+            .context("Error reacting to showcase submission with ❤️")?;
 
-            if crate::util::is_image_file(&attachment.filename) {
-                let db = ctx.get_db().await;
-                db.update_fetch(
-                    msg.author.id,
-                    hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
-                ).await?;
-            }
+        if crate::util::is_image_file(&attachment.filename) {
+            let db = ctx.get_db().await;
+            db.update_fetch(
+                msg.author.id,
+                hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
+            ).await?;
         }
     }
     Ok(())

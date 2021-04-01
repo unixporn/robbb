@@ -34,7 +34,7 @@ pub async fn message_delete(
         return Ok(());
     }
 
-    if msg.content.starts_with("!") {
+    if msg.content.starts_with('!') {
         let close_messages = msg
             .channel_id
             .messages(&ctx, |m| m.after(deleted_message_id).limit(5))
@@ -65,7 +65,7 @@ pub async fn message_delete(
                     filename: path
                         .file_name()
                         .and_then(|x| x.to_str())
-                        .unwrap_or_else(|| "attachment")
+                        .unwrap_or("attachment")
                         .to_string(),
                     file,
                 }
