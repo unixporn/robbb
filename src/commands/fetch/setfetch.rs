@@ -2,7 +2,7 @@ use super::*;
 use crate::extensions::StrExt;
 use std::collections::HashMap;
 
-const SETFETCH_USAGE: &'static str = indoc::indoc!("
+const SETFETCH_USAGE: &str = indoc::indoc!("
     Run this: 
     `curl -s https://raw.githubusercontent.com/unixporn/trup/prod/fetcher.sh | sh`
     and follow the instructions. It's recommended that you download and read the script before running it, 

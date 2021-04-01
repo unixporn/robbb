@@ -61,20 +61,18 @@ pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
             msg.reply_success(&ctx, "Successfully updated your description!")
                 .await?;
         }
+    } else if let Some(value) = db
+        .get_profile(msg.author.id)
+        .await?
+        .and_then(|x| x.description)
+    {
+        msg.reply_embed(&ctx, |e| {
+            e.description(value);
+        })
+        .await?;
     } else {
-        if let Some(value) = db
-            .get_profile(msg.author.id)
-            .await?
-            .and_then(|x| x.description)
-        {
-            msg.reply_embed(&ctx, |e| {
-                e.description(value);
-            })
+        msg.reply_error(&ctx, "You need to set your description first")
             .await?;
-        } else {
-            msg.reply_error(&ctx, "You need to set your description first")
-                .await?;
-        }
     }
 
     Ok(())
@@ -96,16 +94,14 @@ pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
             msg.reply_success(&ctx, "Successfully updated your git-url!")
                 .await?;
         }
+    } else if let Some(value) = db.get_profile(msg.author.id).await?.and_then(|x| x.git) {
+        msg.reply_embed(&ctx, |e| {
+            e.description(value);
+        })
+        .await?;
     } else {
-        if let Some(value) = db.get_profile(msg.author.id).await?.and_then(|x| x.git) {
-            msg.reply_embed(&ctx, |e| {
-                e.description(value);
-            })
+        msg.reply_error(&ctx, "You need to set your git-link first")
             .await?;
-        } else {
-            msg.reply_error(&ctx, "You need to set your git-link first")
-                .await?;
-        }
     }
     Ok(())
 }
@@ -126,20 +122,18 @@ pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> Comma
             msg.reply_success(&ctx, "Successfully updated your dotfiles!")
                 .await?;
         }
+    } else if let Some(value) = db
+        .get_profile(msg.author.id)
+        .await?
+        .and_then(|x| x.dotfiles)
+    {
+        msg.reply_embed(&ctx, |e| {
+            e.description(value);
+        })
+        .await?;
     } else {
-        if let Some(value) = db
-            .get_profile(msg.author.id)
-            .await?
-            .and_then(|x| x.dotfiles)
-        {
-            msg.reply_embed(&ctx, |e| {
-                e.description(value);
-            })
+        msg.reply_error(&ctx, "You need to set your dotfiles first")
             .await?;
-        } else {
-            msg.reply_error(&ctx, "You need to set your dotfiles first")
-                .await?;
-        }
     }
 
     Ok(())

@@ -38,10 +38,10 @@ async fn do_ban(
         .invalid_usage(&BAN_COMMAND_OPTIONS)?;
 
     let permission_level = checks::get_permission_level(&ctx, &msg).await?;
-    if permission_level == PermissionLevel::Helper {
-        if Utc::now().signed_duration_since(mentioned_user.created_at()) > Duration::days(3) {
-            abort_with!("You can't ban an account older than 3 days");
-        }
+    if permission_level == PermissionLevel::Helper
+        && Utc::now().signed_duration_since(mentioned_user.created_at()) > Duration::days(3)
+    {
+        abort_with!("You can't ban an account older than 3 days");
     }
 
     let reason = args.remains().invalid_usage(&BAN_COMMAND_OPTIONS)?;

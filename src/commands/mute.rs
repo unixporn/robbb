@@ -64,7 +64,7 @@ pub async fn do_mute(
     let (config, db) = ctx.get_config_and_db().await;
 
     let start_time = Utc::now();
-    let end_time = start_time + chrono::Duration::from_std(duration.into()).unwrap();
+    let end_time = start_time + chrono::Duration::from_std(duration).unwrap();
 
     db.add_mute(
         guild.id,
