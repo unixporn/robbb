@@ -66,13 +66,19 @@ pub fn format_date_detailed(date: chrono::DateTime<chrono::Utc>) -> String {
     format!("{} ({})", format_date(date), format_date_ago(date))
 }
 
-/// Format a number into the 1st, 2nd, 3rd, 4th,... format
+/// Format a number into an ordinal, like 1st, 2nd, 3rd
 pub fn format_count(num: i32) -> String {
-    match num {
-        1 => "1st".to_string(),
-        2 => "2nd".to_string(),
-        3 => "3rd".to_string(),
-        _ => format!("{}th", num),
+    let last_digits = num % 100;
+
+    if (11..=13).contains(&last_digits) {
+        format!("{}th", num)
+    } else {
+        match last_digits % 10 {
+            1 => format!("{}st", num),
+            2 => format!("{}nd", num),
+            3 => format!("{}rd", num),
+            _ => format!("{}th", num),
+        }
     }
 }
 
