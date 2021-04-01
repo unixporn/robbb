@@ -102,7 +102,7 @@ pub async fn cleanup(config: &Config) -> Result<()> {
         files.sort_by_key(|(_, meta)| meta.created().expect("Unsupported platform"));
     }
 
-    while total_size_bytes > config.attachment_cache_max_size && files.len() > 0 {
+    while total_size_bytes > config.attachment_cache_max_size && !files.is_empty() {
         let (file, meta) = files.remove(0);
         log::debug!("deleting {}", file.path().display());
         tokio::fs::remove_file(file.path()).await?;

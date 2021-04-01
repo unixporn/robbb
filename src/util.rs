@@ -84,11 +84,11 @@ pub fn validate_url(value: &str) -> bool {
 }
 
 pub fn pluralize(s: &str) -> String {
-    use regex::Regex;
-    lazy_static::lazy_static! {
-        static ref PLURAL_Y_REGEX: Regex = Regex::new("ys$").unwrap();
+    if s.ends_with("ys") {
+        format!("{}ies", s.trim_end_matches("ys"))
+    } else {
+        s.to_string()
     }
-    PLURAL_Y_REGEX.replace(&format!("{}s", s), "ies").into()
 }
 
 /// Parse a string that is surrounded by backticks, removing said backticks.
@@ -100,10 +100,7 @@ pub fn parse_backticked_string(s: &str) -> Option<&str> {
 /// Determine if a file is an image based on the file extension
 pub fn is_image_file(s: &str) -> bool {
     match s.split('.').last() {
-        Some(ext) => match ext {
-            "png" | "jpg" | "jpeg" | "gif" | "webp" => true,
-            _ => false,
-        },
+        Some(ext) => matches!(ext, "png" | "jpg" | "jpeg" | "gif" | "webp"),
         None => false,
     }
 }
