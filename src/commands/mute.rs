@@ -68,11 +68,9 @@ pub async fn do_mute(
     
     let active = db.get_active_mutes(member.user.id).await?;
 
-    if !active.is_empty() {
-       for x in active {
-          db.set_mute_inactive(x.id).await?;
-       } 
-    }
+   for x in active {
+      db.set_mute_inactive(x.id).await?;
+   } 
 
     db.add_mute(
         guild.id,
