@@ -84,8 +84,8 @@ pub fn validate_url(value: &str) -> bool {
 }
 
 pub fn pluralize(s: &str) -> String {
-    if s.ends_with("ys") {
-        format!("{}ies", s.trim_end_matches("ys"))
+    if let Some(word) = s.strip_suffix("ys") {
+        format!("{}ies", word)
     } else {
         s.to_string()
     }
