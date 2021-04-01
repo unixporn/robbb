@@ -96,23 +96,16 @@ impl Db {
             .collect())
     }
 
-    pub async fn get_active_mutes(&self, user_id: UserId) -> Result<Vec<Mute>> {
+    pub async fn remove_active_mutes(&self, user_id: UserId) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
-        Ok(sqlx::query!("select * from mute where usr=? and active=true", id)
-            .fetch_all(&mut conn)
-            .await?
-            .into_iter()
-            .map(|x| Mute {
-                id: x.id,
-                guild_id: GuildId(x.guildid as u64),
-                moderator: UserId(x.moderator as u64),
-                user: UserId(x.usr as u64),
-                reason: x.reason.unwrap_or_default(),
-                start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
-                end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
-            })
-            .collect())
+        sqlx::query!(
+            "update mute set active=false where usr=? and active=true",
+            id
+        )
+        .execute(&mut conn)
+        .await?;
+        Ok(())
     }
 
     // This is rather unperformant, i'd like to have a cleaner solution that doesn't do a extra request per mute

@@ -66,11 +66,8 @@ pub async fn do_mute(
     let start_time = Utc::now();
     let end_time = start_time + chrono::Duration::from_std(duration.into()).unwrap();
 
-    let active = db.get_active_mutes(member.user.id).await?;
-
-    for x in active {
-        db.set_mute_inactive(x.id).await?;
-    }
+    // Ensure only one active mute per member
+    db.remove_active_mutes(member.user.id).await?;
 
     db.add_mute(
         guild.id,
