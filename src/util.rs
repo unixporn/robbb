@@ -70,7 +70,7 @@ pub fn format_date_detailed(date: chrono::DateTime<chrono::Utc>) -> String {
 pub fn format_count(num: i32) -> String {
     let last_digits = num % 100;
 
-    if last_digits >= 11 && last_digits <= 13 {
+    if (11..=13).contains(&last_digits) {
         format!("{}th", num)
     } else {
         match last_digits % 10 {
