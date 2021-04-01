@@ -223,8 +223,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let duration = std::time::Duration::from_secs(60 * 30);
 
-        crate::commands::mute::do_mute(&ctx, guild, bot_id, member, duration, Some("spam"))
-            .await?;
+        crate::commands::mute::do_mute(&ctx, guild, bot_id, member, duration, Some("spam")).await?;
         config
             .log_bot_action(&ctx, |e| {
                 e.description(format!(
