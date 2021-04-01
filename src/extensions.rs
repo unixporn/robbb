@@ -204,11 +204,6 @@ impl<T: AsRef<str>> T {
             Some(word_ind) => {
                 let right_side = words.split_off(word_ind + 1).join(" ");
                 words.pop();
-                println!(
-                    "First section:{}\t Last Section:{}",
-                    words.join(" "),
-                    right_side
-                );
                 (words.join(" "), right_side)
             }
             None => (String::from(self.as_ref()), String::new()),
