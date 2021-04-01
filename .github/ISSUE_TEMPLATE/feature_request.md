@@ -10,7 +10,7 @@ assignees: ''
 ## Is your feature request related to a problem? Please describe.
 Please provide a clear description of what problem this feature would solve for you.
 
-## Proposed solution
+## Proposed feature
 Describe how you would propose said problem to be solved. How should this feature look?
 
 ## Additional context
