@@ -108,7 +108,6 @@ impl Db {
         Ok(())
     }
 
-    // This is rather unperformant, i'd like to have a cleaner solution that doesn't do a extra request per mute
     pub async fn set_mute_inactive(&self, id: i64) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!("update mute set active = false where id = ?", id)
