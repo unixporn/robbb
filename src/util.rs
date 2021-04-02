@@ -1,4 +1,5 @@
 use anyhow::*;
+use chrono::Timelike;
 use std::env;
 
 /// return with an error value immediately.
@@ -58,11 +59,13 @@ pub fn format_date_ago(date: chrono::DateTime<chrono::Utc>) -> String {
 
 /// Format a date.
 pub fn format_date(date: chrono::DateTime<chrono::Utc>) -> String {
+    let date = date.with_nanosecond(0).unwrap_or(date);
     format!("{}", date)
 }
 
 /// Format a date, showing both the concrete date and the "n days ago"-format.
 pub fn format_date_detailed(date: chrono::DateTime<chrono::Utc>) -> String {
+    let date = date.with_nanosecond(0).unwrap_or(date);
     format!("{} ({})", format_date(date), format_date_ago(date))
 }
 

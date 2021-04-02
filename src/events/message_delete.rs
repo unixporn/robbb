@@ -24,11 +24,13 @@ pub async fn message_delete(
     )
     .await?;
 
-    let msg = ctx
-        .cache
-        .message(channel_id, deleted_message_id)
-        .await
-        .context("Message not found")?;
+    let msg = ctx.cache.message(channel_id, deleted_message_id).await;
+    // if the message can't be loaded, there's no need to try anything more,
+    // so let's just give up. No need to error.
+    let msg = match msg {
+        Some(msg) => msg,
+        None => return Ok(()),
+    };
 
     if msg.author.bot {
         return Ok(());
