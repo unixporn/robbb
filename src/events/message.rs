@@ -1,6 +1,5 @@
 use crate::log_error;
 use crate::{attachment_logging, db::note::NoteType};
-use anyhow::bail;
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
@@ -8,7 +7,6 @@ use regex::Regex;
 use serenity::framework::Framework;
 
 use super::*;
-use reqwest::multipart;
 
 pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     let config = ctx.get_config().await;
@@ -39,11 +37,6 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         Ok(true) => return Ok(()),
         Ok(false) => {}
         err => log_error!("error while Handling a quoted message", err),
-    };
-    match handle_message_txt(&ctx, &msg).await {
-        Ok(true) => return Ok(()),
-        Ok(false) => {}
-        err => log_error!("error while handling a message.txt upload", err),
     };
 
     let framework = ctx
@@ -301,49 +294,4 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
         })
     }).await?;
     Ok(())
-}
-
-async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    let message_txt_file = match msg.attachments.iter().find(|a| a.filename == "message.txt") {
-        Some(attachment) => attachment,
-        None => return Ok(false),
-    };
-
-    // Upload the file to 0x0.st via URL
-    let form = multipart::Form::new().text("url", message_txt_file.url.clone());
-    let code = reqwest::Client::builder()
-        .build()?
-        .post("https://0x0.st")
-        .multipart(form)
-        .send()
-        .await?;
-    if !code.status().is_success() {
-        bail!(
-            "0x0.st returned an error uploading the `message.txt` from {} ({}): \n{}",
-            msg.author.name,
-            msg.link(),
-            code.text().await?
-        );
-    }
-
-    let download_url = code.text().await?;
-    let color = msg
-        .guild(&ctx)
-        .await
-        .context("Failed to load guild")?
-        .member(&ctx, msg.author.id)
-        .await?
-        .colour(&ctx)
-        .await;
-
-    msg.reply_embed(&ctx, |m| {
-        m.title("Open message.txt in browser");
-        m.url(download_url);
-        m.color_opt(color);
-        m.description(
-            "Discord forces you to download the file, so here's an easier way to read that file.",
-        );
-    })
-    .await?;
-    Ok(true)
 }
