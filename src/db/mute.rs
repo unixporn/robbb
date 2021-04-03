@@ -26,6 +26,7 @@ impl Db {
         end_time: DateTime<Utc>,
     ) -> Result<Mute> {
         let mut conn = self.pool.acquire().await?;
+
         let id = {
             let guild_id = guild_id.0 as i64;
             let moderator = moderator.0 as i64;
@@ -95,7 +96,18 @@ impl Db {
             .collect())
     }
 
-    /// This is rather unperformant, i'd like to have a cleaner solution that doesn't do a extra request per mute
+    pub async fn remove_active_mutes(&self, user_id: UserId) -> Result<()> {
+        let mut conn = self.pool.acquire().await?;
+        let id = user_id.0 as i64;
+        sqlx::query!(
+            "update mute set active=false where usr=? and active=true",
+            id
+        )
+        .execute(&mut conn)
+        .await?;
+        Ok(())
+    }
+
     pub async fn set_mute_inactive(&self, id: i64) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!("update mute set active = false where id = ?", id)
