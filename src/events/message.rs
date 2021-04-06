@@ -73,33 +73,37 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
         .content
         .split_whitespace()
         .into_iter()
-        .map(|p| p.to_string())
+        .filter_map(|word| Some((word.to_string(), highlights.get(word)?)))
     {
-        // checks if the database contains our word
-        if let Some(m) = highlights.get(&i.to_string()) {
-            // iterates over each user that subscribed to that highlight and send them a message
-            for x in m {
-                let channel = msg.channel(&ctx).await.context("Couldn't get channel")?.guild().context("Couldn't get server")?.name;
-                let guild = msg.guild(&ctx).await.unwrap().name;
-                // this is all the embed builder :wheeze:
-                let _ = x
-                    .to_user(&ctx)
-                    .await.context("Couldn't get user")?
-                    .dm(&ctx, |d| {
-                        d.embed(|e| {
-                            e.title(format!("{}", i));
-                            e.url(format!("{}", msg.link()));
-                            e.description(format!("A highlighted word was said in {}", guild));
-                            e.author(|a| {
-                                a.name(&msg.author.tag());
-                                a.icon_url(&msg.author.avatar_url().unwrap_or_default())
-                            });
-                            e.timestamp(&msg.timestamp);
-                            e.footer(|f| f.text(format!("#{}", channel)))
-                        })
-                    })
-                    .await;
-            }
+        let channel = msg
+            .channel(&ctx)
+            .await
+            .context("Couldn't get channel")?
+            .guild()
+            .context("Couldn't get server")?
+            .name;
+        let guild_name = msg.guild(&ctx).await.context("Couldn't get guild")?.name;
+
+        let mut e = serenity::builder::CreateEmbed::default();
+
+        e.title(format!("{}", i.0));
+        e.url(format!("{}", msg.link()));
+        e.description(format!("A highlighted word was said in {}", guild_name));
+        e.author(|a| {
+            a.name(&msg.author.tag());
+            a.icon_url(&msg.author.avatar_url().unwrap_or_default())
+        });
+        e.timestamp(&msg.timestamp);
+        e.footer(|f| f.text(format!("#{}", channel)));
+
+        // iterates over each user that subscribed to that highlight and send them a message
+        for user_id in i.1 {
+            let _ = user_id
+                .to_user(&ctx)
+                .await
+                .context("Couldn't get user")?
+                .dm(&ctx, |d| d.set_embed(e.clone()))
+                .await;
         }
     }
     Ok(())

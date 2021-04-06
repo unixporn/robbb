@@ -6,7 +6,7 @@ impl Db {
         let mut cache = self.highlight_cache.lock().await;
         // we have a cache
         if let Some(cache) = cache.as_ref() {
-            return Ok(cache.clone());
+            Ok(cache.clone())
         // we don't have a cache at all
         } else {
             let mut conn = self.pool.acquire().await?;
@@ -17,7 +17,7 @@ impl Db {
                 .map(|x| (x.word, UserId::from(x.user as u64)))
                 .into_group_map();
             cache.replace(q.clone());
-            return Ok(q.clone());
+            Ok(q)
         }
     }
 
@@ -48,12 +48,12 @@ impl Db {
         .execute(&mut conn)
         .await?;
         let user = user as u64;
+        // if we have a cache, modify it
         if let Some(ref mut cache) = cache.as_mut() {
-            if cache.get(&word).is_some() {
-                cache.entry(word).and_modify(|f| f.push(UserId::from(user)));
-            } else {
-                cache.insert(word, vec![UserId::from(user)]);
-            }
+            cache
+                .entry(word)
+                .and_modify(|f| f.push(UserId::from(user)))
+                .or_insert(vec![UserId::from(user)]);
         }
         Ok(())
     }
