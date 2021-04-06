@@ -85,8 +85,8 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
 
         let mut e = serenity::builder::CreateEmbed::default();
 
-        e.title(format!("{}", i.0));
-        e.url(format!("{}", msg.link()));
+        e.title(i.0);
+        e.url(msg.link());
         e.description(format!("A highlighted word was said in {}", guild_name));
         e.author(|a| {
             a.name(&msg.author.tag());

@@ -53,7 +53,7 @@ impl Db {
             cache
                 .entry(word)
                 .and_modify(|f| f.push(UserId::from(user)))
-                .or_insert(vec![UserId::from(user)]);
+                .or_insert_with(|| vec![UserId::from(user)]);
         }
         Ok(())
     }

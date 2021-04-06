@@ -13,7 +13,7 @@ pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
 #[usage("!highlights add <word>")]
 pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let trigger_word = args.message().trim().to_string();
-    if trigger_word.contains(" ") {
+    if trigger_word.contains(' ') {
         abort_with!(UserErr::Other(
             "Highlight can't contain a space for implementation/performance reasons".to_string()
         ));
