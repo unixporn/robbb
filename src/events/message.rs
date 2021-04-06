@@ -17,6 +17,12 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 
     handle_attachment_logging(&ctx, &msg).await;
 
+    let bot_id = ctx.cache.current_user_id().await;
+    let mention_bot: bool = msg.mentions.iter().any(|x| x.id == bot_id);
+    if mention_bot {
+        msg.reply(&ctx, "need help? Type `!help`").await?;
+    }
+
     if msg.channel_id == config.channel_showcase {
         log_error!(handle_showcase_post(&ctx, &msg).await);
     } else if msg.channel_id == config.channel_feedback {
