@@ -8,7 +8,7 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
 
     match load_up_emotes(&ctx, config.guild).await {
         Ok(emotes) => {
-            ctx.data.write().await.insert::<UPEmotes>(Arc::new(emotes));
+            ctx.data.write().await.insert::<UpEmotes>(Arc::new(emotes));
         }
         Err(err) => {
             log::warn!("Error loading emotes: {}", err);
@@ -74,9 +74,9 @@ async fn start_attachment_log_handler(ctx: client::Context) {
     });
 }
 
-async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> Result<UPEmotes> {
+async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> Result<UpEmotes> {
     let all_emoji = guild.emojis(&ctx).await?;
-    Ok(UPEmotes {
+    Ok(UpEmotes {
         pensibe: all_emoji
             .iter()
             .find(|x| x.name == "pensibe")

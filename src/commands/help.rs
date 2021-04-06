@@ -23,11 +23,11 @@ async fn my_help(
     let desired_command = args.single::<String>().ok();
     if let Some(desired_command) = desired_command {
         let command = groups
-            .into_iter()
+            .iter()
             .find_map(|g| {
                 g.options
                     .commands
-                    .into_iter()
+                    .iter()
                     .find(|c| c.options.names.contains(&desired_command.as_str()))
             })
             .user_error(&format!("Unknown command `{}`", desired_command))?;

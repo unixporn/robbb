@@ -342,6 +342,16 @@
       "nullable": []
     }
   },
+  "b1ea1c6c33606aab4ac1ef8ff4edd0ef8e5c1a92ca14ff853fe489ccfc9cf77d": {
+    "query": "update mute set active=false where usr=? and active=true",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
   "ba2ed31c3a7d31ff8476225947432cd359dd5590556f96d5a0e4a337deeca4eb": {
     "query": "delete from tag where name=?",
     "describe": {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{db::mute, extensions::*};
-use crate::{log_error, UPEmotes};
+use crate::{log_error, UpEmotes};
 use anyhow::{Context, Result};
 
 use serenity::async_trait;
