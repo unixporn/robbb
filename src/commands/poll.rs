@@ -1,4 +1,5 @@
 use super::*;
+use crate::extensions::StrExt;
 use regex::Regex;
 
 lazy_static::lazy_static! {
@@ -21,7 +22,8 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
     msg.channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| {
-                e.title(format!("Poll: {}", question));
+                e.title("Poll");
+                e.description(question);
                 e.footer(|f| f.text(format!("From: {}", msg.author.tag())))
             });
             m.reactions(vec![
@@ -37,14 +39,12 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 /// Have others select one of many options.
 #[command("multi")]
 #[usage("poll multi [title] <one option per line>")]
-async fn poll_multi(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let mut lines = args.rest().lines().collect_vec();
-    let title = lines.first().and_then(|line| line.strip_prefix("multi "));
-    if !lines.is_empty() {
-        lines.remove(0);
-    }
+async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
+    let mut lines_iter = msg.content.lines();
+    let title = lines_iter.next().map(|line| line.split_at_word("multi").1);
+    let options_lines = lines_iter.collect_vec();
 
-    if lines.len() > SELECTION_EMOJI.len() || lines.len() < 2 {
+    if options_lines.len() > SELECTION_EMOJI.len() || options_lines.len() < 2 {
         abort_with!(UserErr::Other(format!(
             "There must be between 2 and {} options",
             SELECTION_EMOJI.len()
@@ -53,21 +53,21 @@ async fn poll_multi(ctx: &client::Context, msg: &Message, args: Args) -> Command
 
     msg.delete(&ctx).await?;
 
-    let lines = lines.into_iter().map(|line| {
+    let options_lines = options_lines.into_iter().map(|line| {
         POLL_OPTION_START_OF_LINE_PATTERN
             .replace(line, "")
             .to_string()
     });
 
-    let options = SELECTION_EMOJI.iter().zip(lines).collect_vec();
+    let options = SELECTION_EMOJI.iter().zip(options_lines).collect_vec();
 
     msg.channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| {
-                match title {
-                    Some(title) => e.title(format!("Poll: {}", title)),
-                    None => e.title("Poll"),
-                };
+                e.title("Poll");
+                if let Some(title) = title {
+                    e.description(title);
+                }
                 for (emoji, option) in options.iter() {
                     e.field(format!("Option {}", emoji), option, false);
                 }

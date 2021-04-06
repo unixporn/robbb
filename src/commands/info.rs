@@ -12,10 +12,12 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     } else {
         msg.author.id
     };
-    let member = guild.member(&ctx, mentioned_user_id).await?;
+    let member = guild
+        .member(&ctx, mentioned_user_id)
+        .await
+        .user_error("Failed to load member data, is the user in this server?")?;
 
     let created_at = mentioned_user_id.created_at();
-    let join_date = member.joined_at.context("Failed to get join date")?;
 
     let color = member.colour(&ctx).await;
 
@@ -29,7 +31,10 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             util::format_date_detailed(created_at),
             false,
         );
-        e.field("Join Date", util::format_date_detailed(join_date), false);
+        if let Some(joined_at) = member.joined_at {
+            e.field("Join Date", util::format_date_detailed(joined_at), false);
+        }
+
         if !member.roles.is_empty() {
             e.field(
                 "Roles",

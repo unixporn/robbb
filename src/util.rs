@@ -1,4 +1,5 @@
 use anyhow::*;
+use chrono::Timelike;
 use std::env;
 
 /// return with an error value immediately.
@@ -58,21 +59,29 @@ pub fn format_date_ago(date: chrono::DateTime<chrono::Utc>) -> String {
 
 /// Format a date.
 pub fn format_date(date: chrono::DateTime<chrono::Utc>) -> String {
+    let date = date.with_nanosecond(0).unwrap_or(date);
     format!("{}", date)
 }
 
 /// Format a date, showing both the concrete date and the "n days ago"-format.
 pub fn format_date_detailed(date: chrono::DateTime<chrono::Utc>) -> String {
+    let date = date.with_nanosecond(0).unwrap_or(date);
     format!("{} ({})", format_date(date), format_date_ago(date))
 }
 
-/// Format a number into the 1st, 2nd, 3rd, 4th,... format
+/// Format a number into an ordinal, like 1st, 2nd, 3rd
 pub fn format_count(num: i32) -> String {
-    match num {
-        1 => "1st".to_string(),
-        2 => "2nd".to_string(),
-        3 => "3rd".to_string(),
-        _ => format!("{}th", num),
+    let last_digits = num % 100;
+
+    if (11..=13).contains(&last_digits) {
+        format!("{}th", num)
+    } else {
+        match last_digits % 10 {
+            1 => format!("{}st", num),
+            2 => format!("{}nd", num),
+            3 => format!("{}rd", num),
+            _ => format!("{}th", num),
+        }
     }
 }
 
@@ -84,11 +93,11 @@ pub fn validate_url(value: &str) -> bool {
 }
 
 pub fn pluralize(s: &str) -> String {
-    use regex::Regex;
-    lazy_static::lazy_static! {
-        static ref PLURAL_Y_REGEX: Regex = Regex::new("ys$").unwrap();
+    if let Some(word) = s.strip_suffix("ys") {
+        format!("{}ies", word)
+    } else {
+        s.to_string()
     }
-    PLURAL_Y_REGEX.replace(&format!("{}s", s), "ies").into()
 }
 
 /// Parse a string that is surrounded by backticks, removing said backticks.
@@ -100,10 +109,7 @@ pub fn parse_backticked_string(s: &str) -> Option<&str> {
 /// Determine if a file is an image based on the file extension
 pub fn is_image_file(s: &str) -> bool {
     match s.split('.').last() {
-        Some(ext) => match ext {
-            "png" | "jpg" | "jpeg" | "gif" | "webp" => true,
-            _ => false,
-        },
+        Some(ext) => matches!(ext, "png" | "jpg" | "jpeg" | "gif" | "webp"),
         None => false,
     }
 }

@@ -1,6 +1,5 @@
 use crate::log_error;
 use crate::{attachment_logging, db::note::NoteType};
-use anyhow::bail;
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
@@ -8,7 +7,6 @@ use regex::Regex;
 use serenity::framework::Framework;
 
 use super::*;
-use reqwest::multipart;
 
 pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     let config = ctx.get_config().await;
@@ -18,6 +16,12 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     }
 
     handle_attachment_logging(&ctx, &msg).await;
+
+    let bot_id = ctx.cache.current_user_id().await;
+    let mention_bot: bool = msg.mentions.iter().any(|x| x.id == bot_id);
+    if mention_bot {
+        msg.reply(&ctx, "need help? Type `!help`").await?;
+    }
 
     if msg.channel_id == config.channel_showcase {
         log_error!(handle_showcase_post(&ctx, &msg).await);
@@ -45,11 +49,6 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         Ok(true) => return Ok(()),
         Ok(false) => {}
         err => log_error!("error while Handling a quoted message", err),
-    };
-    match handle_message_txt(&ctx, &msg).await {
-        Ok(true) => return Ok(()),
-        Ok(false) => {}
-        err => log_error!("error while handling a message.txt upload", err),
     };
 
     let framework = ctx
@@ -115,8 +114,8 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     }
     let config = ctx.get_config().await;
 
-    let msg_id = msg.id.clone();
-    let channel_id = msg.channel_id.clone();
+    let msg_id = msg.id;
+    let channel_id = msg.channel_id;
 
     let attachments = msg.attachments.clone();
     tokio::spawn(async move {
@@ -273,8 +272,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let duration = std::time::Duration::from_secs(60 * 30);
 
-        crate::commands::mute::do_mute(&ctx, guild, bot_id, member, duration.clone(), Some("spam"))
-            .await?;
+        crate::commands::mute::do_mute(&ctx, guild, bot_id, member, duration, Some("spam")).await?;
         config
             .log_bot_action(&ctx, |e| {
                 e.description(format!(
@@ -306,19 +304,17 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
                     If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup
                 "))
             }).await.context("Failed to send DM about invalid showcase submission")?;
-    } else {
-        if let Some(attachment) = msg.attachments.first() {
-            msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
-                .await
-                .context("Error reacting to showcase submission with ❤️")?;
+    } else if let Some(attachment) = msg.attachments.first() {
+        msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
+            .await
+            .context("Error reacting to showcase submission with ❤️")?;
 
-            if crate::util::is_image_file(&attachment.filename) {
-                let db = ctx.get_db().await;
-                db.update_fetch(
-                    msg.author.id,
-                    hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
-                ).await?;
-            }
+        if crate::util::is_image_file(&attachment.filename) {
+            let db = ctx.get_db().await;
+            db.update_fetch(
+                msg.author.id,
+                hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
+            ).await?;
         }
     }
     Ok(())
@@ -354,49 +350,4 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
         })
     }).await?;
     Ok(())
-}
-
-async fn handle_message_txt(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    let message_txt_file = match msg.attachments.iter().find(|a| a.filename == "message.txt") {
-        Some(attachment) => attachment,
-        None => return Ok(false),
-    };
-
-    // Upload the file to 0x0.st via URL
-    let form = multipart::Form::new().text("url", message_txt_file.url.clone());
-    let code = reqwest::Client::builder()
-        .build()?
-        .post("https://0x0.st")
-        .multipart(form)
-        .send()
-        .await?;
-    if !code.status().is_success() {
-        bail!(
-            "0x0.st returned an error uploading the `message.txt` from {} ({}): \n{}",
-            msg.author.name,
-            msg.link(),
-            code.text().await?
-        );
-    }
-
-    let download_url = code.text().await?;
-    let color = msg
-        .guild(&ctx)
-        .await
-        .context("Failed to load guild")?
-        .member(&ctx, msg.author.id)
-        .await?
-        .colour(&ctx)
-        .await;
-
-    msg.reply_embed(&ctx, |m| {
-        m.title("Open message.txt in browser");
-        m.url(download_url);
-        m.color_opt(color);
-        m.description(
-            "Discord forces you to download the file, so here's an easier way to read that file.",
-        );
-    })
-    .await?;
-    Ok(true)
 }

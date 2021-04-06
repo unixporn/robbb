@@ -17,7 +17,7 @@ use serenity::{
     utils::Colour,
 };
 
-use crate::{db::Db, embeds::basic_create_embed, Config, UPEmotes};
+use crate::{db::Db, embeds::basic_create_embed, Config, UpEmotes};
 
 #[ext(pub)]
 #[async_trait]
@@ -36,8 +36,8 @@ impl client::Context {
         )
     }
 
-    async fn get_up_emotes(&self) -> Option<Arc<UPEmotes>> {
-        self.data.read().await.get::<UPEmotes>().cloned()
+    async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
+        self.data.read().await.get::<UpEmotes>().cloned()
     }
 
     async fn get_random_stare(&self) -> Option<Emoji> {
@@ -190,9 +190,23 @@ impl CreateEmbed {
 
 #[ext(pub, name = StrExt)]
 impl<T: AsRef<str>> T {
-    fn split_once_at<'a>(&'a self, c: char) -> Option<(&'a str, &'a str)> {
+    fn split_once_at(&self, c: char) -> Option<(&str, &str)> {
         let s: &str = self.as_ref();
         let index = s.find(c)?;
         Some((&s[..index], &s[index + c.len_utf8()..]))
+    }
+
+    /// Splits the string into two parts, separated by the given word.
+    /// Ex. `"foo bar baz".split_at_word("bar") // ---> ("foo", "baz")`
+    fn split_at_word(&self, split_at: &str) -> (String, String) {
+        let mut words = self.as_ref().trim().split(' ').collect_vec();
+        match words.iter().position(|w| w == &split_at) {
+            Some(word_ind) => {
+                let right_side = words.split_off(word_ind + 1).join(" ");
+                words.pop();
+                (words.join(" "), right_side)
+            }
+            None => (String::from(self.as_ref()), String::new()),
+        }
     }
 }

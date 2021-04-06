@@ -24,7 +24,7 @@ maplit = "1"
 byte-unit = "4.0"
 url = "2"
 regex = "1"
-reqwest = { version = "0.11", features = ["multipart"] }
+reqwest = { version = "0.11" }
 tokio = { version = "1.2", features = ["macros", "fs", "rt-multi-thread"]}
 tokio-util = { version = "0.6", features = ["compat"] }
 extend = "1.0"

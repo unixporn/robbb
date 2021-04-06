@@ -24,17 +24,19 @@ pub async fn message_delete(
     )
     .await?;
 
-    let msg = ctx
-        .cache
-        .message(channel_id, deleted_message_id)
-        .await
-        .context("Message not found")?;
+    let msg = ctx.cache.message(channel_id, deleted_message_id).await;
+    // if the message can't be loaded, there's no need to try anything more,
+    // so let's just give up. No need to error.
+    let msg = match msg {
+        Some(msg) => msg,
+        None => return Ok(()),
+    };
 
     if msg.author.bot {
         return Ok(());
     }
 
-    if msg.content.starts_with("!") {
+    if msg.content.starts_with('!') {
         let close_messages = msg
             .channel_id
             .messages(&ctx, |m| m.after(deleted_message_id).limit(5))
@@ -65,7 +67,7 @@ pub async fn message_delete(
                     filename: path
                         .file_name()
                         .and_then(|x| x.to_str())
-                        .unwrap_or_else(|| "attachment")
+                        .unwrap_or("attachment")
                         .to_string(),
                     file,
                 }

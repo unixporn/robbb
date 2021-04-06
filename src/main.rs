@@ -26,21 +26,21 @@ pub mod util;
 use commands::*;
 
 #[derive(Debug, Clone)]
-pub struct UPEmotes {
+pub struct UpEmotes {
     pensibe: Emoji,
     police: Emoji,
     poggers: Emoji,
     stares: Vec<Emoji>,
 }
-impl UPEmotes {
+impl UpEmotes {
     pub fn random_stare(&self) -> Option<Emoji> {
         let mut rng = rand::thread_rng();
         self.stares.iter().choose(&mut rng).cloned()
     }
 }
 
-impl TypeMapKey for UPEmotes {
-    type Value = Arc<UPEmotes>;
+impl TypeMapKey for UpEmotes {
+    type Value = Arc<UpEmotes>;
 }
 
 pub struct Config {
@@ -250,8 +250,8 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                         &err
                     );
                     match err {
-                        serenity::Error::Http(err) => match *err {
-                            serenity::http::error::Error::UnsuccessfulRequest(res) => {
+                        serenity::Error::Http(err) => {
+                            if let serenity::http::error::Error::UnsuccessfulRequest(res) = *err {
                                 if res.status_code == serenity::http::StatusCode::NOT_FOUND
                                     && res.error.message.to_lowercase().contains("unknown user")
                                 {
@@ -260,8 +260,7 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                                     let _ = msg.reply_error(&ctx, "Something went wrong").await;
                                 }
                             }
-                            _ => {}
-                        },
+                        }
                         serenity::Error::Model(err) => {
                             let _ = msg.reply_error(&ctx, err).await;
                         }
@@ -301,7 +300,7 @@ fn init_logger() {
                     r.line().unwrap_or_default()
                 )
             } else {
-                format!("{}", r.module_path().unwrap_or_default())
+                r.module_path().unwrap_or_default().to_string()
             };
 
             writeln!(
@@ -314,9 +313,9 @@ fn init_logger() {
                 r.args()
             )
         })
-        .filter_module("trup_rs", log::LevelFilter::Debug);
+        .filter_module("trup_rs", log::LevelFilter::Info);
 
-    if let Some(log_var) = std::env::var("RUST_LOG").ok() {
+    if let Ok(log_var) = std::env::var("RUST_LOG") {
         builder.parse_filters(&log_var);
     }
     builder.init();
