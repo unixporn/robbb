@@ -65,44 +65,55 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 }
 
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()> {
+    // don't trigger on bot commands
+    if msg.content.starts_with('!') {
+        return Ok(());
+    }
+
     let db = ctx.get_db().await;
     let highlights = db.get_highlights().await?;
 
-    for i in &mut msg
+    let channel_name = msg
+        .channel(&ctx)
+        .await
+        .context("Couldn't get channel")?
+        .guild()
+        .context("Couldn't get server")?
+        .name;
+
+    for (word, users) in &mut msg
         .content
         .split_whitespace()
         .into_iter()
         .filter_map(|word| Some((word.to_string(), highlights.get(word)?)))
     {
-        let channel = msg
-            .channel(&ctx)
-            .await
-            .context("Couldn't get channel")?
-            .guild()
-            .context("Couldn't get server")?
-            .name;
-        let guild_name = msg.guild(&ctx).await.context("Couldn't get guild")?.name;
+        let mut embed = serenity::builder::CreateEmbed::default();
+        embed
+            .title("Highlight notification")
+            .description(indoc::formatdoc!(
+                "`{}` has been mentioned in {}
+                [link to message]({})
 
-        let mut e = serenity::builder::CreateEmbed::default();
+                Don't care about this anymore? 
+                Run `!highlights remove {}` in #bot to stop getting these notifications.",
+                word,
+                msg.channel_id.mention(),
+                msg.link(),
+                word
+            ))
+            .author(|a| {
+                a.name(&msg.author.tag());
+                a.icon_url(&msg.author.face())
+            })
+            .timestamp(&msg.timestamp)
+            .footer(|f| f.text(format!("#{}", channel_name)));
 
-        e.title(i.0);
-        e.url(msg.link());
-        e.description(format!("A highlighted word was said in {}", guild_name));
-        e.author(|a| {
-            a.name(&msg.author.tag());
-            a.icon_url(&msg.author.avatar_url().unwrap_or_default())
-        });
-        e.timestamp(&msg.timestamp);
-        e.footer(|f| f.text(format!("#{}", channel)));
-
-        // iterates over each user that subscribed to that highlight and send them a message
-        for user_id in i.1 {
-            let _ = user_id
-                .to_user(&ctx)
-                .await
-                .context("Couldn't get user")?
-                .dm(&ctx, |d| d.set_embed(e.clone()))
-                .await;
+        for user_id in users {
+            if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
+                let _ = dm_channel
+                    .send_message(&ctx, |m| m.set_embed(embed.clone()))
+                    .await;
+            }
         }
     }
     Ok(())

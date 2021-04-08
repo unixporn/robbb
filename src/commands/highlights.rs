@@ -50,6 +50,14 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
         .await
         .user_error("Something went wrong")?;
 
+    msg.author.id.create_dm_channel(&ctx).await.user_error("Couldn't open a DM to you - do you have DMs enabled?")?.send_message(&ctx, |m| {
+        m.embed(|e| {
+            e.title("Highlight added");
+            e.description(format!("Notifying you whenever someone says `{}`", trigger_word))
+        })
+    }).await.user_error("Couldn't send you a DM :/\n\
+    Did you change your DM settings recently? ")?;
+
     msg.reply_success(
         &ctx,
         format!(
