@@ -6,6 +6,7 @@ use serenity::{futures::lock::Mutex, prelude::TypeMapKey};
 use sqlx::SqlitePool;
 
 pub mod blocklist;
+pub mod emoji_logging;
 pub mod fetch;
 pub mod mute;
 pub mod note;
