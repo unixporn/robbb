@@ -17,7 +17,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
                 .map(|x| x.starts_with("Poll"))
                 .unwrap_or(false)
         });
-    
+
     if is_poll {
         // This is rather imperfect, but discord API sucks :/
         // we're pretty much deleteing all other reactions and are giving it the user to delete the reaction from,
@@ -42,20 +42,23 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
     Ok(())
 }
 
-async fn handle_emoji_logging(ctx : client::Context, event : Reaction) -> Result<()> {
+async fn handle_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
     let id = if let Custom { id, .. } = event.emoji {
-       id 
+        id
     } else {
-        return Ok(())
+        return Ok(());
     };
 
     let emoji = ctx.http.get_emojis(event.guild_id.unwrap().0).await?;
-    let emoji = if let Some(x) = emoji.iter().find(|x| x.id == id) { x } else { return Ok(())};
+    let emoji = if let Some(x) = emoji.iter().find(|x| x.id == id) {
+        x
+    } else {
+        return Ok(());
+    };
     let data = ctx.data.read().await;
     {
-    let db = data.get::<Db>().unwrap();
-    db.increment_emoji_reaction(1, emoji).await?;
+        let db = data.get::<Db>().unwrap();
+        db.increment_emoji_reaction(1, emoji).await?;
     }
     Ok(())
-
 }

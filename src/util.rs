@@ -1,6 +1,6 @@
 use anyhow::*;
 use chrono::Timelike;
-use serenity::model::id::EmojiId;
+use serenity::model::{id::EmojiId, misc::EmojiIdentifier};
 use std::env;
 
 /// return with an error value immediately.
@@ -87,20 +87,14 @@ pub fn format_count(num: i32) -> String {
 }
 
 ///Find all emojis in a String
-pub fn find_emojis(value: &String) -> Result<Vec<(String, EmojiId)>> {
+pub fn find_emojis(value: &String) -> Vec<EmojiIdentifier> {
     lazy_static::lazy_static! {
-        static ref reg : regex::Regex = regex::Regex::new(r"<:\s(\w\w+?):\s([0-9]\w+?)>|<a:\s([a-z]\w+?):\s([0-9]\w+?)>").unwrap();
+        static ref FIND_EMOJI : regex::Regex = regex::Regex::new(r"<:\s*?(\w\w+?):\s*?([0-9]\w+?)>|<a:\s*?([a-z]\w+?):\s*?([0-9]\w+?)>").unwrap();
     }
-    Ok(reg
+    FIND_EMOJI
         .captures_iter(value)
-        .filter_map(|x| {
-            x.get(1)
-                .and_then(|y| Some((y.as_str().into(), EmojiId(x.get(2)?.as_str().parse().ok()?))))
-                .or(x.get(3).and_then(|y| {
-                    Some((y.as_str().into(), EmojiId(x.get(4)?.as_str().parse().ok()?)))
-                }))
-        })
-        .collect())
+        .filter_map(|x| serenity::utils::parse_emoji(x.get(0)?.as_str()))
+        .collect()
 }
 
 /// Validate that a string is a valid URL.
