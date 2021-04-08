@@ -3,6 +3,7 @@ use crate::Arc;
 
 #[command("highlights")]
 #[sub_commands(highlights_add, highlights_get, highlights_remove)]
+#[aliases("highlight")]
 #[usage("!highlights <add | get | remove>")]
 pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
     abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS))
@@ -80,6 +81,7 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
 
 /// get all highlights for your user
 #[command("get")]
+#[aliases("ls", "list")]
 #[usage("!highlights get")]
 pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResult {
     let db: Arc<Db> = ctx.get_db().await;
@@ -107,6 +109,7 @@ pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResu
 
 /// removes a highlight
 #[command("remove")]
+#[aliases("rm", "delete")]
 #[usage("!highlights remove <highlight>")]
 pub async fn highlights_remove(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db: Arc<Db> = ctx.get_db().await;

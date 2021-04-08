@@ -70,16 +70,19 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
         return Ok(());
     }
 
-    let db = ctx.get_db().await;
+    let (config, db) = ctx.get_config_and_db().await;
     let highlights = db.get_highlights().await?;
 
-    let channel_name = msg
+    let channel = msg
         .channel(&ctx)
         .await
         .context("Couldn't get channel")?
         .guild()
-        .context("Couldn't get server")?
-        .name;
+        .context("Couldn't get server")?;
+
+    if config.category_mod_private == channel.category_id.context("Couldn't get category_id")? {
+        return Ok(());
+    }
 
     for (word, users) in &mut msg
         .content
@@ -106,7 +109,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
                 a.icon_url(&msg.author.face())
             })
             .timestamp(&msg.timestamp)
-            .footer(|f| f.text(format!("#{}", channel_name)));
+            .footer(|f| f.text(format!("#{}", channel.name)));
 
         for user_id in users {
             if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
