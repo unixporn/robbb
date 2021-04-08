@@ -34,7 +34,6 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
     let highlights_by_user_cnt = highlights
         .iter()
         .filter(|(_, users)| users.contains(&msg.author.id))
-        .map(|(word, _)| word)
         .count();
 
     if highlights_by_user_cnt as u8 >= max_highlight_cnt {
@@ -86,7 +85,7 @@ pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResu
     let db: Arc<Db> = ctx.get_db().await;
     let highlights = db.get_highlights().await?;
 
-    let mut highlights_list = highlights
+    let highlights_list = highlights
         .iter()
         .filter(|(_, users)| users.contains(&msg.author.id))
         .map(|(word, _)| word)
