@@ -29,6 +29,8 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
+    handle_emoji_logging(&ctx, &msg).await?;
+
     match handle_spam_protect(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(false) => {}
@@ -55,6 +57,27 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 
     framework.dispatch(ctx, msg).await;
 
+    Ok(())
+}
+
+async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
+    //
+    //    message.content
+    let guild_emojis = ctx.http.get_emojis(msg.guild_id.unwrap().0).await?;
+    let actual_emojis = util::find_emojis(&msg.content)?
+        .iter()
+        .filter_map(|(name, id)| {
+            guild_emojis
+                .iter()
+                .find_map(|a| if &a.id == id { Some(a) } else { None })
+        })
+        .dedup_by_with_count(|x, y| x.id == y.id)
+        .collect_vec();
+    let data = ctx.data.read().await;
+    let db = data.get::<Db>().unwrap();
+    for (count, emoji) in actual_emojis {
+        db.increment_emoji_text(count as u64, emoji).await?;
+    }
     Ok(())
 }
 
