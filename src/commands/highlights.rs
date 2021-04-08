@@ -14,14 +14,11 @@ pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
 pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let trigger_word = args.message().trim().to_string();
     if trigger_word.contains(' ') {
-        abort_with!(UserErr::Other(
-            "Highlight can't contain a space for implementation/performance reasons".to_string()
-        ));
+        abort_with!("Highlights must not contain spaces");
     } else if trigger_word.is_empty() {
-        abort_with!(UserErr::InvalidUsage("You must provide a argument"));
+        abort_with!("You must provide a argument");
     } else if trigger_word.len() < 3 {
-        abort_with!(UserErr::Other(
-            "highlight has to be larger than 2 characters".to_string()
+        abort_with!("highlight has to be larger than 2 characters")
         ));
     }
 
@@ -35,12 +32,13 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
     };
 
     let highlights = db.get_highlights().await?;
-    let highlights_by_user = highlights
+    let highlights_by_user_cnt = highlights
         .iter()
         .filter(|(_, users)| users.contains(&msg.author.id))
-        .map(|(word, _)| word);
+        .map(|(word, _)| word)
+        .count();
 
-    if highlights_by_user.collect_vec().len() as u8 == max_highlight_cnt {
+    if highlights_by_user_cnt >= max_highlight_cnt {
         abort_with!(UserErr::Other(format!(
             "Sorry, you can only watch a maximum of {} highlights",
             max_highlight_cnt
@@ -69,11 +67,11 @@ pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResu
     let db: Arc<Db> = ctx.get_db().await;
     let highlights = db.get_highlights().await?;
 
-    let mut highlights_by_user = highlights
+    let mut highlight_list = highlights
         .iter()
         .filter(|(_, users)| users.contains(&msg.author.id))
-        .map(|(word, _)| word);
-    let highlights_text = highlights_by_user.join("\n");
+        .map(|(word, _)| word)
+        .join("\n");
 
     // yes yes, we are checking the length of the text, whatever
     if highlights_text.is_empty() {
@@ -81,7 +79,7 @@ pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResu
             "You don't seem to have set any highlights".to_string()
         ));
     } else {
-        msg.reply_success(&ctx, highlights_text).await?;
+        msg.reply_embed(&ctx, highlights_text).await?;
     }
     Ok(())
 }
