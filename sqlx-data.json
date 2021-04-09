@@ -60,16 +60,6 @@
       ]
     }
   },
-  "12cb0316d5d492ce57e3508add2f6b461dbecc5c1d9856d31d346b89e23dfe87": {
-    "query": "insert into emojis (emoji,  in_text_usage) values (?1, ?2) on conflict(emoji) do update set in_text_usage=?2",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
   "1c405e112c2d3214854e7a9d581a1cfde3c6e026a829155993831ac980d48217": {
     "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\" from warn where usr=?",
     "describe": {
@@ -206,12 +196,32 @@
       ]
     }
   },
+  "584e7aa893c8507d9e74bbaf2c96484fa89c5c16d6e8e5d46c8081d5202f133a": {
+    "query": "insert into emojis (emoji_id, emoji_name, in_text_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set in_text_usage=?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
+    }
+  },
   "65c4d052bc870845c896116e536dca622423fe384f2c59f4368f2e804b788701": {
     "query": "insert into profile (usr, git, dotfiles, description) values (?1, ?2, NULL, NULL)\n                on conflict(usr) do update set git=?2",
     "describe": {
       "columns": [],
       "parameters": {
         "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "66f9fefe40758b3c3f085e1768f49c7db7d18f591047baea6af0827947c69935": {
+    "query": "insert into emojis (emoji_id, emoji_name, reaction_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set reaction_usage=?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
       },
       "nullable": []
     }
@@ -342,6 +352,42 @@
       ]
     }
   },
+  "aade4c91cf65f2e8492ab806efb51d3bcb9e367e9822d7e6a27442802ff4efa4": {
+    "query": "select * from emojis where emoji_id=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "emoji_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "emoji_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "in_text_usage",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reaction_usage",
+          "ordinal": 3,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "aceea99bc515eb29168f82d5985b6a29a6d5766b6ff3147df95c71572013dbf8": {
     "query": "delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)",
     "describe": {
@@ -388,16 +434,6 @@
       "columns": [],
       "parameters": {
         "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "d708cf710bf4824a11ce7c83128443485ee2231bd19a57e61d07d1ff34d4c135": {
-    "query": "insert into emojis (emoji,  reaction_usage) values (?1, ?2) on conflict(emoji) do update set reaction_usage=?2",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
       },
       "nullable": []
     }
@@ -534,36 +570,6 @@
         "Right": 2
       },
       "nullable": []
-    }
-  },
-  "fb22818f95149db2f5fee3028ae30680cebaa2800985948b424f90a999a206d2": {
-    "query": "select * from emojis where emoji=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "emoji",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "in_text_usage",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "reaction_usage",
-          "ordinal": 2,
-          "type_info": "Int64"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        true,
-        false,
-        false
-      ]
     }
   }
 }
