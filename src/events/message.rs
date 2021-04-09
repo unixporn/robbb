@@ -77,7 +77,7 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
     let data = ctx.data.read().await;
     let db = data.get::<Db>().unwrap();
     for (count, emoji) in actual_emojis {
-        db.increment_emoji_text(count as u64, emoji).await?;
+        db.increment_emoji_text(count as u64, &emoji.name, &emoji.id).await?;
     }
     Ok(())
 }

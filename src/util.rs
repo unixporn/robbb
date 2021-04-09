@@ -86,7 +86,7 @@ pub fn format_count(num: i32) -> String {
     }
 }
 
-///Find all emojis in a String
+/// Find all emojis in a String
 pub fn find_emojis(value: impl AsRef<str>) -> Vec<EmojiIdentifier> {
     lazy_static::lazy_static! {
         static ref FIND_EMOJI : regex::Regex = regex::Regex::new(r"<:\s*?(\w\w+?):\s*?([0-9]\w+?)>|<a:\s*?([a-z]\w+?):\s*?([0-9]\w+?)>").unwrap();
