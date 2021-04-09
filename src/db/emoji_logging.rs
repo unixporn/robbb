@@ -21,7 +21,12 @@ impl Default for EmojiData {
 }
 
 impl Db {
-    pub async fn increment_emoji_reaction(&self, count: u64, emoji_name: impl AsRef<str>, emoji: &EmojiId) -> Result<EmojiData> {
+    pub async fn increment_emoji_reaction(
+        &self,
+        count: u64,
+        emoji_name: impl AsRef<str>,
+        emoji: &EmojiId,
+    ) -> Result<EmojiData> {
         let mut data = self.get_emoji_usage(emoji).await?;
         let mut conn = self.pool.acquire().await?;
         let emoji_str = emoji_name.as_ref();
@@ -32,7 +37,12 @@ impl Db {
         Ok(data)
     }
 
-    pub async fn increment_emoji_text(&self, count: u64, emoji_name : impl AsRef<str> , emoji: &EmojiId) -> Result<EmojiData> {
+    pub async fn increment_emoji_text(
+        &self,
+        count: u64,
+        emoji_name: impl AsRef<str>,
+        emoji: &EmojiId,
+    ) -> Result<EmojiData> {
         let mut data = self.get_emoji_usage(emoji).await?;
         let mut conn = self.pool.acquire().await?;
         let emoji_str = emoji_name.as_ref();

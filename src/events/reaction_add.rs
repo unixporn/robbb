@@ -58,7 +58,8 @@ async fn handle_emoji_logging(ctx: client::Context, event: Reaction) -> Result<(
     let data = ctx.data.read().await;
     {
         let db = data.get::<Db>().unwrap();
-        db.increment_emoji_reaction(1, &emoji.name, &emoji.id).await?;
+        db.increment_emoji_reaction(1, &emoji.name, &emoji.id)
+            .await?;
     }
     Ok(())
 }
