@@ -43,23 +43,21 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
 }
 
 async fn handle_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
-    let id = if let Custom { id, .. } = event.emoji {
-        id
-    } else {
-        return Ok(());
+    let id = match event.emoji {
+        Custom { id, .. } => id,
+        _ => return Ok(()),
     };
 
     let emoji = ctx.http.get_emojis(event.guild_id.unwrap().0).await?;
-    let emoji = if let Some(x) = emoji.iter().find(|x| x.id == id) {
-        x
-    } else {
-        return Ok(());
+    let emoji = match emoji.iter().find(|x| x.id == id) {
+        Some(x) => x,
+        _ => return Ok(()),
     };
     let data = ctx.data.read().await;
-    {
-        let db = data.get::<Db>().unwrap();
-        db.increment_emoji_reaction(1, &emoji.name, &emoji.id)
-            .await?;
-    }
+
+    let db = data.get::<Db>().unwrap();
+    db.increment_emoji_reaction(1, &emoji.name, &emoji.id)
+        .await?;
+
     Ok(())
 }

@@ -64,11 +64,7 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
     let guild_emojis = ctx.http.get_emojis(msg.guild_id.unwrap().0).await?;
     let actual_emojis = util::find_emojis(&msg.content)
         .iter()
-        .filter_map(|iden| {
-            guild_emojis
-                .iter()
-                .find_map(|a| if a.id == iden.id { Some(a) } else { None })
-        })
+        .filter_map(|iden| guild_emojis.iter().find(|a| a.id == iden.id))
         .dedup_by_with_count(|x, y| x.id == y.id)
         .collect_vec();
     if actual_emojis.is_empty() {

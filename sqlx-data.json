@@ -196,16 +196,6 @@
       ]
     }
   },
-  "584e7aa893c8507d9e74bbaf2c96484fa89c5c16d6e8e5d46c8081d5202f133a": {
-    "query": "insert into emojis (emoji_id, emoji_name, in_text_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set in_text_usage=?3",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 3
-      },
-      "nullable": []
-    }
-  },
   "65c4d052bc870845c896116e536dca622423fe384f2c59f4368f2e804b788701": {
     "query": "insert into profile (usr, git, dotfiles, description) values (?1, ?2, NULL, NULL)\n                on conflict(usr) do update set git=?2",
     "describe": {
@@ -216,8 +206,8 @@
       "nullable": []
     }
   },
-  "66f9fefe40758b3c3f085e1768f49c7db7d18f591047baea6af0827947c69935": {
-    "query": "insert into emojis (emoji_id, emoji_name, reaction_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set reaction_usage=?3",
+  "6602c02bdff3b75f3ef98cddcc48dc411a868e1ff78b1b5fa2fb6952a4713d16": {
+    "query": "insert into emojis (emoji_id, emoji_name, in_text_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",
     "describe": {
       "columns": [],
       "parameters": {
@@ -568,6 +558,16 @@
       "columns": [],
       "parameters": {
         "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "f8947ef2569f6d963433bdfda0315a7df03f011ede6e1f847cee34a338df3a5d": {
+    "query": "insert into emojis (emoji_id, emoji_name, reaction_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set reaction_usage=reaction_usage+?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
       },
       "nullable": []
     }
