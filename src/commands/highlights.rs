@@ -95,9 +95,7 @@ pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResu
 
     // yes yes, we are checking the length of the text, whatever
     if highlights_list.is_empty() {
-        abort_with!(UserErr::Other(
-            "You don't seem to have set any highlights".to_string()
-        ));
+        abort_with!("You don't seem to have set any highlights");
     } else {
         msg.reply_embed(&ctx, |e| {
             e.description(highlights_list);
