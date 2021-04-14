@@ -99,7 +99,7 @@ pub async fn cleanup(config: &Config) -> Result<()> {
     }
 
     if total_size_bytes > config.attachment_cache_max_size {
-        files.sort_by_key(|(_, meta)| meta.created().expect("Unsupported platform"));
+        files.sort_by_key(|(_, meta)| meta.modified().expect("Unsupported platform"));
     }
 
     while total_size_bytes > config.attachment_cache_max_size && !files.is_empty() {
