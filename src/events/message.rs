@@ -82,7 +82,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
         .content
         .split_whitespace()
         .into_iter()
-        .filter_map(|word| Some((word.to_string(), highlights.get(word)?)))
+        .filter_map(|word| Some((word, highlights.get(word)?)))
     {
         let mut embed = serenity::builder::CreateEmbed::default();
         embed
@@ -106,6 +106,9 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
             .footer(|f| f.text(format!("#{}", channel.name)));
 
         for user_id in users {
+            if user_id == &msg.author.id {
+                continue;
+            }
             if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
                 let _ = dm_channel
                     .send_message(&ctx, |m| m.set_embed(embed.clone()))
