@@ -29,12 +29,14 @@ impl Db {
             .await?;
         let mut cache = self.highlight_cache.lock().await;
         if let Some(ref mut cache) = cache.as_mut() {
-            if let std::collections::hash_map::Entry::Occupied(ref mut entry) = cache.entry(word.clone()) {
-                    let array = entry.get_mut();
-                    array.retain(|u| u.0 as usize != user as usize);
-                    if array.is_empty() {
-                        cache.remove(&word);
-                    }
+            if let std::collections::hash_map::Entry::Occupied(ref mut entry) =
+                cache.entry(word.clone())
+            {
+                let array = entry.get_mut();
+                array.retain(|u| u.0 as usize != user as usize);
+                if array.is_empty() {
+                    cache.remove(&word);
+                }
             } else {
                 bail!("Can't remove a highlight that doesn't exist.")
             }
@@ -62,7 +64,7 @@ impl Db {
                     let id = UserId::from(user);
                     if !f.contains(&id) {
                         f.push(id);
-                    } // we can't return a error from within a closure, so we'll just have to tell the user that everything was ok, 
+                    } // we can't return a error from within a closure, so we'll just have to tell the user that everything was ok,
                       // after all they still get a notif, so they're command ran sucessfully.
                 })
                 .or_insert_with(|| vec![UserId::from(user)]);
@@ -81,7 +83,11 @@ impl Db {
         // checks if we have a cache
         if let Some(ref mut cache) = cache.as_mut() {
             // iterates over every where word where the user is subscribed to
-            for i in cache.clone().iter().filter(|(_, users)| users.contains(&user)){
+            for i in cache
+                .clone()
+                .iter()
+                .filter(|(_, users)| users.contains(&user))
+            {
                 if let std::collections::hash_map::Entry::Occupied(ref mut entry) =
                     cache.entry(i.0.clone())
                 {
