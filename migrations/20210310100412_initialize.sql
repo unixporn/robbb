@@ -49,3 +49,5 @@ CREATE TABLE IF NOT EXISTS tag (
     content text not null,
     official boolean not null
 );
+
+
