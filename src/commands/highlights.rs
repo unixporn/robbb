@@ -1,6 +1,7 @@
 use super::*;
 use crate::Arc;
 
+/// Get notified when someone mentions a word you care about.
 #[command("highlights")]
 #[sub_commands(highlights_add, highlights_get, highlights_remove)]
 #[aliases("highlight", "hl")]
