@@ -1,4 +1,4 @@
-use crate::extensions::clientContextExt;
+use crate::extensions::ClientContextExt;
 use anyhow::*;
 use serenity::client;
 use serenity::framework::standard::macros::check;

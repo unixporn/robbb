@@ -1,8 +1,5 @@
-use std::{fmt::Display, sync::Arc};
-
+use crate::{db::Db, embeds::basic_create_embed, Config, UpEmotes};
 use anyhow::{Context, Result};
-
-use extend::ext;
 use itertools::Itertools;
 use serenity::{
     async_trait,
@@ -16,12 +13,23 @@ use serenity::{
     },
     utils::Colour,
 };
+use std::{fmt::Display, sync::Arc};
 
-use crate::{db::Db, embeds::basic_create_embed, Config, UpEmotes};
-
-#[ext(pub)]
 #[async_trait]
-impl client::Context {
+pub trait ClientContextExt {
+    async fn get_config(&self) -> Arc<Config>;
+
+    async fn get_db(&self) -> Arc<Db>;
+
+    async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>);
+
+    async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>>;
+
+    async fn get_random_stare(&self) -> Option<Emoji>;
+}
+
+#[async_trait]
+impl ClientContextExt for client::Context {
     async fn get_config(&self) -> Arc<Config> {
         self.data.read().await.get::<Config>().unwrap().clone()
     }
@@ -45,16 +53,31 @@ impl client::Context {
     }
 }
 
-#[ext(pub)]
-impl User {
+#[async_trait]
+pub trait UserExt {
+    fn name_with_disc_and_id(&self) -> String;
+}
+
+impl UserExt for User {
     fn name_with_disc_and_id(&self) -> String {
         format!("{}#{}({})", self.name, self.discriminator, self.id)
     }
 }
 
-#[ext(pub)]
 #[async_trait]
-impl GuildId {
+pub trait GuildIdExt {
+    async fn send_embed<F>(
+        &self,
+        ctx: &client::Context,
+        channel_id: ChannelId,
+        build: F,
+    ) -> Result<Message>
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync;
+}
+
+#[async_trait]
+impl GuildIdExt for GuildId {
     async fn send_embed<F>(
         &self,
         ctx: &client::Context,
@@ -73,9 +96,37 @@ impl GuildId {
     }
 }
 
-#[ext(pub)]
 #[async_trait]
-impl Message {
+pub trait MessageExt {
+    fn find_image_urls(&self) -> Vec<String>;
+
+    async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync;
+
+    async fn reply_error(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message>;
+
+    async fn reply_success(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message>;
+
+    async fn reply_success_mod_action(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message>;
+
+    fn to_context_link(&self) -> String;
+}
+
+#[async_trait]
+impl MessageExt for Message {
     fn find_image_urls(&self) -> Vec<String> {
         self.embeds
             .iter()
@@ -162,9 +213,15 @@ impl Message {
     }
 }
 
-#[ext(pub)]
 #[async_trait]
-impl ChannelId {
+pub trait ChannelIdExt {
+    async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
+    where
+        F: FnOnce(&mut CreateEmbed) + Send + Sync;
+}
+
+#[async_trait]
+impl ChannelIdExt for ChannelId {
     async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
@@ -178,8 +235,12 @@ impl ChannelId {
     }
 }
 
-#[ext(pub)]
-impl CreateEmbed {
+#[async_trait]
+pub trait CreateEmbedExt {
+    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed;
+}
+
+impl CreateEmbedExt for CreateEmbed {
     fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed {
         if let Some(c) = c {
             self.color(c);
@@ -188,16 +249,22 @@ impl CreateEmbed {
     }
 }
 
-#[ext(pub, name = StrExt)]
-impl<T: AsRef<str>> T {
+#[async_trait]
+pub trait StrExt<T: AsRef<str>> {
+    fn split_once_at(&self, c: char) -> Option<(&str, &str)>;
+
+    /// Splits the string into two parts, separated by the given word.
+    /// Ex. `"foo bar baz".split_at_word("bar") // ---> ("foo", "baz")`
+    fn split_at_word(&self, split_at: &str) -> (String, String);
+}
+
+impl<T: AsRef<str>> StrExt<T> for T {
     fn split_once_at(&self, c: char) -> Option<(&str, &str)> {
         let s: &str = self.as_ref();
         let index = s.find(c)?;
         Some((&s[..index], &s[index + c.len_utf8()..]))
     }
 
-    /// Splits the string into two parts, separated by the given word.
-    /// Ex. `"foo bar baz".split_at_word("bar") // ---> ("foo", "baz")`
     fn split_at_word(&self, split_at: &str) -> (String, String) {
         let mut words = self.as_ref().trim().split(' ').collect_vec();
         match words.iter().position(|w| w == &split_at) {
