@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::log_error;
 use crate::{attachment_logging, db::note::NoteType};
 use chrono::Utc;
@@ -79,6 +81,8 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
 
     let highlights_data = db.get_highlights().await?;
 
+    let mut handled_users = HashSet::new();
+
     for (word, users) in highlights_data.get_triggers_for_message(&msg.content) {
         let mut embed = serenity::builder::CreateEmbed::default();
         embed
@@ -102,9 +106,11 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
             .footer(|f| f.text(format!("#{}", channel.name)));
 
         for user_id in users {
-            if user_id == msg.author.id {
+            if user_id == msg.author.id || handled_users.contains(&user_id) {
                 continue;
             }
+            handled_users.insert(user_id);
+
             if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
                 let _ = dm_channel
                     .send_message(&ctx, |m| m.set_embed(embed.clone()))
