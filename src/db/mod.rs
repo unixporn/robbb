@@ -18,7 +18,7 @@ pub mod warn;
 pub struct Db {
     pool: SqlitePool,
     blocklist_cache: Arc<Mutex<Option<Vec<String>>>>,
-    highlight_cache: Mutex<Option<HashMap<String, Vec<UserId>>>>,
+    highlight_cache: Mutex<Option<highlights::HighlightsData>>,
 }
 
 impl TypeMapKey for Db {
