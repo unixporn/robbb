@@ -24,12 +24,12 @@ impl UserErr {
     }
 }
 
-pub trait ResultExt<T> {
+/// Extension trait for both Option and Result that adds [UserErr] related context methods
+pub trait OptionExt<T> {
     fn invalid_usage(self, opts: &CommandOptions) -> Result<T, UserErr>;
     fn user_error(self, s: &str) -> Result<T, UserErr>;
 }
-
-impl<T, E: Into<anyhow::Error>> ResultExt<T> for Result<T, E> {
+impl<T, E: Into<anyhow::Error>> OptionExt<T> for Result<T, E> {
     fn invalid_usage(self, opts: &CommandOptions) -> Result<T, UserErr> {
         self.map_err(|_| UserErr::InvalidUsage(opts.usage.unwrap_or("")))
     }
@@ -38,12 +38,23 @@ impl<T, E: Into<anyhow::Error>> ResultExt<T> for Result<T, E> {
     }
 }
 
-impl<T> ResultExt<T> for Option<T> {
+impl<T> OptionExt<T> for Option<T> {
     fn invalid_usage(self, opts: &CommandOptions) -> Result<T, UserErr> {
         self.ok_or_else(|| UserErr::InvalidUsage(opts.usage.unwrap_or("")))
     }
 
     fn user_error(self, s: &str) -> Result<T, UserErr> {
         self.ok_or_else(|| UserErr::Other(s.to_string()))
+    }
+}
+
+/// Extension trait for Result that adds [UserErr] related context methods
+pub trait ResultExt<T, E> {
+    fn with_user_error(self, f: impl FnOnce(E) -> String) -> Result<T, UserErr>;
+}
+
+impl<T, E: Into<anyhow::Error>> ResultExt<T, E> for Result<T, E> {
+    fn with_user_error(self, f: impl FnOnce(E) -> String) -> Result<T, UserErr> {
+        self.map_err(|e| UserErr::Other(f(e)))
     }
 }

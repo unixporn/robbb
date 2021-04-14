@@ -26,6 +26,7 @@ pub mod blocklist;
 pub mod errors;
 pub mod fetch;
 pub mod help;
+pub mod highlights;
 pub mod info;
 pub mod modping;
 pub mod move_users;
@@ -46,6 +47,7 @@ use blocklist::*;
 pub use errors::*;
 pub use fetch::*;
 pub use help::*;
+use highlights::*;
 use info::*;
 use modping::*;
 use move_users::*;
@@ -84,7 +86,7 @@ struct HelperOrMod;
 #[only_in(guilds)]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, invite, version
+    tag, invite, version, highlights
 )]
 #[checks(channel_allows_commands)]
 struct General;

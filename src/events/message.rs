@@ -39,6 +39,12 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         Ok(false) => {}
         err => log_error!("error while handling blocklist", err),
     };
+
+    match handle_highlighting(&ctx, &msg).await {
+        Ok(_) => {}
+        err => log_error!("error while checking/handling highlights", err),
+    }
+
     match handle_quote(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(false) => {}
@@ -55,6 +61,64 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
 
     framework.dispatch(ctx, msg).await;
 
+    Ok(())
+}
+
+async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()> {
+    // don't trigger on bot commands
+    if msg.content.starts_with('!') {
+        return Ok(());
+    }
+
+    let (config, db) = ctx.get_config_and_db().await;
+    let highlights = db.get_highlights().await?;
+
+    let channel = msg
+        .channel(&ctx)
+        .await
+        .context("Couldn't get channel")?
+        .guild()
+        .context("Couldn't get server")?;
+
+    if config.category_mod_private == channel.category_id.context("Couldn't get category_id")? {
+        return Ok(());
+    }
+
+    for (word, users) in &mut msg
+        .content
+        .split_whitespace()
+        .into_iter()
+        .filter_map(|word| Some((word.to_string(), highlights.get(word)?)))
+    {
+        let mut embed = serenity::builder::CreateEmbed::default();
+        embed
+            .title("Highlight notification")
+            .description(indoc::formatdoc!(
+                "`{}` has been mentioned in {}
+                [link to message]({})
+
+                Don't care about this anymore? 
+                Run `!highlights remove {}` in #bot to stop getting these notifications.",
+                word,
+                msg.channel_id.mention(),
+                msg.link(),
+                word
+            ))
+            .author(|a| {
+                a.name(&msg.author.tag());
+                a.icon_url(&msg.author.face())
+            })
+            .timestamp(&msg.timestamp)
+            .footer(|f| f.text(format!("#{}", channel.name)));
+
+        for user_id in users {
+            if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
+                let _ = dm_channel
+                    .send_message(&ctx, |m| m.set_embed(embed.clone()))
+                    .await;
+            }
+        }
+    }
     Ok(())
 }
 
