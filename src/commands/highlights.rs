@@ -38,9 +38,6 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
             max_highlight_cnt
         )));
     }
-    db.set_highlight(msg.author.id, trigger.clone())
-        .await
-        .user_error("Something went wrong")?;
 
     msg.author
         .id
@@ -55,6 +52,10 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
         })
         .await
         .user_error("Couldn't send you a DM :/\nDid you change your DM settings recently? ")?;
+
+    db.set_highlight(msg.author.id, trigger.clone())
+        .await
+        .user_error("Something went wrong")?;
 
     msg.reply_success(
         &ctx,
