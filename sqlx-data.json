@@ -437,18 +437,13 @@
     "describe": {
       "columns": [
         {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
           "name": "word",
-          "ordinal": 1,
+          "ordinal": 0,
           "type_info": "Text"
         },
         {
           "name": "usr",
-          "ordinal": 2,
+          "ordinal": 1,
           "type_info": "Int64"
         }
       ],
@@ -456,7 +451,6 @@
         "Right": 0
       },
       "nullable": [
-        false,
         false,
         false
       ]

@@ -61,11 +61,7 @@ impl Db {
             cache
                 .entry(word)
                 .and_modify(|f| {
-                    let id = UserId::from(user);
-                    if !f.contains(&id) {
-                        f.push(id);
-                    } // we can't return a error from within a closure, so we'll just have to tell the user that everything was ok,
-                      // after all they still get a notif, so they're command ran sucessfully.
+                    f.push(UserId::from(user));
                 })
                 .or_insert_with(|| vec![UserId::from(user)]);
         }
