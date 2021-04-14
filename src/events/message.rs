@@ -65,7 +65,6 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
     }
 
     let (config, db) = ctx.get_config_and_db().await;
-    let highlights = db.get_highlights().await?;
 
     let channel = msg
         .channel(&ctx)
@@ -78,12 +77,9 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
         return Ok(());
     }
 
-    for (word, users) in &mut msg
-        .content
-        .split_whitespace()
-        .into_iter()
-        .filter_map(|word| Some((word, highlights.get(word)?)))
-    {
+    let highlights_data = db.get_highlights().await?;
+
+    for (word, users) in highlights_data.get_triggers_for_message(&msg.content) {
         let mut embed = serenity::builder::CreateEmbed::default();
         embed
             .title("Highlight notification")
@@ -106,7 +102,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
             .footer(|f| f.text(format!("#{}", channel.name)));
 
         for user_id in users {
-            if user_id == &msg.author.id {
+            if user_id == msg.author.id {
                 continue;
             }
             if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
