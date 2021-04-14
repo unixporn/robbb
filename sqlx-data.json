@@ -130,6 +130,16 @@
       ]
     }
   },
+  "2bdeb084c05e060d999359fc517d8d0adfee9fdebeeb9ffba3862a1f7544a318": {
+    "query": "delete from highlights where usr=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
   "30d7db9f6e9e49c8612cc86d72a1075f22009de00d062e71a1758ce2edddbf66": {
     "query": "insert into fetch (usr, info) values (?1, ?2) on conflict(usr) do update set info=?2",
     "describe": {
@@ -194,6 +204,16 @@
         true,
         true
       ]
+    }
+  },
+  "600a256c4edc6bbeaf4c9f383a7c28e4cec3bad498d4e3f88e01481b188325e3": {
+    "query": "delete from highlights where word=? and usr=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
     }
   },
   "65c4d052bc870845c896116e536dca622423fe384f2c59f4368f2e804b788701": {
@@ -332,6 +352,16 @@
       ]
     }
   },
+  "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d": {
+    "query": "insert into highlights (word, usr) values (?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
   "aceea99bc515eb29168f82d5985b6a29a6d5766b6ff3147df95c71572013dbf8": {
     "query": "delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)",
     "describe": {
@@ -382,16 +412,6 @@
       "nullable": []
     }
   },
-  "ca78c01f4edc76c9a6b58e2c57907d9ef1439024c11a7f78630635014da16114": {
-    "query": "insert into highlights (word, user) values (?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
   "d82c132238221a207fe200e0b55d5982af95bb4c65f2e4f1b5b0b35d7067eb8d": {
     "query": "insert into note (moderator, usr, content, create_date, note_type) values(?, ?, ?, ?, ?)",
     "describe": {
@@ -427,7 +447,7 @@
           "type_info": "Text"
         },
         {
-          "name": "user",
+          "name": "usr",
           "ordinal": 2,
           "type_info": "Int64"
         }
@@ -448,16 +468,6 @@
       "columns": [],
       "parameters": {
         "Right": 7
-      },
-      "nullable": []
-    }
-  },
-  "e24a215400586f1a059d432bc0c408b9c75259c887ced977dc5f8958f37adc5d": {
-    "query": "delete from highlights where word=? and user=?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
       },
       "nullable": []
     }

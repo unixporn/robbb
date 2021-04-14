@@ -3,7 +3,7 @@ use crate::Arc;
 
 #[command("highlights")]
 #[sub_commands(highlights_add, highlights_get, highlights_remove)]
-#[aliases("highlight")]
+#[aliases("highlight", "hl")]
 #[usage("!highlights <add | get | remove>")]
 pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
     abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS))
