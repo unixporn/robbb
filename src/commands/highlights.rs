@@ -14,7 +14,7 @@ pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
 #[command("add")]
 #[usage("!highlights add <word>")]
 pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let trigger = args.message().trim().to_string();
+    let trigger = args.message().trim().to_string().to_lowercase();
     if trigger.is_empty() {
         abort_with!(HIGHLIGHTS_COMMAND_OPTIONS.usage.unwrap_or_default());
     } else if trigger.len() < 3 {
@@ -48,7 +48,8 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
         .send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Highlight added");
-                e.description(format!("Notifying you whenever someone says `{}`", trigger))
+                e.description(format!("Notifying you whenever someone says `{}`", trigger));
+                e.footer(|e| e.text("This is more of a test to see if DMs work, than a confirmation of the highlight being set successfully. You should look if the bot returned any errors in the channel."))
             })
         })
         .await
