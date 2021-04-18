@@ -51,15 +51,22 @@ async fn do_ban(
         .await
         .context("Failed to retrieve user for banned user")?;
 
-    let _ = user
-        .dm(&ctx, |m| {
-            m.embed(|e| {
-                e.title(format!("You where banned from {}", guild.name));
-                e.field("Reason", reason, false)
+    if reason.to_string().contains("ice") {
+        let _ = user
+            .dm(&ctx, |m| -> &mut serenity::builder::CreateMessage {
+               m.content("Hey ice, you were banned once again. Instead of wasting your time spamming here, please consider seeking help regarding your mental health.\nhttps://www.nimh.nih.gov/health/find-help/index.shtml")
             })
-        })
-        .await;
-
+            .await;
+    } else {
+        let _ = user
+            .dm(&ctx, |m| {
+                m.embed(|e| {
+                    e.title(format!("You where banned from {}", guild.name));
+                    e.field("Reason", reason, false)
+                })
+            })
+            .await;
+    }
     guild
         .ban_with_reason(&ctx, mentioned_user, delete_days, reason)
         .await?;
