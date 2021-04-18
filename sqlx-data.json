@@ -140,6 +140,42 @@
       "nullable": []
     }
   },
+  "2c91f63b9bbfe3be8aa84fd2f2920ec744fcc315aec8995ab80c5b6abf0f21aa": {
+    "query": "select name as \"name!\", moderator, content, official from tag where name=? COLLATE NOCASE",
+    "describe": {
+      "columns": [
+        {
+          "name": "name!",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "content",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "official",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "30d7db9f6e9e49c8612cc86d72a1075f22009de00d062e71a1758ce2edddbf66": {
     "query": "insert into fetch (usr, info) values (?1, ?2) on conflict(usr) do update set info=?2",
     "describe": {
@@ -316,42 +352,6 @@
       ]
     }
   },
-  "8249a85d3acfec589ed807883c4dd140bb2ddffa5f63bba17c64c30eeea31d45": {
-    "query": "select name as \"name!\", moderator, content, official from tag where name=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "name!",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "content",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "official",
-          "ordinal": 3,
-          "type_info": "Bool"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        true,
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d": {
     "query": "insert into highlights (word, usr) values (?, ?)",
     "describe": {
@@ -374,16 +374,6 @@
   },
   "b1ea1c6c33606aab4ac1ef8ff4edd0ef8e5c1a92ca14ff853fe489ccfc9cf77d": {
     "query": "update mute set active=false where usr=? and active=true",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "ba2ed31c3a7d31ff8476225947432cd359dd5590556f96d5a0e4a337deeca4eb": {
-    "query": "delete from tag where name=?",
     "describe": {
       "columns": [],
       "parameters": {
@@ -566,6 +556,16 @@
       "columns": [],
       "parameters": {
         "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "fd9087bdf617bf354cdedddc3c11992734e770ca3173f208fd54d0241163c741": {
+    "query": "delete from tag where name=? COLLATE NOCASE",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
       },
       "nullable": []
     }
