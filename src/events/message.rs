@@ -48,16 +48,17 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         err => log_error!("error while Handling a quoted message", err),
     };
 
-    let framework = ctx
-        .data
-        .read()
-        .await
-        .get::<crate::FrameworkKey>()
-        .unwrap()
-        .clone();
+    if msg.channel_id == config.channel_showcase {
+        let framework = ctx
+            .data
+            .read()
+            .await
+            .get::<crate::FrameworkKey>()
+            .unwrap()
+            .clone();
 
-    framework.dispatch(ctx, msg).await;
-
+        framework.dispatch(ctx, msg).await;
+    }
     Ok(())
 }
 

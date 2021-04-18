@@ -8,6 +8,7 @@ use super::*;
 #[command]
 #[usage("ban <@user> <reason>")]
 #[aliases("yeet")]
+#[only_in(guilds)]
 pub async fn ban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     do_ban(ctx, msg, args, 0).await?;
     Ok(())
@@ -15,9 +16,11 @@ pub async fn ban(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 
 /// Ban a user from the server, deleting all messages the user sent within the last day.
 #[command]
+#[only_in(guilds)]
 #[usage("delban <@user> <reason>")]
 #[aliases("delyeet")]
 #[help_available(false)]
+#[only_in(guilds)]
 pub async fn delban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     do_ban(ctx, msg, args, 1).await?;
     Ok(())

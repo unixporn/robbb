@@ -9,6 +9,7 @@ use std::collections::HashMap;
 
 /// Get statistics on what the community uses.
 #[command]
+#[only_in(guilds)]
 #[usage("top [field-name] [`regex`]")]
 #[example("!top")]
 #[example("!top Editor")]

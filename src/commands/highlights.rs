@@ -16,7 +16,7 @@ pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
 pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let trigger = args.message().trim().to_string();
     if trigger.is_empty() {
-        abort_with!(HIGHLIGHTS_COMMAND_OPTIONS.usage.unwrap_or_default());
+        abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS));
     } else if trigger.len() < 3 {
         abort_with!("highlight has to be longer than 2 characters");
     }

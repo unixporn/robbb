@@ -8,6 +8,7 @@ lazy_static::lazy_static! {
 
 /// Get people to vote on your question
 #[command]
+#[only_in(guilds)]
 #[usage("poll <question> OR poll multi [title] <one option per line>")]
 #[sub_commands(poll_multi)]
 pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {

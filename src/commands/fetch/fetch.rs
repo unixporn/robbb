@@ -4,6 +4,7 @@ use super::*;
 
 /// Fetch a users system information.
 #[command("fetch")]
+#[only_in(guilds)]
 #[usage("fetch [user] [field]")]
 pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;

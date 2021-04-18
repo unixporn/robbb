@@ -2,6 +2,7 @@ use super::*;
 
 /// Ping all online moderators. Do not abuse!
 #[command]
+#[only_in(guilds)]
 #[usage("modping <reason>")]
 pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     use OnlineStatus::*;

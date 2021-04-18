@@ -135,7 +135,7 @@ impl MessageExt for Message {
             .chain(
                 self.attachments
                     .iter()
-                    .find(|a| a.dimensions().is_some() && crate::util::is_image_file(&a.filename))
+                    .filter(|a| a.dimensions().is_some() && crate::util::is_image_file(&a.filename))
                     .map(|a| a.url.to_string()),
             )
             .collect_vec()

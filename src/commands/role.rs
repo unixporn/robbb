@@ -2,6 +2,7 @@ use super::*;
 
 /// Set your role. Use without arguments to see available roles.
 #[command]
+#[only_in(guilds)]
 #[usage("role [role-name]")]
 #[aliases("roles")]
 pub async fn role(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {

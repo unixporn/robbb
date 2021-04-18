@@ -3,6 +3,7 @@ use super::*;
 /// Show the profile-picture of a user.
 #[command]
 #[usage("pfp [user]")]
+#[only_in(guilds)]
 pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 

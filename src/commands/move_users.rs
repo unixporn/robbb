@@ -4,6 +4,7 @@ use crate::extensions::ChannelIdExt;
 use super::*;
 /// Move a conversation to a different channel.
 #[command("move")]
+#[only_in(guilds)]
 #[usage("move <#channel> [<user> ...]")]
 pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let channel = args
