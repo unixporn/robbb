@@ -2,18 +2,18 @@ use anyhow::*;
 
 use super::Db;
 
-use serenity::model::id::EmojiId;
+use serenity::model::{id::EmojiId, misc::EmojiIdentifier};
 
 pub struct EmojiData {
-    //You could store the emoji itself in here
-    //    emoji: Emoji,
+    emoji: EmojiIdentifier,
     reactions: u64,
     in_text: u64,
 }
 
-impl Default for EmojiData {
-    fn default() -> Self {
+impl EmojiData {
+    pub fn new(emoji_id: EmojiIdentifier) -> EmojiData {
         EmojiData {
+            emoji: emoji_id,
             reactions: 0,
             in_text: 0,
         }
@@ -31,7 +31,10 @@ impl Db {
         let emoji_str = emoji_name.as_ref();
         let id = emoji.0 as i64;
         let count = count as i64;
-        sqlx::query!("insert into emojis (emoji_id, emoji_name, reaction_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set reaction_usage=reaction_usage+?3", id, emoji_str, count).execute(&mut conn).await?;
+        sqlx::query!("insert into emojis (emoji_id, emoji_name, reaction_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set reaction_usage=reaction_usage+?3",
+            id, emoji_str, count)
+            .execute(&mut conn)
+            .await?;
         Ok(self.get_emoji_usage(emoji).await?)
     }
 
@@ -45,7 +48,10 @@ impl Db {
         let id = emoji.0 as i64;
         let emoji_str = emoji_name.as_ref();
         let count = count as i64;
-        sqlx::query!("insert into emojis (emoji_id, emoji_name, in_text_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",id, emoji_str, count).execute(&mut conn).await?;
+        sqlx::query!("insert into emojis (emoji_id, emoji_name, in_text_usage) values (?1, ?2, ?3) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",
+            id, emoji_str, count)
+            .execute(&mut conn)
+            .await?;
         Ok(self.get_emoji_usage(emoji).await?)
     }
 
@@ -61,5 +67,13 @@ impl Db {
                 reactions: x.reaction_usage as u64,
             })
             .unwrap_or_default())
+    }
+
+    pub async fn get_all_emojis(&self) -> Result<Vec<EmojiData>> {
+        let mut conn = self.pool.acquire().await?;
+        let records = sqlx::query!("select * from emojis")
+            .fetch_all(&mut conn)
+            .await?;
+        Ok(records.into_iter().map(|))
     }
 }
