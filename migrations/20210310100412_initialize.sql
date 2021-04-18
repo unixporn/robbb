@@ -49,11 +49,5 @@ CREATE TABLE IF NOT EXISTS tag (
     content text not null,
     official boolean not null
 );
-CREATE TABLE IF NOT EXISTS emojis (
-    "emoji_id" integer NOT NULL,
-	"emoji_name"	TEXT,
-	"in_text_usage"	integer NOT NULL DEFAULT 0,
-	"reaction_usage"	integer NOT NULL DEFAULT 0,
-	PRIMARY KEY("emoji_id")
-);
+
 
