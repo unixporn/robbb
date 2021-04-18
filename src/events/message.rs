@@ -48,7 +48,7 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         err => log_error!("error while Handling a quoted message", err),
     };
 
-    if msg.channel_id == config.channel_showcase {
+    if msg.channel_id != config.channel_showcase || msg.is_private() {
         let framework = ctx
             .data
             .read()
