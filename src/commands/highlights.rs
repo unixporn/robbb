@@ -22,10 +22,7 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
     }
 
     let db: Arc<Db> = ctx.get_db().await;
-    let max_highlight_cnt = match crate::checks::get_permission_level(ctx, msg)
-        .await
-        .unwrap_or(PermissionLevel::User)
-    {
+    let max_highlight_cnt = match crate::checks::get_permission_level(ctx, msg).await {
         PermissionLevel::Mod => 20,
         _ => 4,
     };

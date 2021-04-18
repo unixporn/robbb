@@ -37,7 +37,7 @@ async fn do_ban(
         .single::<UserId>()
         .invalid_usage(&BAN_COMMAND_OPTIONS)?;
 
-    let permission_level = checks::get_permission_level(&ctx, &msg).await?;
+    let permission_level = checks::get_permission_level(&ctx, &msg).await;
     if permission_level == PermissionLevel::Helper
         && Utc::now().signed_duration_since(mentioned_user.created_at()) > Duration::days(3)
     {

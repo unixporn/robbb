@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::checks::{self, PermissionLevel};
 use crate::log_error;
 use crate::{attachment_logging, db::note::NoteType};
 use chrono::Utc;
@@ -193,6 +194,12 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
 }
 
 async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
+    // don't block words by moderators
+    let permission_level = checks::get_permission_level(&ctx, &msg).await;
+    if permission_level == PermissionLevel::Mod {
+        return Ok(false);
+    }
+
     let (config, db) = ctx.get_config_and_db().await;
 
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
