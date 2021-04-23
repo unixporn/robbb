@@ -14,7 +14,7 @@ pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
 #[command("add")]
 #[usage("!highlights add <word>")]
 pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let trigger = args.message().trim().to_string();
+    let trigger = args.message().trim().to_lowercase();
     if trigger.is_empty() {
         abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS));
     } else if trigger.len() < 3 {
@@ -41,19 +41,22 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
         .id
         .create_dm_channel(&ctx)
         .await
-        .user_error("Couldn't open a DM to you - do you have DMs enabled?")?
+        .user_error("Couldn't open a DM to you - do you have me blocked?")?
         .send_message(&ctx, |m| {
             m.embed(|e| {
-                e.title("Highlight added");
-                e.description(format!("Notifying you whenever someone says `{}`", trigger))
+                e.title("Test to see if you can receive DMs");
+                e.description(format!(
+                    "If everything went ok, you'll be notified whenever someone says `{}`",
+                    trigger
+                ))
             })
         })
         .await
-        .user_error("Couldn't send you a DM :/\nDid you change your DM settings recently? ")?;
+        .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
 
     db.set_highlight(msg.author.id, trigger.clone())
         .await
-        .user_error("Something went wrong")?;
+        .user_error("Couldn't add highlight, something went wrong")?;
 
     msg.reply_success(
         &ctx,
