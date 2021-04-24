@@ -15,7 +15,7 @@ use indoc::indoc;
 
 mod guild_member_addition;
 mod guild_member_removal;
-mod message;
+mod message_create;
 mod message_delete;
 mod message_update;
 mod reaction_add;
@@ -35,7 +35,7 @@ impl EventHandler for Handler {
     async fn message(&self, ctx: client::Context, msg: Message) {
         log_error!(
             "Error while handling message event",
-            message::message(ctx, msg).await
+            message_create::message_create(ctx, msg).await
         )
     }
 

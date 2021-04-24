@@ -11,7 +11,7 @@ use serenity::framework::Framework;
 
 use super::*;
 
-pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
+pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
     let config = ctx.get_config().await;
 
     if msg.author.bot {
