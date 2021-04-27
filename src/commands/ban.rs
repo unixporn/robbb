@@ -64,7 +64,7 @@ async fn do_ban(
         let _ = user
             .dm(&ctx, |m| {
                 m.embed(|e| {
-                    e.title(format!("You where banned from {}", guild.name));
+                    e.title(format!("You were banned from {}", guild.name));
                     e.field("Reason", reason, false)
                 })
             })
