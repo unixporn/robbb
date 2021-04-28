@@ -10,7 +10,7 @@ serenity = { version = "0.10", features = ["collector"]}
 serenity_utils = "0.6"
 anyhow = "1.0"
 chrono = "0.4"
-chrono-humanize = "0.1"
+chrono-humanize = "0.2"
 itertools = "0.10"
 indoc = "1.0"
 lazy_static = "1.4"
