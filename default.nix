@@ -1,6 +1,7 @@
 { callPackage,
   pkg-config,
   openssl,
+  cacert,
   dockerTools,
   trupSrc,
   trupRev,
@@ -21,6 +22,9 @@
     tag = trupRev;
     config = {
       Cmd = [ "${trup-rs}/bin/trup-rs" ];
+      Env = [
+        "NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt"
+      ];
     };
   };
 }
