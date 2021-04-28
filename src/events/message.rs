@@ -266,25 +266,38 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         .messages(&ctx, |m| m.before(msg.id).limit(10))
         .await?;
 
-    let msgs = msgs
+    let spam_msgs = msgs
         .iter()
-        .filter(|x| {
-            x.author.id == msg.author.id
-                && x.channel_id == msg.channel_id
-                && x.content == msg.content
-        })
+        .filter(|x| x.author == msg.author && x.content == msg.content)
         .collect_vec();
 
-    let is_spam = msgs.len() > 3
-        && match msgs.iter().minmax_by_key(|x| x.timestamp) {
-            itertools::MinMaxResult::NoElements => true,
-            itertools::MinMaxResult::OneElement(_) => true,
+    let is_spam = spam_msgs.len() > 3
+        && match spam_msgs.iter().minmax_by_key(|x| x.timestamp) {
+            itertools::MinMaxResult::NoElements => false,
+            itertools::MinMaxResult::OneElement(_) => false,
             itertools::MinMaxResult::MinMax(min, max) => {
                 (max.timestamp - min.timestamp).num_minutes() < 2
             }
         };
 
-    if is_spam {
+    let default_pfp = msg.author.avatar.is_none();
+    let ping_spam_msgs = msgs.iter().filter(|x| x.author == msg.author).collect_vec();
+    let is_ping_spam = default_pfp
+        && ping_spam_msgs.len() > 3
+        && ping_spam_msgs
+            .iter()
+            .map(|m| m.mentions.len())
+            .sum::<usize>() as f32
+            >= ping_spam_msgs.len() as f32 * 1.5
+        && match spam_msgs.iter().minmax_by_key(|x| x.timestamp) {
+            itertools::MinMaxResult::NoElements => false,
+            itertools::MinMaxResult::OneElement(_) => false,
+            itertools::MinMaxResult::MinMax(min, max) => {
+                (max.timestamp - min.timestamp).num_minutes() < 2
+            }
+        };
+
+    if is_spam || is_ping_spam {
         let config = ctx.get_config().await;
 
         let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
@@ -308,6 +321,11 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
                 );
             })
             .await;
+        log_error!(
+            msg.channel_id
+                .delete_messages(&ctx, msgs.iter().filter(|m| m.author == msg.author))
+                .await
+        );
         Ok(true)
     } else {
         Ok(false)
