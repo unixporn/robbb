@@ -94,7 +94,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
                 [link to message]({})
 
                 Don't care about this anymore? 
-                Run `!highlights remove {}` in #bot to stop getting these notifications.",
+                Run `!highlights remove {}` in <#655947537538088962> to stop getting these notifications.",
                 word,
                 msg.channel_id.mention(),
                 msg.link(),
