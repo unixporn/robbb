@@ -149,11 +149,18 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
 
 async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     lazy_static::lazy_static! {
-        static ref MSG_LINK_PATTERN: Regex = Regex::new(r#"https://(?:canary\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)"#).unwrap();
+        static ref MSG_LINK_PATTERN: Regex = Regex::new(r#"<?https://(?:canary\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)>?"#).unwrap();
     }
 
     let caps = match MSG_LINK_PATTERN.captures(&msg.content) {
-        Some(caps) => caps,
+        Some(caps) => {
+            let whole_match = caps.get(0).unwrap().as_str();
+            if whole_match.starts_with('<') && whole_match.ends_with('>') {
+                return Ok(false);
+            } else {
+                caps
+            }
+        }
         None => return Ok(false),
     };
 
