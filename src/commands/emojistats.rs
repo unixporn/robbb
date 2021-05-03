@@ -102,7 +102,7 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
             .await?;
         }
     }
-    return Ok(());
+    Ok(())
 }
 fn sort_emojis(
     mode: &DisplayMode,
