@@ -1,6 +1,7 @@
 use super::*;
 /// Unban a user.
 #[command]
+#[only_in(guilds)]
 #[usage("unban <user>")]
 pub async fn unban(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let config = ctx.get_config().await;

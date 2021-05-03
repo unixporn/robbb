@@ -2,6 +2,7 @@ use super::*;
 
 /// Restart the bot.
 #[command]
+#[only_in(guilds)]
 #[usage("restart")]
 pub async fn restart(ctx: &client::Context, msg: &Message) -> CommandResult {
     let _ = msg.reply(&ctx, "Shutting down").await;
@@ -12,6 +13,7 @@ pub async fn restart(ctx: &client::Context, msg: &Message) -> CommandResult {
 
 /// Make the bot say something. Please don't actually use this :/
 #[command]
+#[only_in(guilds)]
 #[usage("say <something>")]
 pub async fn say(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let content = args.remains().invalid_usage(&SAY_COMMAND_OPTIONS)?;
@@ -24,6 +26,7 @@ pub async fn say(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 
 /// Print bot's latency to discord.
 #[command]
+#[only_in(guilds)]
 #[usage("latency")]
 pub async fn latency(ctx: &client::Context, msg: &Message) -> CommandResult {
     let msg_time = msg.timestamp;
@@ -37,6 +40,7 @@ pub async fn latency(ctx: &client::Context, msg: &Message) -> CommandResult {
 
 /// Sends a link to the bot's repository! Feel free contribute!
 #[command]
+#[only_in(guilds)]
 #[usage("repo")]
 pub async fn repo(ctx: &client::Context, msg: &Message) -> CommandResult {
     msg.reply(&ctx, "https://github.com/unixporn/trup-rs")
@@ -46,6 +50,7 @@ pub async fn repo(ctx: &client::Context, msg: &Message) -> CommandResult {
 
 /// set your profiles description.
 #[command]
+#[only_in(guilds)]
 #[usage("desc <text>")]
 #[aliases("description")]
 pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
@@ -80,6 +85,7 @@ pub async fn desc(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 
 /// Provide a link to your git.
 #[command]
+#[only_in(guilds)]
 #[usage("git <url>")]
 pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db = ctx.get_db().await;
@@ -108,6 +114,7 @@ pub async fn git(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 
 /// Provide a link to your dotfiles
 #[command]
+#[only_in(guilds)]
 #[usage("dotfiles <url>")]
 pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db = ctx.get_db().await;
@@ -141,8 +148,9 @@ pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> Comma
 
 /// Sends the server invite link
 #[command]
+#[only_in(guilds)]
 #[usage("invite")]
 pub async fn invite(ctx: &client::Context, msg: &Message) -> CommandResult {
-    msg.reply(&ctx, "https://discord.gg/TnJ4h5K").await?;
+    msg.reply(&ctx, "https://discord.gg/4M7SYzn3BW").await?;
     Ok(())
 }

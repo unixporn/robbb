@@ -4,6 +4,7 @@ use super::*;
 
 /// Write a note about a user.
 #[command]
+#[only_in(guilds)]
 #[usage("note <user> <content> | note undo <user>")]
 #[sub_commands(undo_note)]
 pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -48,6 +49,7 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
 /// Read notes about a user.
 #[command]
+#[only_in(guilds)]
 #[usage("notes <user> [all|mod|warn|mute|blocklist]")]
 pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;

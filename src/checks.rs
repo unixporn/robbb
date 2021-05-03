@@ -1,4 +1,4 @@
-use crate::extensions::clientContextExt;
+use crate::extensions::ClientContextExt;
 use anyhow::*;
 use serenity::client;
 use serenity::framework::standard::macros::check;
@@ -69,14 +69,15 @@ pub enum PermissionLevel {
     Helper,
     User,
 }
-pub async fn get_permission_level(ctx: &client::Context, msg: &Message) -> Result<PermissionLevel> {
+
+pub async fn get_permission_level(ctx: &client::Context, msg: &Message) -> PermissionLevel {
     let config = ctx.get_config().await;
 
     if check_role(&ctx, &msg, config.role_mod).await.is_ok() {
-        Ok(PermissionLevel::Mod)
+        PermissionLevel::Mod
     } else if check_role(&ctx, &msg, config.role_helper).await.is_ok() {
-        Ok(PermissionLevel::Helper)
+        PermissionLevel::Helper
     } else {
-        Ok(PermissionLevel::User)
+        PermissionLevel::User
     }
 }

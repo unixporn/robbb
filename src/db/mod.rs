@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use anyhow::*;
 
+use serenity::model::id::UserId;
 use serenity::{futures::lock::Mutex, prelude::TypeMapKey};
 use sqlx::SqlitePool;
-
+use std::collections::HashMap;
 pub mod blocklist;
 pub mod emoji_logging;
 pub mod fetch;
+pub mod highlights;
 pub mod mute;
 pub mod note;
 pub mod profile;
@@ -17,6 +19,7 @@ pub mod warn;
 pub struct Db {
     pool: SqlitePool,
     blocklist_cache: Arc<Mutex<Option<Vec<String>>>>,
+    highlight_cache: Mutex<Option<highlights::HighlightsData>>,
 }
 
 impl TypeMapKey for Db {
@@ -29,6 +32,7 @@ impl Db {
         Ok(Self {
             pool,
             blocklist_cache: Arc::new(Mutex::new(None)),
+            highlight_cache: Mutex::new(None),
         })
     }
 

@@ -46,7 +46,7 @@ impl Db {
     pub async fn get_tag(&self, name: &str) -> Result<Option<Tag>> {
         let mut conn = self.pool.acquire().await?;
         Ok(sqlx::query!(
-            r#"select name as "name!", moderator, content, official from tag where name=?"#,
+            r#"select name as "name!", moderator, content, official from tag where name=? COLLATE NOCASE"#,
             name
         )
         .fetch_optional(&mut conn)
@@ -61,7 +61,7 @@ impl Db {
 
     pub async fn delete_tag(&self, name: String) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
-        sqlx::query!(r#"delete from tag where name=?"#, name)
+        sqlx::query!(r#"delete from tag where name=? COLLATE NOCASE"#, name)
             .execute(&mut conn)
             .await?;
         Ok(())

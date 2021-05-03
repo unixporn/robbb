@@ -8,6 +8,7 @@ use super::*;
 #[command]
 #[usage("ban <@user> <reason>")]
 #[aliases("yeet")]
+#[only_in(guilds)]
 pub async fn ban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     do_ban(ctx, msg, args, 0).await?;
     Ok(())
@@ -15,9 +16,11 @@ pub async fn ban(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 
 /// Ban a user from the server, deleting all messages the user sent within the last day.
 #[command]
+#[only_in(guilds)]
 #[usage("delban <@user> <reason>")]
 #[aliases("delyeet")]
 #[help_available(false)]
+#[only_in(guilds)]
 pub async fn delban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     do_ban(ctx, msg, args, 1).await?;
     Ok(())
@@ -37,7 +40,7 @@ async fn do_ban(
         .single::<UserId>()
         .invalid_usage(&BAN_COMMAND_OPTIONS)?;
 
-    let permission_level = checks::get_permission_level(&ctx, &msg).await?;
+    let permission_level = checks::get_permission_level(&ctx, &msg).await;
     if permission_level == PermissionLevel::Helper
         && Utc::now().signed_duration_since(mentioned_user.created_at()) > Duration::days(3)
     {
@@ -51,15 +54,22 @@ async fn do_ban(
         .await
         .context("Failed to retrieve user for banned user")?;
 
-    let _ = user
-        .dm(&ctx, |m| {
-            m.embed(|e| {
-                e.title(format!("You where banned from {}", guild.name));
-                e.field("Reason", reason, false)
+    if reason.to_string().contains("ice") {
+        let _ = user
+            .dm(&ctx, |m| -> &mut serenity::builder::CreateMessage {
+               m.content("Hey ice, you were banned once again. Instead of wasting your time spamming here, please consider seeking help regarding your mental health.\nhttps://www.nimh.nih.gov/health/find-help/index.shtml")
             })
-        })
-        .await;
-
+            .await;
+    } else {
+        let _ = user
+            .dm(&ctx, |m| {
+                m.embed(|e| {
+                    e.title(format!("You were banned from {}", guild.name));
+                    e.field("Reason", reason, false)
+                })
+            })
+            .await;
+    }
     guild
         .ban_with_reason(&ctx, mentioned_user, delete_days, reason)
         .await?;

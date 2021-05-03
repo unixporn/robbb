@@ -4,3 +4,5 @@ flake.lock
 trup.db-*
 trup.db
 cache
+base.db-shm
+base.db-wal

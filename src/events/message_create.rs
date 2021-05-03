@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+
+use crate::checks::{self, PermissionLevel};
 use crate::log_error;
 use crate::{attachment_logging, db::note::NoteType};
 use chrono::Utc;
@@ -8,7 +11,7 @@ use serenity::framework::Framework;
 
 use super::*;
 
-pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
+pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
     let config = ctx.get_config().await;
 
     if msg.author.bot {
@@ -16,12 +19,6 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
     }
 
     handle_attachment_logging(&ctx, &msg).await;
-
-    let bot_id = ctx.cache.current_user_id().await;
-    let mention_bot: bool = msg.mentions.iter().any(|x| x.id == bot_id);
-    if mention_bot {
-        msg.reply(&ctx, "need help? Type `!help`").await?;
-    }
 
     if msg.channel_id == config.channel_showcase {
         log_error!(handle_showcase_post(&ctx, &msg).await);
@@ -41,22 +38,90 @@ pub async fn message(ctx: client::Context, msg: Message) -> Result<()> {
         Ok(false) => {}
         err => log_error!("error while handling blocklist", err),
     };
+
+    match handle_highlighting(&ctx, &msg).await {
+        Ok(_) => {}
+        err => log_error!("error while checking/handling highlights", err),
+    }
+
     match handle_quote(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(false) => {}
         err => log_error!("error while Handling a quoted message", err),
     };
 
-    let framework = ctx
-        .data
-        .read()
+    if msg.channel_id != config.channel_showcase || msg.is_private() {
+        let framework = ctx
+            .data
+            .read()
+            .await
+            .get::<crate::FrameworkKey>()
+            .unwrap()
+            .clone();
+
+        framework.dispatch(ctx, msg).await;
+    }
+    Ok(())
+}
+
+async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()> {
+    // don't trigger on bot commands
+    if msg.content.starts_with('!') {
+        return Ok(());
+    }
+
+    let (config, db) = ctx.get_config_and_db().await;
+
+    let channel = msg
+        .channel(&ctx)
         .await
-        .get::<crate::FrameworkKey>()
-        .unwrap()
-        .clone();
+        .context("Couldn't get channel")?
+        .guild()
+        .context("Couldn't get server")?;
 
-    framework.dispatch(ctx, msg).await;
+    if config.category_mod_private == channel.category_id.context("Couldn't get category_id")? {
+        return Ok(());
+    }
 
+    let highlights_data = db.get_highlights().await?;
+
+    let mut handled_users = HashSet::new();
+
+    for (word, users) in highlights_data.get_triggers_for_message(&msg.content) {
+        let mut embed = serenity::builder::CreateEmbed::default();
+        embed
+            .title("Highlight notification")
+            .description(indoc::formatdoc!(
+                "`{}` has been mentioned in {}
+                [link to message]({})
+
+                Don't care about this anymore? 
+                Run `!highlights remove {}` in #bot to stop getting these notifications.",
+                word,
+                msg.channel_id.mention(),
+                msg.link(),
+                word
+            ))
+            .author(|a| {
+                a.name(&msg.author.tag());
+                a.icon_url(&msg.author.face())
+            })
+            .timestamp(&msg.timestamp)
+            .footer(|f| f.text(format!("#{}", channel.name)));
+
+        for user_id in users {
+            if user_id == msg.author.id || handled_users.contains(&user_id) {
+                continue;
+            }
+            handled_users.insert(user_id);
+
+            if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
+                let _ = dm_channel
+                    .send_message(&ctx, |m| m.set_embed(embed.clone()))
+                    .await;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -158,6 +223,12 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
 }
 
 async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
+    // don't block words by moderators
+    let permission_level = checks::get_permission_level(&ctx, &msg).await;
+    if permission_level == PermissionLevel::Mod {
+        return Ok(false);
+    }
+
     let (config, db) = ctx.get_config_and_db().await;
 
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
@@ -223,25 +294,38 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         .messages(&ctx, |m| m.before(msg.id).limit(10))
         .await?;
 
-    let msgs = msgs
+    let spam_msgs = msgs
         .iter()
-        .filter(|x| {
-            x.author.id == msg.author.id
-                && x.channel_id == msg.channel_id
-                && x.content == msg.content
-        })
+        .filter(|x| x.author == msg.author && x.content == msg.content)
         .collect_vec();
 
-    let is_spam = msgs.len() > 3
-        && match msgs.iter().minmax_by_key(|x| x.timestamp) {
-            itertools::MinMaxResult::NoElements => true,
-            itertools::MinMaxResult::OneElement(_) => true,
+    let is_spam = spam_msgs.len() > 3
+        && match spam_msgs.iter().minmax_by_key(|x| x.timestamp) {
+            itertools::MinMaxResult::NoElements => false,
+            itertools::MinMaxResult::OneElement(_) => false,
             itertools::MinMaxResult::MinMax(min, max) => {
                 (max.timestamp - min.timestamp).num_minutes() < 2
             }
         };
 
-    if is_spam {
+    let default_pfp = msg.author.avatar.is_none();
+    let ping_spam_msgs = msgs.iter().filter(|x| x.author == msg.author).collect_vec();
+    let is_ping_spam = default_pfp
+        && ping_spam_msgs.len() > 3
+        && ping_spam_msgs
+            .iter()
+            .map(|m| m.mentions.len())
+            .sum::<usize>() as f32
+            >= ping_spam_msgs.len() as f32 * 1.5
+        && match spam_msgs.iter().minmax_by_key(|x| x.timestamp) {
+            itertools::MinMaxResult::NoElements => false,
+            itertools::MinMaxResult::OneElement(_) => false,
+            itertools::MinMaxResult::MinMax(min, max) => {
+                (max.timestamp - min.timestamp).num_minutes() < 2
+            }
+        };
+
+    if is_spam || is_ping_spam {
         let config = ctx.get_config().await;
 
         let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
@@ -265,6 +349,11 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
                 );
             })
             .await;
+        log_error!(
+            msg.channel_id
+                .delete_messages(&ctx, msgs.iter().filter(|m| m.author == msg.author))
+                .await
+        );
         Ok(true)
     } else {
         Ok(false)
@@ -272,27 +361,29 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 }
 
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
-    if msg.attachments.is_empty() && msg.embeds.is_empty() {
+    if msg.attachments.is_empty() && msg.embeds.is_empty() && !msg.content.contains("http") {
         msg.delete(&ctx)
             .await
             .context("Failed to delete invalid showcase submission")?;
         msg.author.direct_message(&ctx, |f| {
                 f.content(indoc!("
                     Your showcase submission was detected to be invalid. If you wanna comment on a rice, use the #ricing-theming channel.
-                    If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup
+                    If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup-rs
                 "))
             }).await.context("Failed to send DM about invalid showcase submission")?;
-    } else if let Some(attachment) = msg.attachments.first() {
+    } else {
         msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
             .await
             .context("Error reacting to showcase submission with ❤️")?;
 
-        if crate::util::is_image_file(&attachment.filename) {
-            let db = ctx.get_db().await;
-            db.update_fetch(
-                msg.author.id,
-                hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
-            ).await?;
+        if let Some(attachment) = msg.attachments.first() {
+            if crate::util::is_image_file(&attachment.filename) {
+                let db = ctx.get_db().await;
+                db.update_fetch(
+                    msg.author.id,
+                    hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
+                ).await?;
+            }
         }
     }
     Ok(())

@@ -2,6 +2,7 @@ use super::*;
 
 /// Mute a user for a given amount of time.
 #[command]
+#[only_in(guilds)]
 #[usage("mute <user> <duration> [reason]")]
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let config = ctx.get_config().await;

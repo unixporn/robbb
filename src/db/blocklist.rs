@@ -1,6 +1,6 @@
 use anyhow::*;
 use itertools::Itertools;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use serenity::model::id::UserId;
 
 use super::Db;
@@ -11,7 +11,9 @@ impl Db {
         if blocklist.is_empty() {
             Ok(Regex::new("a^").unwrap())
         } else {
-            Ok(Regex::new(&blocklist.join("|"))?)
+            Ok(RegexBuilder::new(&blocklist.join("|"))
+                .case_insensitive(true)
+                .build()?)
         }
     }
 

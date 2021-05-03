@@ -21,6 +21,7 @@ impl FromStr for DeletionRange {
 /// **silently** delete <amount> messages sent by <user> in the current channel or messages sent in the last <duration> by <user>.
 /// Doesn't delete messages older than 14 days.
 #[command]
+#[only_in(guilds)]
 #[usage("spurge <amount OR duration> <@user>")]
 #[help_available(false)]
 pub async fn spurge(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
@@ -31,6 +32,7 @@ pub async fn spurge(ctx: &client::Context, msg: &Message, args: Args) -> Command
 /// Doesn't delete messages older than 14 days.
 /// (use `spurge` to do this silently)
 #[command]
+#[only_in(guilds)]
 #[usage("purge <amount OR duration> <@user>")]
 pub async fn purge(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     do_purge(&ctx, &msg, args, false).await

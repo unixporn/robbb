@@ -4,6 +4,7 @@ use super::*;
 #[command]
 #[usage("tag <name> OR tag list")]
 #[sub_commands(list_tags, set_tag)]
+#[only_in(guilds)]
 pub async fn tag(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db = ctx.get_db().await;
     let tag_name = args.remains().invalid_usage(&TAG_COMMAND_OPTIONS)?;

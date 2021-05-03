@@ -4,6 +4,7 @@ use super::*;
 
 /// Control the blocklist
 #[command]
+#[only_in(guilds)]
 #[sub_commands(blocklist_add, blocklist_remove, blocklist_get)]
 #[usage("blocklist <add | get | remove>")]
 pub async fn blocklist(_ctx: &client::Context, _msg: &Message) -> CommandResult {

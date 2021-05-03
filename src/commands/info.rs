@@ -1,6 +1,7 @@
 use super::*;
 /// General information over a user.
 #[command]
+#[only_in(guilds)]
 #[usage("info [user]")]
 pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;

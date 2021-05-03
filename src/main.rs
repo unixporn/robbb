@@ -98,6 +98,7 @@ impl Config {
             .guild
             .send_embed(&ctx, self.channel_modlog, build_embed)
             .await;
+
         log_error!(result);
     }
     async fn log_automod_action<F>(&self, ctx: &client::Context, build_embed: F)

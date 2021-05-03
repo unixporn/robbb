@@ -2,6 +2,7 @@ use super::*;
 
 /// Warn a user for a given reason.
 #[command]
+#[only_in(guilds)]
 #[usage("warn <user> <reason> | warn undo <user>")]
 #[sub_commands(undo_warn)]
 pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {

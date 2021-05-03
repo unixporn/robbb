@@ -27,6 +27,7 @@ pub mod emojistats;
 pub mod errors;
 pub mod fetch;
 pub mod help;
+pub mod highlights;
 pub mod info;
 pub mod modping;
 pub mod move_users;
@@ -48,6 +49,7 @@ use emojistats::*;
 pub use errors::*;
 pub use fetch::*;
 pub use help::*;
+use highlights::*;
 use info::*;
 use modping::*;
 use move_users::*;
@@ -64,9 +66,27 @@ use unban::*;
 use version::*;
 use warn::*;
 
-lazy_static::lazy_static! {
-    pub static ref SELECTION_EMOJI: Vec<&'static str> = vec!["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "\u{1f1e6}","\u{1f1e7}", "\u{1f1e8}", "\u{1f1e9}", "\u{1f1f0}", "\u{1f1f1}", "\u{1f1f2}", "\u{1f1f3}", "\u{1f1f4}" ];
-}
+pub static SELECTION_EMOJI: [&str; 19] = [
+    "1️⃣",
+    "2️⃣",
+    "3️⃣",
+    "4️⃣",
+    "5️⃣",
+    "6️⃣",
+    "7️⃣",
+    "8️⃣",
+    "9️⃣",
+    "🔟",
+    "\u{1f1e6}",
+    "\u{1f1e7}",
+    "\u{1f1e8}",
+    "\u{1f1e9}",
+    "\u{1f1f0}",
+    "\u{1f1f1}",
+    "\u{1f1f2}",
+    "\u{1f1f3}",
+    "\u{1f1f4}",
+];
 
 #[group]
 #[only_in(guilds)]
@@ -83,10 +103,9 @@ struct Moderator;
 struct HelperOrMod;
 
 #[group]
-#[only_in(guilds)]
 #[commands(
-    info, modping, pfp, move_users, emojistats, repo, set_fetch, fetch, desc, git, dotfiles, poll,
-    role, top, tag, invite, version
+    info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
+    tag, invite, version, highlights, emojistats
 )]
 #[checks(channel_allows_commands)]
 struct General;
