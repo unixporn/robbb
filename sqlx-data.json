@@ -352,22 +352,22 @@
       ]
     }
   },
-  "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d": {
-    "query": "insert into highlights (word, usr) values (?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
   "96009f2562711db52ac4a017278d3e0329cb3431656240babf0d25af111404ed": {
     "query": "insert into emojis (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",
     "describe": {
       "columns": [],
       "parameters": {
         "Right": 4
+      },
+      "nullable": []
+    }
+  },
+  "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d": {
+    "query": "insert into highlights (word, usr) values (?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
       },
       "nullable": []
     }
