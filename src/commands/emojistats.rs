@@ -1,3 +1,6 @@
+use serenity::http::CacheHttp;
+use std::collections::hash_map::HashMap;
+
 use super::*;
 
 enum DisplayMode {
@@ -19,8 +22,16 @@ use crate::db::emoji_logging::EmojiData;
 #[usage("emojistats [emoji] ")]
 #[usage("emojistats [emoji] [in_text or reactions]")]
 pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let guild = msg
+        .guild(
+            ctx.cache()
+                .context("Cache is empty")
+                .context("Could not get cache")?,
+        )
+        .await
+        .context("Could not get guild")?;
     let db: std::sync::Arc<Db> = ctx.get_db().await;
-
+    let guild_emojis = guild.emojis;
     let emojis = db.get_all_emojis().await?.collect_vec();
 
     let mut display_mode: Option<DisplayMode> = None;
@@ -80,24 +91,18 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
             .await?;
         }
         OrderingMode::Top => {
-            let (sorted, emojis) = sort_emojis(&display_mode, emojis.into_iter());
+            let emojis = sort_emojis(&display_mode, emojis.into_iter());
             msg.reply_embed(ctx, |e| {
-                e.title(format!(
-                    "Usage sorted from top to bottom based on {} ",
-                    sorted
-                ));
-                e.description(display_emojis(emojis, &display_mode));
+                e.title("Emoji Statistics");
+                e.description(display_emojis(&guild_emojis, emojis, &display_mode));
             })
             .await?;
         }
         OrderingMode::Bottom => {
-            let (sorted, emojis) = sort_emojis(&display_mode, emojis.into_iter());
+            let emojis = sort_emojis(&display_mode, emojis.into_iter());
             msg.reply_embed(ctx, |e| {
-                e.title(format!(
-                    "Usage sorted from bottom to top based on {}",
-                    sorted
-                ));
-                e.description(display_emojis(emojis.rev(), &display_mode));
+                e.title("Emoji Statistics");
+                e.description(display_emojis(&guild_emojis, emojis, &display_mode));
             })
             .await?;
         }
@@ -107,33 +112,36 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
 fn sort_emojis(
     mode: &DisplayMode,
     emojis: impl DoubleEndedIterator<Item = EmojiData>,
-) -> (&str, impl DoubleEndedIterator<Item = EmojiData>) {
+) -> impl DoubleEndedIterator<Item = EmojiData> {
     use DisplayMode::*;
     match mode {
-        InText => (
-            "in text usage",
-            emojis.sorted_by(|a, b| (a.in_text).cmp(&b.in_text)),
-        ),
-        Reactions => (
-            "reactions",
-            emojis.sorted_by(|a, b| (a.reactions).cmp(&b.reactions)),
-        ),
-        Both => (
-            "both reactions and in text usage",
-            emojis.sorted_by(|a, b| (a.in_text + a.reactions).cmp(&(b.in_text + b.reactions))),
-        ),
+        InText => emojis.sorted_by(|a, b| (a.in_text).cmp(&b.in_text)),
+
+        Reactions => emojis.sorted_by(|a, b| (a.reactions).cmp(&b.reactions)),
+
+        Both => emojis.sorted_by(|a, b| (a.in_text + a.reactions).cmp(&(b.in_text + b.reactions))),
     }
 }
 
-fn display_emojis(emojis: impl Iterator<Item = EmojiData>, mode: &DisplayMode) -> String {
+fn display_emojis(
+    servemojis: &HashMap<EmojiId, Emoji>,
+    emojis: impl Iterator<Item = EmojiData>,
+    mode: &DisplayMode,
+) -> String {
     use DisplayMode::*;
-
     emojis
-        .map(|d| {
+        .enumerate()
+        .map(|(num, d)| {
+            let print_emoji = servemojis
+                .get(&d.emoji.id)
+                .context("Emoji id could not be found")
+                .unwrap();
             format!(
-                "**{}** animated: {}    ***{}***",
-                d.emoji.name,
-                d.emoji.animated,
+                "**{}**. {} {} {} ({})",
+                num + 1,
+                print_emoji.name,
+                print_emoji,
+                if print_emoji.animated { "animated" } else { "" },
                 match mode {
                     Both => d.reactions + d.in_text,
                     InText => d.in_text,
