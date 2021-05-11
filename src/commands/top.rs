@@ -46,7 +46,10 @@ async fn top_for_regex(
     field_name: &str,
     value_pattern: &str,
 ) -> CommandResult {
-    let regex = Regex::new(&value_pattern).user_error("Invalid regex")?;
+    let regex = regex::RegexBuilder::new(&value_pattern)
+        .case_insensitive(true)
+        .build()
+        .user_error("Invalid regex")?;
 
     let field_values = fetches
         .into_iter()
