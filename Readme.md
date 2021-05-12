@@ -1,4 +1,4 @@
-# Trup, but Rust!
+# Say hi to Robbb!
 
 **A Discord bot for the Unixporn community**
 
