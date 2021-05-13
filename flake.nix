@@ -1,5 +1,5 @@
 {
-  description = "Trup rewrite in rust";
+  description = "r/unixporn discord bot";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";

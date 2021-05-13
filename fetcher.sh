@@ -211,5 +211,5 @@ elif [ "$kernel" = "Darwin" ]; then
 
   print
 else
-  echo "Unsupported OS; please add support on https://github.com/unixporn/trup-rs"
+  echo "Unsupported OS; please add support on https://github.com/unixporn/robbb"
 fi

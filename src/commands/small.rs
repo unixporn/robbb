@@ -43,8 +43,7 @@ pub async fn latency(ctx: &client::Context, msg: &Message) -> CommandResult {
 #[only_in(guilds)]
 #[usage("repo")]
 pub async fn repo(ctx: &client::Context, msg: &Message) -> CommandResult {
-    msg.reply(&ctx, "https://github.com/unixporn/trup-rs")
-        .await?;
+    msg.reply(&ctx, "https://github.com/unixporn/robbb").await?;
     Ok(())
 }
 

@@ -347,7 +347,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
         msg.author.direct_message(&ctx, |f| {
                 f.content(indoc!("
                     Your showcase submission was detected to be invalid. If you wanna comment on a rice, use the #ricing-theming channel.
-                    If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup-rs
+                    If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/robbb
                 "))
             }).await.context("Failed to send DM about invalid showcase submission")?;
     } else {

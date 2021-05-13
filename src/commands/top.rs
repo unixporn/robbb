@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use regex::Regex;
 
 use crate::db::fetch::Fetch;
 
