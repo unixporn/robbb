@@ -314,7 +314,7 @@ fn init_logger() {
                 r.args()
             )
         })
-        .filter_module("trup_rs", log::LevelFilter::Info);
+        .filter_module("robbb", log::LevelFilter::Info);
 
     if let Ok(log_var) = std::env::var("RUST_LOG") {
         builder.parse_filters(&log_var);

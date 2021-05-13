@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
     Run this: 
-    `curl -s https://raw.githubusercontent.com/unixporn/trup-rs/master/fetcher.sh | sh`
+    `curl -s https://raw.githubusercontent.com/unixporn/robbb/master/fetcher.sh | sh`
     and follow the instructions. It's recommended that you download and read the script before running it, 
     as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
 

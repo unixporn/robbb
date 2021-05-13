@@ -1286,6 +1286,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "robbb"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "byte-unit",
+ "chrono",
+ "chrono-humanize",
+ "humantime 2.1.0",
+ "indoc",
+ "itertools",
+ "lazy_static",
+ "log",
+ "maplit",
+ "pretty_env_logger",
+ "rand 0.8.3",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serenity",
+ "serenity_utils",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
 name = "rustls"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1802,35 +1831,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f50de3927f93d202783f4513cda820ab47ef17f624b03c096e86ef00c67e6b5f"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "trup-rs"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "byte-unit",
- "chrono",
- "chrono-humanize",
- "humantime 2.1.0",
- "indoc",
- "itertools",
- "lazy_static",
- "log",
- "maplit",
- "pretty_env_logger",
- "rand 0.8.3",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "serenity",
- "serenity_utils",
- "sqlx",
- "thiserror",
- "tokio",
- "tokio-util",
- "url",
 ]
 
 [[package]]
