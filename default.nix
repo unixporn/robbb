@@ -5,6 +5,7 @@
   dockerTools,
   robbbSrc,
   robbbRev,
+  robbbVersion ? robbbRev,
   sources ? import ./nix/sources.nix,
   naersk ? callPackage sources.naersk {},
 }: rec {
@@ -14,7 +15,7 @@
     src = robbbSrc;
     nativeBuildInputs = [ pkg-config ];
     buildInputs = [ openssl ];
-    VERSION = robbbRev;
+    VERSION = robbbVersion;
   };
 
   image = dockerTools.buildImage {

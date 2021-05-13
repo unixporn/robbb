@@ -31,7 +31,7 @@ jobs:
 
       - name: Build image
         run: |
-          docker load < $(nix-build -E '(import <nixpkgs> {}).callPackage ./. { robbbSrc = builtins.fetchGit ./.; robbbRev = "${{ github.sha }}"; }' -A image)
+          docker load < $(nix-build -E '(import <nixpkgs> {}).callPackage ./. { robbbSrc = builtins.fetchGit ./.; robbbRev = "${{ github.sha }}"; robbbVersion = "'"$(git log --format=oneline -n 1 HEAD)"'"; }' -A image)
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
