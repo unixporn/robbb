@@ -1,6 +1,7 @@
 use super::*;
 
 /// Restart the bot.
+#[allow(unreachable_code)]
 #[command]
 #[only_in(guilds)]
 #[usage("restart")]

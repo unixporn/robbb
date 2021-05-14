@@ -3,6 +3,7 @@ use regex::Regex;
 use super::*;
 
 /// Control the blocklist
+#[allow(unreachable_code)]
 #[command]
 #[only_in(guilds)]
 #[sub_commands(blocklist_add, blocklist_remove, blocklist_get)]
