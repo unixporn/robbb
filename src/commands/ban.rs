@@ -57,8 +57,15 @@ async fn do_ban(
     if reason.to_string().contains("ice") {
         let _ = user
             .dm(&ctx, |m| -> &mut serenity::builder::CreateMessage {
-               m.content("Hey ice, you were banned once again. Instead of wasting your time spamming here, please consider seeking help regarding your mental health.\nhttps://www.nimh.nih.gov/health/find-help/index.shtml")
-            })
+               m.content(indoc::formatdoc!(
+                   "{}
+
+                   Hey ice, you were banned once again. 
+                   Instead of wasting your time spamming here, please consider seeking help regarding your mental health.
+                   https://www.nimh.nih.gov/health/find-help/index.shtml",
+                   reason.replacen("ice", "", 1),
+               ))
+           })
             .await;
     } else {
         let _ = user
