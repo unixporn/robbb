@@ -170,7 +170,17 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         caps.get(3).unwrap().as_str().parse::<u64>()?,
     );
 
-    if Some(GuildId(guild_id)) != msg.guild_id {
+    let channel = ChannelId(channel_id)
+        .to_channel(&ctx)
+        .await?
+        .guild()
+        .context("Message not in a guild-channel")?;
+    let user_can_see_channel = channel
+        .permissions_for_user(&ctx, msg.author.id)
+        .await?
+        .read_messages();
+
+    if Some(GuildId(guild_id)) != msg.guild_id || !user_can_see_channel {
         return Ok(false);
     }
 
