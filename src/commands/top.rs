@@ -139,9 +139,10 @@ async fn top_all_values(
         .into_iter()
         .sorted()
         .filter_map(|(field_name, values)| {
+            let values = values.into_iter().filter(|x| !x.is_empty() && x != &"0");
+
             let (most_popular_value, most_popular_cnt) = values
-                .iter()
-                .filter(|x| !x.is_empty() && x != &"0")
+                .clone()
                 .map(|value| canonicalize_top_value(&value))
                 .counts()
                 .into_iter()
@@ -153,7 +154,7 @@ async fn top_all_values(
                 field_name,
                 most_popular_value,
                 most_popular_cnt,
-                ((most_popular_cnt as f64 / values.len() as f64) * 100f64),
+                ((most_popular_cnt as f64 / values.count() as f64) * 100f64),
             ))
         });
 
@@ -173,7 +174,7 @@ async fn top_all_values(
 /// Given some value that has a canonical value, return that value.
 /// I.e.: "nvim" => "neovim".
 fn canonicalize_top_value(value: &str) -> String {
-    let value = value.to_lowercase();
+    let value = value.trim().to_lowercase();
     EQUIVALENT_VALUES
         .iter()
         .find(|values| values.contains(&value.as_str()))
