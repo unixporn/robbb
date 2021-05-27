@@ -139,7 +139,7 @@ async fn top_all_values(
         .into_iter()
         .sorted()
         .filter_map(|(field_name, values)| {
-            let values = values.into_iter().filter(|x| !x.is_empty() && x != &"0");
+            let values = values.into_iter().filter(|x| !x.is_empty() && "0" != x);
 
             let (most_popular_value, most_popular_cnt) = values
                 .clone()
