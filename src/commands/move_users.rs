@@ -7,9 +7,17 @@ use super::*;
 #[only_in(guilds)]
 #[usage("move <#channel> [<user> ...]")]
 pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
+    let config = ctx.get_config().await;
     let channel = args
         .single::<ChannelId>()
         .invalid_usage(&MOVE_USERS_COMMAND_OPTIONS)?;
+
+    if channel == msg.channel_id {
+        abort_with!("You're already here!")
+    } else if channel == config.channel_showcase || channel == config.channel_feedback {
+        abort_with!("I won't move you there");
+    }
+
     let mentions = args
         .iter::<UserId>()
         .filter_map(|x| Some(x.ok()?.mention()))
