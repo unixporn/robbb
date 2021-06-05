@@ -39,6 +39,7 @@ pub async fn blocklist_add(ctx: &client::Context, msg: &Message, args: Args) -> 
 }
 
 #[command("remove")]
+#[aliases("rm", "delete")]
 #[usage("blocklist remove `regex`")]
 pub async fn blocklist_remove(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
     let db = ctx.get_db().await;
@@ -62,6 +63,7 @@ pub async fn blocklist_remove(ctx: &client::Context, msg: &Message, args: Args) 
 }
 
 #[command("get")]
+#[aliases("ls", "list")]
 #[usage("blocklist get")]
 pub async fn blocklist_get(ctx: &client::Context, msg: &Message) -> CommandResult {
     let (config, db) = ctx.get_config_and_db().await;
