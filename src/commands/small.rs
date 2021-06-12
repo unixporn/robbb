@@ -151,6 +151,6 @@ pub async fn dotfiles(ctx: &client::Context, msg: &Message, args: Args) -> Comma
 #[only_in(guilds)]
 #[usage("invite")]
 pub async fn invite(ctx: &client::Context, msg: &Message) -> CommandResult {
-    msg.reply(&ctx, "https://discord.gg/4M7SYzn3BW").await?;
+    msg.reply(&ctx, "https://discord.gg/unixporn").await?;
     Ok(())
 }
