@@ -81,10 +81,14 @@ pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResu
     if highlights_list.is_empty() {
         abort_with!("You don't seem to have set any highlights");
     } else {
-        msg.reply_embed(&ctx, |e| {
-            e.description(highlights_list);
-        })
-        .await?;
+        msg.author
+            .id
+            .create_dm_channel(&ctx)
+            .await
+            .user_error("Couldn't open a DM to you - do you have me blocked?")?
+            .send_message(&ctx, |m| m.embed(|e| e.description(highlights_list)))
+            .await
+            .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
     }
     Ok(())
 }
