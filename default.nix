@@ -1,13 +1,14 @@
-{ callPackage,
-  pkg-config,
-  openssl,
-  cacert,
-  dockerTools,
-  robbbSrc,
-  robbbRev,
-  robbbVersion ? robbbRev,
-  sources ? import ./nix/sources.nix,
-  naersk ? callPackage sources.naersk {},
+{ callPackage
+, pkg-config
+, openssl
+, cacert
+, dockerTools
+, robbbSrc
+, robbbRev
+, robbbVersion ? robbbRev
+, sources ? import ./nix/sources.nix
+, naersk ? callPackage sources.naersk { }
+,
 }: rec {
   robbb = naersk.buildPackage rec {
     name = "robbb";
