@@ -22,7 +22,7 @@ impl NoteType {
         }
     }
 
-    fn to_i32(&self) -> i32 {
+    fn as_i32(&self) -> i32 {
         match self {
             NoteType::ManualNote => 0,
             NoteType::BlocklistViolation => 1,
@@ -66,7 +66,7 @@ impl Db {
         let id = {
             let moderator = moderator.0 as i64;
             let user = user.0 as i64;
-            let note_type = note_type.to_i32();
+            let note_type = note_type.as_i32();
             sqlx::query!(
                 "insert into note (moderator, usr, content, create_date, note_type) values(?, ?, ?, ?, ?)",
                 moderator,
@@ -104,7 +104,7 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
         let user_id = user_id.0 as i64;
 
-        let note_type_value = filter.map(|x| x.to_i32());
+        let note_type_value = filter.map(|x| x.as_i32());
         sqlx::query!(
             r#"
                 SELECT * FROM note

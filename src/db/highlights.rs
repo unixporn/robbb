@@ -1,5 +1,6 @@
 use super::*;
 use itertools::Itertools;
+use std::collections::HashSet;
 
 fn combine_multitrigger_regex<'a, I: IntoIterator<Item = &'a str>>(
     words: I,
@@ -139,6 +140,13 @@ impl Db {
     }
 
     pub async fn set_highlight(&self, user: UserId, word: String) -> Result<()> {
+        if BLOCKED_WORDS.contains(&unicase::Ascii::new(word.as_str())) {
+            bail!(
+                "Refused to set a highlight for common word {} (requested by user {})",
+                word,
+                user
+            );
+        }
         {
             let mut conn = self.pool.acquire().await?;
             let user = user.0 as i64;
@@ -173,4 +181,26 @@ impl Db {
         }
         Ok(())
     }
+
+    pub async fn remove_forbidden_highlights(&self) -> Result<()> {
+        let mut conn = self.pool.acquire().await?;
+        let word_list = BLOCKED_WORDS
+            .iter()
+            .map(|word| format!("'{}'", word.to_ascii_lowercase()))
+            .join(", ");
+
+        // sqlx does not provide any way to properly embed a list here, so we godda use format!().
+        // MAKE SURE that word_list never turns into user-provided input!
+        sqlx::query(&format!(
+            "delete from highlights where lower(word) in ({})",
+            word_list,
+        ))
+        .execute(&mut conn)
+        .await?;
+        Ok(())
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref BLOCKED_WORDS: HashSet<unicase::Ascii<&'static str>> = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now" ].iter().map(|x| unicase::Ascii::new(*x)).collect();
 }

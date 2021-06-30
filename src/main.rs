@@ -136,6 +136,7 @@ async fn main() {
 
     let db = Db::new().await.expect("Failed to initialize database");
     db.run_migrations().await.unwrap();
+    db.remove_forbidden_highlights().await.unwrap();
 
     // we're manually calling the framework, to only run commands if none of our
     // message_create event handler filters say no.
