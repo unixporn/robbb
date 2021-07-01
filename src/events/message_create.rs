@@ -151,6 +151,9 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     lazy_static::lazy_static! {
         static ref MSG_LINK_PATTERN: Regex = Regex::new(r#"<?https://(?:canary\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)>?"#).unwrap();
     }
+    if msg.content.starts_with('!') {
+        return Ok(false);
+    }
 
     let caps = match MSG_LINK_PATTERN.captures(&msg.content) {
         Some(caps) => {
