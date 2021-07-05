@@ -9,7 +9,6 @@ const SETFETCH_USAGE: &str = indoc::indoc!("
     as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
 
     **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-    **NOTE**: If you're trying to manually change a value, it needs a newline after !setfetch (update).
     **NOTE**: !git, !dotfiles, and !desc are different commands"
 );
 
