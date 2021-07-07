@@ -12,24 +12,27 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
 
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
 
-    let mods = guild
+    let mods_and_helpers = guild
         .members_with_status(Online)
         .into_iter()
         .chain(guild.members_with_status(Idle).into_iter())
         .chain(guild.members_with_status(DoNotDisturb).into_iter())
-        .filter(|member| member.roles.contains(&config.role_mod))
+        .filter(|member| {
+            member.roles.contains(&config.role_mod) || member.roles.contains(&config.role_helper)
+        })
         .collect_vec();
 
-    let mods = if mods.len() < 2 {
+    let mods = if mods_and_helpers.len() < 2 {
+        // ping moderator role if no helpers nor mods are available
         config.role_mod.mention().to_string()
     } else {
-        mods.iter().map(|m| m.mention()).join(", ")
+        mods_and_helpers.iter().map(|m| m.mention()).join(", ")
     };
 
     msg.channel_id
         .send_message(&ctx, |m| {
             m.content(format!(
-                "{} pinged moderators {} for reason {}",
+                "{} pinged staff {} for reason {}",
                 msg.author.mention(),
                 mods,
                 reason,

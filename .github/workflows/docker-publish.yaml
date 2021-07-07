@@ -6,7 +6,7 @@ on:
       - master
 
 env:
-  IMAGE_NAME: trup-rs
+  IMAGE_NAME: robbb
 
 jobs:
   # Push image to GitHub Packages.
@@ -26,12 +26,12 @@ jobs:
 
       - uses: cachix/cachix-action@v10
         with:
-          name: trup-rs
+          name: robbb
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
       - name: Build image
         run: |
-          docker load < $(nix-build -E '(import <nixpkgs> {}).callPackage ./. { trupSrc = builtins.fetchGit ./.; trupRev = "${{ github.sha }}"; }' -A image)
+          docker load < $(nix-build -E '(import <nixpkgs> {}).callPackage ./. { robbbSrc = builtins.fetchGit ./.; robbbRev = "${{ github.sha }}"; robbbVersion = "'"$(git log --format=oneline -n 1 HEAD)"'"; }' -A image)
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

@@ -1,27 +1,29 @@
-{ callPackage,
-  pkg-config,
-  openssl,
-  cacert,
-  dockerTools,
-  trupSrc,
-  trupRev,
-  sources ? import ./nix/sources.nix,
-  naersk ? callPackage sources.naersk {},
+{ callPackage
+, pkg-config
+, openssl
+, cacert
+, dockerTools
+, robbbSrc
+, robbbRev
+, robbbVersion ? robbbRev
+, sources ? import ./nix/sources.nix
+, naersk ? callPackage sources.naersk { }
+,
 }: rec {
-  trup-rs = naersk.buildPackage rec {
-    name = "trup-rs";
+  robbb = naersk.buildPackage rec {
+    name = "robbb";
     version = "master";
-    src = trupSrc;
+    src = robbbSrc;
     nativeBuildInputs = [ pkg-config ];
     buildInputs = [ openssl ];
-    VERSION = trupRev;
+    VERSION = robbbVersion;
   };
 
   image = dockerTools.buildImage {
-    name = "trup-rs";
-    tag = trupRev;
+    name = "robbb";
+    tag = robbbRev;
     config = {
-      Cmd = [ "${trup-rs}/bin/trup-rs" ];
+      Cmd = [ "${robbb}/bin/robbb" ];
       Env = [
         "NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt"
       ];

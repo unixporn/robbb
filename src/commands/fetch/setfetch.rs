@@ -4,12 +4,11 @@ use std::collections::HashMap;
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
     Run this: 
-    `curl -s https://raw.githubusercontent.com/unixporn/trup-rs/master/fetcher.sh | sh`
+    `curl -s https://raw.githubusercontent.com/unixporn/robbb/master/fetcher.sh | sh`
     and follow the instructions. It's recommended that you download and read the script before running it, 
     as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
 
     **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-    **NOTE**: If you're trying to manually change a value, it needs a newline after !setfetch (update).
     **NOTE**: !git, !dotfiles, and !desc are different commands"
 );
 

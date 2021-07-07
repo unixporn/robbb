@@ -177,11 +177,21 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
 
 async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     lazy_static::lazy_static! {
-        static ref MSG_LINK_PATTERN: Regex = Regex::new(r#"https://(?:canary\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)"#).unwrap();
+        static ref MSG_LINK_PATTERN: Regex = Regex::new(r#"<?https://(?:canary|ptb\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)>?"#).unwrap();
+    }
+    if msg.content.starts_with('!') {
+        return Ok(false);
     }
 
     let caps = match MSG_LINK_PATTERN.captures(&msg.content) {
-        Some(caps) => caps,
+        Some(caps) => {
+            let whole_match = caps.get(0).unwrap().as_str();
+            if whole_match.starts_with('<') && whole_match.ends_with('>') {
+                return Ok(false);
+            } else {
+                caps
+            }
+        }
         None => return Ok(false),
     };
 
@@ -191,7 +201,17 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         caps.get(3).unwrap().as_str().parse::<u64>()?,
     );
 
-    if Some(GuildId(guild_id)) != msg.guild_id {
+    let channel = ChannelId(channel_id)
+        .to_channel(&ctx)
+        .await?
+        .guild()
+        .context("Message not in a guild-channel")?;
+    let user_can_see_channel = channel
+        .permissions_for_user(&ctx, msg.author.id)
+        .await?
+        .read_messages();
+
+    if Some(GuildId(guild_id)) != msg.guild_id || !user_can_see_channel {
         return Ok(false);
     }
 
@@ -368,7 +388,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
         msg.author.direct_message(&ctx, |f| {
                 f.content(indoc!("
                     Your showcase submission was detected to be invalid. If you wanna comment on a rice, use the #ricing-theming channel.
-                    If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/trup-rs
+                    If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/robbb
                 "))
             }).await.context("Failed to send DM about invalid showcase submission")?;
     } else {

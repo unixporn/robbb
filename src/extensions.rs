@@ -60,7 +60,7 @@ pub trait UserExt {
 
 impl UserExt for User {
     fn name_with_disc_and_id(&self) -> String {
-        format!("{}#{}({})", self.name, self.discriminator, self.id)
+        format!("{}({})", self.tag(), self.id)
     }
 }
 
