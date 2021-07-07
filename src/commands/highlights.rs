@@ -6,7 +6,7 @@ use crate::Arc;
 #[command("highlights")]
 #[sub_commands(highlights_add, highlights_get, highlights_remove)]
 #[aliases("highlight", "hl")]
-#[usage("!highlights <add | get | remove>")]
+#[usage("!highlights <add | get | remove")]
 pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
     abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS))
 }
@@ -71,22 +71,33 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
 /// get all highlights for your user
 #[command("get")]
 #[aliases("ls", "list")]
-#[usage("!highlights get")]
-pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResult {
-    let db: Arc<Db> = ctx.get_db().await;
+#[usage("!highlights get <other user, only works for mods>")]
+pub async fn highlights_get(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
+    let (config, db) = ctx.get_config_and_db().await;
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let highlights = db.get_highlights().await?;
 
-    let highlights_list = highlights.triggers_for_user(msg.author.id).join("\n");
+    let user: UserId;
+    if check_role(&ctx, &msg, config.role_mod).await.is_ok() && !args.is_empty() {
+        user = disambiguate_user_mention(&ctx, &guild, &msg, args.message().trim()).await?.ok_or(UserErr::MentionedUserNotFound)?;
+    } else {
+        user = msg.author.id;
+    }
+
+    let highlights_list = highlights.triggers_for_user(user).join("\n");
+    let member = guild.member(&ctx, user).await?;
 
     if highlights_list.is_empty() {
-        abort_with!("You don't seem to have set any highlights");
+        abort_with!(UserErr::Other(format!("user \"{}\" doesn't seem to have set any highlights", member.user.name)));
     } else {
         msg.author
             .id
             .create_dm_channel(&ctx)
             .await
             .user_error("Couldn't open a DM to you - do you have me blocked?")?
-            .send_message(&ctx, |m| m.embed(|e| e.description(highlights_list)))
+            .send_message(&ctx, |m| m.embed(|e| {
+                e.title(format!("Highlights of {}", member.user.name));
+                e.description(highlights_list)}))
             .await
             .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
     }

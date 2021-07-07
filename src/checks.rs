@@ -49,7 +49,7 @@ pub async fn mute_check(ctx: &client::Context, msg: &Message) -> Result<(), Reas
     check_role(&ctx, msg, config.role_mute).await
 }
 
-async fn check_role(ctx: &client::Context, msg: &Message, role: RoleId) -> Result<(), Reason> {
+pub async fn check_role(ctx: &client::Context, msg: &Message, role: RoleId) -> Result<(), Reason> {
     match msg.guild_id {
         Some(guild_id) => match msg.author.has_role(&ctx, guild_id, role).await {
             Ok(true) => Ok(()),
