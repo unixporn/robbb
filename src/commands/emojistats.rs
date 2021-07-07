@@ -76,12 +76,14 @@ fn display_emojis(
                 .context("Emoji id could not be found")
                 .unwrap();
             format!(
-                "**{}**. {} {} {} ({})",
+                "{} {} `{}`: total: {}, reaction: {}, in text: {}
+",
                 num + 1,
-                print_emoji.name,
                 print_emoji,
-                if print_emoji.animated { "animated" } else { "" },
-                emoji.reactions + emoji.in_text
+                print_emoji.name,
+                emoji.reactions + emoji.in_text,
+                emoji.reactions,
+                emoji.in_text
             )
         })
         .join("\n")
