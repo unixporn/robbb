@@ -83,9 +83,14 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
 
     let highlights_data = db.get_highlights().await?;
 
-    let mut handled_users = HashSet::new();
+    let highlight_matches = tokio::task::spawn_blocking({
+        let msg_content = msg.content.to_string();
+        move || highlights_data.get_triggers_for_message(&msg_content)
+    })
+    .await?;
 
-    for (word, users) in highlights_data.get_triggers_for_message(&msg.content) {
+    let mut handled_users = HashSet::new();
+    for (word, users) in highlight_matches {
         let mut embed = serenity::builder::CreateEmbed::default();
         embed
             .title("Highlight notification")
