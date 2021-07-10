@@ -215,9 +215,9 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
 }
 
 async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    // don't block words by moderators
+    // allow mods to remove from blocklist
     let permission_level = checks::get_permission_level(&ctx, &msg).await;
-    if permission_level == PermissionLevel::Mod {
+    if permission_level == PermissionLevel::Mod && msg.content.starts_with("!blocklist") {
         return Ok(false);
     }
 
