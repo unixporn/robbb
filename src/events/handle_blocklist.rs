@@ -16,8 +16,14 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
 
     let (config, db) = ctx.get_config_and_db().await;
 
+    // remove invisible characters
+    let normalized_msg = msg.content.replace(
+        &['\u{200b}', '\u{200c}', '\u{200d}', '\u{200e}', '\u{200f}'][..],
+        "",
+    );
+
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
-    if let Some(word) = blocklist_regex.find(&msg.content) {
+    if let Some(word) = blocklist_regex.find(&normalized_msg) {
         let word = word.as_str();
 
         let dm_future = async {
