@@ -126,7 +126,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
 }
 
 async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
-    let guild_emojis = ctx.http.get_emojis(msg.guild_id.unwrap().0).await?;
+    let guild_emojis = ctx.http.get_emojis(msg.guild_id.context("could not get guild id")?.0).await?;
     let actual_emojis = util::find_emojis(&msg.content)
         .iter()
         .filter_map(|iden| guild_emojis.iter().find(|a| a.id == iden.id))
