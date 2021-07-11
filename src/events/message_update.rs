@@ -17,6 +17,11 @@ pub async fn message_update(
 
     let msg = event.channel_id.message(&ctx, event.id).await?;
 
+    match handle_blocklist::handle_blocklist(&ctx, &msg).await {
+        Ok(false) => {}
+        err => log_error!("error while handling blocklist in message_update", err),
+    };
+
     let channel_name = event
         .channel_id
         .name(&ctx)

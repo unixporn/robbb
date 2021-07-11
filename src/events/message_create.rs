@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use crate::checks::{self, PermissionLevel};
+use crate::attachment_logging;
 use crate::log_error;
-use crate::{attachment_logging, db::note::NoteType};
 use chrono::Utc;
+use handle_blocklist;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
@@ -31,7 +31,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
         Ok(false) => {}
         err => log_error!("error while handling spam-protection", err),
     };
-    match handle_blocklist(&ctx, &msg).await {
+    match handle_blocklist::handle_blocklist(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(false) => {}
         err => log_error!("error while handling blocklist", err),
@@ -217,65 +217,6 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     })
     .await?;
     Ok(true)
-}
-
-async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    // allow mods to remove from blocklist
-    let permission_level = checks::get_permission_level(&ctx, &msg).await;
-    if permission_level == PermissionLevel::Mod && msg.content.starts_with("!blocklist") {
-        return Ok(false);
-    }
-
-    let (config, db) = ctx.get_config_and_db().await;
-
-    let blocklist_regex = db.get_combined_blocklist_regex().await?;
-    if let Some(word) = blocklist_regex.find(&msg.content) {
-        let word = word.as_str();
-
-        let dm_future = async {
-            let _ = msg
-                .author
-                .dm(&ctx, |m| {
-                    m.embed(|e| {
-                        e.description(&msg.content).title(format!(
-                            "Your message has been deleted for containing a blocked word: `{}`",
-                            word
-                        ))
-                    })
-                })
-                .await;
-        };
-
-        let bot_log_future = config.log_automod_action(&ctx, |e| {
-            e.author(|a| a.name("Message Autodelete"));
-            e.title(format!(
-                "{} - deleted because of `{}`",
-                msg.author.tag(),
-                word,
-            ));
-            e.description(format!("{} {}", msg.content, msg.to_context_link()));
-        });
-
-        let note_future = async {
-            let bot_id = ctx.cache.current_user_id().await;
-            let note_content = format!("Message deleted because of word `{}`", word);
-            let _ = db
-                .add_note(
-                    bot_id,
-                    msg.author.id,
-                    note_content,
-                    Utc::now(),
-                    NoteType::BlocklistViolation,
-                )
-                .await;
-        };
-
-        tokio::join!(dm_future, bot_log_future, note_future, msg.delete(&ctx)).3?;
-
-        Ok(true)
-    } else {
-        Ok(false)
-    }
 }
 
 async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<bool> {
