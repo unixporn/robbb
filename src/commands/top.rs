@@ -84,13 +84,21 @@ async fn top_for_field(
     fetches: Vec<Fetch>,
     field_name: &str,
 ) -> CommandResult {
-    let field_value_counts = fetches
+    let field_values = fetches
         .into_iter()
         .filter_map(|mut x| x.info.remove(field_name))
         .filter(|x| !x.is_empty() && x != "0")
         .filter_map(|value| format_fetch_field_value(field_name, value))
-        .map(|value| canonicalize_top_value(&value))
-        .counts();
+        .map(|value| canonicalize_top_value(&value));
+
+    // only compare the first word when looking at distros
+    let field_value_counts = if field_name == "Distro" {
+        field_values
+            .filter_map(|value| value.split(' ').next().map(|x| x.to_string()))
+            .counts()
+    } else {
+        field_values.counts()
+    };
 
     let total_field_values: usize = field_value_counts.iter().map(|(_, n)| n).sum();
 
