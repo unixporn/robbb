@@ -26,6 +26,11 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
+    match handle_emoji_logging(&ctx, &msg).await {
+        Ok(_) => {}
+        err => log_error!("Error while handling emoji logging", err),
+    }
+
     match handle_spam_protect(&ctx, &msg).await {
         Ok(true) => return Ok(()),
         Ok(false) => {}
@@ -124,6 +129,38 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
                     .await;
             }
         }
+    }
+    Ok(())
+}
+
+async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
+    let actual_emojis = util::find_emojis(&msg.content);
+    if actual_emojis.is_empty() {
+        return Ok(());
+    }
+    let guild_emojis = ctx
+        .get_guild_emojis(msg.guild_id.context("could not get guild")?)
+        .await
+        .context("could not get emojis for guild")?;
+    let actual_emojis = actual_emojis
+        .into_iter()
+        .filter(|iden| guild_emojis.contains_key(&iden.id))
+        .dedup_by_with_count(|x, y| x.id == y.id)
+        .collect_vec();
+    if actual_emojis.is_empty() {
+        return Ok(());
+    }
+    let db = ctx.get_db().await;
+    for (count, emoji) in actual_emojis {
+        db.increment_emoji_text(
+            count as u64,
+            &EmojiIdentifier {
+                name: emoji.name.clone(),
+                id: emoji.id,
+                animated: emoji.animated,
+            },
+        )
+        .await?;
     }
     Ok(())
 }
