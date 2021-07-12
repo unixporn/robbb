@@ -9,8 +9,9 @@ pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
-    let mentioned_user_id = &args.single::<UserId>()
-    .invalid_usage(&KICK_COMMAND_OPTIONS)?;
+    let mentioned_user_id = &args
+        .single::<UserId>()
+        .invalid_usage(&KICK_COMMAND_OPTIONS)?;
 
     let reason = args.remains().unwrap_or("no reason");
 
