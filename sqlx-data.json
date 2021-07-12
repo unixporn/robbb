@@ -486,28 +486,8 @@
       "nullable": []
     }
   },
-  "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {
-    "query": "delete from blocked_regexes where pattern=?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "c386b69aa794524cc9f561bff2ccc7eecbcf70db2259117b3b8ed77372c0eea6": {
-    "query": "update mute set active = false where id = ?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "caef8ae89b597a762483cd08fb2414fc3bcb76eaaa59cc7d0b79270963061a82": {
-    "query": "select *, in_text_usage + reaction_usage as \"usage!: i32\" FROM emoji_stats order by \"usage!\" DESC limit ?",
+  "bd17229e614eafc8ec51aedac87f07a77575f9ac1882a48eb680e4c4544a8167": {
+    "query": "select *, in_text_usage + reaction_usage as \"usage!: i32\" FROM emoji_stats order by \"usage!: i32\" DESC limit ?",
     "describe": {
       "columns": [
         {
@@ -552,6 +532,26 @@
         false,
         null
       ]
+    }
+  },
+  "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {
+    "query": "delete from blocked_regexes where pattern=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "c386b69aa794524cc9f561bff2ccc7eecbcf70db2259117b3b8ed77372c0eea6": {
+    "query": "update mute set active = false where id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
     }
   },
   "d82c132238221a207fe200e0b55d5982af95bb4c65f2e4f1b5b0b35d7067eb8d": {
