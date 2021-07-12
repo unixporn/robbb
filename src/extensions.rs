@@ -8,12 +8,12 @@ use serenity::{
     model::{
         channel::Message,
         guild::Emoji,
-        id::{ChannelId, GuildId},
+        id::{ChannelId, EmojiId, GuildId},
         prelude::User,
     },
     utils::Colour,
 };
-use std::{fmt::Display, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 #[async_trait]
 pub trait ClientContextExt {
@@ -24,6 +24,8 @@ pub trait ClientContextExt {
     async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>);
 
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>>;
+
+    async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>>;
 
     async fn get_random_stare(&self) -> Option<Emoji>;
 }
@@ -50,6 +52,10 @@ impl ClientContextExt for client::Context {
 
     async fn get_random_stare(&self) -> Option<Emoji> {
         self.get_up_emotes().await?.random_stare()
+    }
+
+    async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>> {
+        Some(self.cache.guild(id).await?.emojis)
     }
 }
 

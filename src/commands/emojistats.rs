@@ -2,7 +2,7 @@ use std::collections::hash_map::HashMap;
 
 use super::*;
 
-use crate::db::emoji_logging::EmojiData;
+use crate::db::emoji_logging::EmojiStats;
 
 #[command]
 #[usage("emojistats [in_text or reactions]")]
@@ -10,34 +10,27 @@ use crate::db::emoji_logging::EmojiData;
 #[usage("emojistats [emoji] [in_text or reactions]")]
 pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let guild = msg.guild(ctx).await.context("Could not get guild")?;
-    let db: std::sync::Arc<Db> = ctx.get_db().await;
-    let guild_emojis = guild.emojis;
-    let emojis = db.get_all_emojis().await?.collect_vec();
+    let db = ctx.get_db().await;
+
+    let emojis = db.get_all_emoji_stats().await?.collect_vec();
 
     let single_emoji = match args.single_quoted::<String>().ok() {
         Some(x) if !crate::util::find_emojis(&x).is_empty() => Some(
-            emojis
-                .iter()
-                .find(|y| {
-                    crate::util::find_emojis(&x)
-                        .first()
-                        .map(|x| x == &y.emoji)
-                        .unwrap_or(false)
-                })
-                .user_error("Could not find emoji x")?,
+            db.get_emoji_usage(
+                crate::util::find_emojis(&x)
+                    .first()
+                    .user_error(format!("Could not find emoji {}", x).as_str())?,
+            )
+            .await?,
         ),
-        Some(x) => Some(
-            emojis
-                .iter()
-                .find(|e| e.emoji.name == x)
-                .user_error("Could not find emoji of that name")?,
-        ),
+        Some(x) => Some(db.get_emoji_usage_name(&x).await?),
         None => None,
     };
 
     match single_emoji {
         Some(emoji_data) => {
-            let emoji = guild_emojis
+            let emoji = guild
+                .emojis
                 .get(&emoji_data.emoji.id)
                 .user_error("Could not find emoji in guild")?;
             msg.reply_embed(ctx, |e| {
@@ -56,7 +49,7 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
             let emojis = emojis.into_iter();
             msg.reply_embed(ctx, |e| {
                 e.title("Emoji usage");
-                e.description(display_emojis(&guild_emojis, emojis));
+                e.description(display_emoji_list(&guild.emojis, emojis));
             })
             .await?;
         }
@@ -64,27 +57,24 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
     Ok(())
 }
 
-fn display_emojis(
-    servemojis: &HashMap<EmojiId, Emoji>,
-    emojis: impl Iterator<Item = EmojiData>,
+fn display_emoji_list(
+    guildemojis: &HashMap<EmojiId, Emoji>,
+    emojis: impl Iterator<Item = EmojiStats>,
 ) -> String {
     emojis
         .enumerate()
-        .map(|(num, emoji)| {
-            let print_emoji = servemojis
-                .get(&emoji.emoji.id)
-                .context("Emoji id could not be found")
-                .unwrap();
-            format!(
+        .filter_map(|(num, emoji)| {
+            let guild_emoji = guildemojis.get(&emoji.emoji.id)?;
+            Some(format!(
                 "{} {} `{}`: total: {}, reaction: {}, in text: {}
 ",
                 num + 1,
-                print_emoji,
-                print_emoji.name,
+                guild_emoji,
+                guild_emoji.name,
                 emoji.reactions + emoji.in_text,
                 emoji.reactions,
                 emoji.in_text
-            )
+            ))
         })
         .join("\n")
 }

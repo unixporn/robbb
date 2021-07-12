@@ -112,6 +112,48 @@
       "nullable": []
     }
   },
+  "226b8494595a64c2f94760c4ce6b758da025ed0070b21f3f7ce8e1970c81ccb5": {
+    "query": "select * from emoji_stats where emoji_id=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "emoji_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "emoji_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "animated",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "in_text_usage",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reaction_usage",
+          "ordinal": 4,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "270180bd034c0134635b29bc20bebab94d2ba8f613a79a49eaf999c8ac805d81": {
     "query": "select pattern as \"pattern!\" from blocked_regexes",
     "describe": {
@@ -242,6 +284,16 @@
       ]
     }
   },
+  "5b4f365c20ac51a01b7128ae4581c129abf0d3d2894c00e87fa5efbc912cb830": {
+    "query": "insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
   "600a256c4edc6bbeaf4c9f383a7c28e4cec3bad498d4e3f88e01481b188325e3": {
     "query": "delete from highlights where word=? and usr=?",
     "describe": {
@@ -258,6 +310,16 @@
       "columns": [],
       "parameters": {
         "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "6750c0667e8041084a1181006c25686ff4a4de95b02802e08a8855f6e15c03aa": {
+    "query": "insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set reaction_usage=reaction_usage+?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
       },
       "nullable": []
     }
@@ -334,128 +396,8 @@
       ]
     }
   },
-  "81a21148a4d13b344dd0b6a8653b8d641d405c5917a22aac3908c38875c4363a": {
-    "query": "select count(*) from warn where usr=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "count(*)",
-          "ordinal": 0,
-          "type_info": "Int"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "96009f2562711db52ac4a017278d3e0329cb3431656240babf0d25af111404ed": {
-    "query": "insert into emojis (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 4
-      },
-      "nullable": []
-    }
-  },
-  "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d": {
-    "query": "insert into highlights (word, usr) values (?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
-  "aade4c91cf65f2e8492ab806efb51d3bcb9e367e9822d7e6a27442802ff4efa4": {
-    "query": "select * from emojis where emoji_id=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "emoji_id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "emoji_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "animated",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "in_text_usage",
-          "ordinal": 3,
-          "type_info": "Int64"
-        },
-        {
-          "name": "reaction_usage",
-          "ordinal": 4,
-          "type_info": "Int64"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false,
-        true,
-        false,
-        false,
-        false
-      ]
-    }
-  },
-  "aceea99bc515eb29168f82d5985b6a29a6d5766b6ff3147df95c71572013dbf8": {
-    "query": "delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "b1ea1c6c33606aab4ac1ef8ff4edd0ef8e5c1a92ca14ff853fe489ccfc9cf77d": {
-    "query": "update mute set active=false where usr=? and active=true",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {
-    "query": "delete from blocked_regexes where pattern=?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "c386b69aa794524cc9f561bff2ccc7eecbcf70db2259117b3b8ed77372c0eea6": {
-    "query": "update mute set active = false where id = ?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "c5d5fde4fe7f4c43f03cabe6af2938c55338a9fa0a681f880bfb58775c9eccd3": {
-    "query": "select * from emojis",
+  "77ea686b49cf38585472cc07069f77eff98e19407eed08f8346736c36b647e94": {
+    "query": "select * from emoji_stats",
     "describe": {
       "columns": [
         {
@@ -496,12 +438,70 @@
       ]
     }
   },
-  "d3d7af2270acddb7a9cc44b8eabf87fff8244ab5452ff7875d8243e14687190a": {
-    "query": "insert into emojis (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set reaction_usage=reaction_usage+?3",
+  "81a21148a4d13b344dd0b6a8653b8d641d405c5917a22aac3908c38875c4363a": {
+    "query": "select count(*) from warn where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "count(*)",
+          "ordinal": 0,
+          "type_info": "Int"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d": {
+    "query": "insert into highlights (word, usr) values (?, ?)",
     "describe": {
       "columns": [],
       "parameters": {
-        "Right": 4
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "aceea99bc515eb29168f82d5985b6a29a6d5766b6ff3147df95c71572013dbf8": {
+    "query": "delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "b1ea1c6c33606aab4ac1ef8ff4edd0ef8e5c1a92ca14ff853fe489ccfc9cf77d": {
+    "query": "update mute set active=false where usr=? and active=true",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {
+    "query": "delete from blocked_regexes where pattern=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "c386b69aa794524cc9f561bff2ccc7eecbcf70db2259117b3b8ed77372c0eea6": {
+    "query": "update mute set active = false where id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
       },
       "nullable": []
     }

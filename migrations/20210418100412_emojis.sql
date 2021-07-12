@@ -1,4 +1,4 @@
-create table if not exists emojis (
+create table if not exists emoji_stats (
     emoji_id integer not null,
 	emoji_name	text,
 	animated integer not null,

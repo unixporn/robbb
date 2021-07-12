@@ -26,7 +26,10 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
-    handle_emoji_logging(&ctx, &msg).await?;
+    match handle_emoji_logging(&ctx, &msg).await {
+        Ok(_) => {}
+        err => log_error!("Error while handling emoji logging", err),
+    }
 
     match handle_spam_protect(&ctx, &msg).await {
         Ok(true) => return Ok(()),
@@ -126,17 +129,23 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
 }
 
 async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
-    let guild_emojis = ctx.http.get_emojis(msg.guild_id.unwrap().0).await?;
-    let actual_emojis = util::find_emojis(&msg.content)
-        .iter()
-        .filter_map(|iden| guild_emojis.iter().find(|a| a.id == iden.id))
+    let actual_emojis = util::find_emojis(&msg.content);
+    if actual_emojis.is_empty() {
+        return Ok(());
+    }
+    let guild_emojis = ctx
+        .get_guild_emojis(msg.guild_id.context("could not get guild")?)
+        .await
+        .context("could not get emojis for guild")?;
+    let actual_emojis = actual_emojis
+        .into_iter()
+        .filter(|iden| guild_emojis.contains_key(&iden.id))
         .dedup_by_with_count(|x, y| x.id == y.id)
         .collect_vec();
     if actual_emojis.is_empty() {
         return Ok(());
     }
-    let data = ctx.data.read().await;
-    let db = data.get::<Db>().unwrap();
+    let db = ctx.get_db().await;
     for (count, emoji) in actual_emojis {
         db.increment_emoji_text(
             count as u64,
