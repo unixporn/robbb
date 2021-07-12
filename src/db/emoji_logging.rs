@@ -109,9 +109,15 @@ impl Db {
             reactions: x.reaction_usage as u64,
         }))
     }
+
     pub async fn get_ordered_emojis(&self, count: u16) -> Result<impl Iterator<Item = EmojiStats>> {
         let mut conn = self.pool.acquire().await?;
-        let records = sqlx::query!("select *, reaction_usage + in_text_usage as usage from emoji_stats order by usage  limit ?",count as i64).fetch_all(&mut conn).await?;
+        let records = sqlx::query!(
+            r#"select *, in_text_usage + reaction_usage as "usage!: i32"  FROM emoji_stats order by "usage!" limit ?"#,
+            count
+        )
+        .fetch_all(&mut conn)
+        .await?;
         Ok(records.into_iter().map(|x| EmojiStats {
             emoji: EmojiIdentifier {
                 id: EmojiId(x.emoji_id as u64),
