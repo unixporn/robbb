@@ -92,8 +92,8 @@ pub fn find_emojis(value: impl AsRef<str>) -> Vec<EmojiIdentifier> {
         static ref FIND_EMOJI : regex::Regex = regex::Regex::new(r"<a?:[0-9a-zA-Z_]{2,32}:[0-9]{18,}>").unwrap();
     }
     FIND_EMOJI
-        .captures_iter(value.as_ref())
-        .filter_map(|x| serenity::utils::parse_emoji(x.get(0)?.as_str()))
+        .find_iter(value.as_ref())
+        .filter_map(|x| serenity::utils::parse_emoji(x.as_str()))
         .collect()
 }
 
