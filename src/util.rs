@@ -1,5 +1,6 @@
 use anyhow::*;
 use chrono::Timelike;
+use serenity::model::misc::EmojiIdentifier;
 use std::env;
 
 /// return with an error value immediately.
@@ -83,6 +84,17 @@ pub fn format_count(num: i32) -> String {
             _ => format!("{}th", num),
         }
     }
+}
+
+/// Find all emojis in a String
+pub fn find_emojis(value: impl AsRef<str>) -> Vec<EmojiIdentifier> {
+    lazy_static::lazy_static! {
+        static ref FIND_EMOJI : regex::Regex = regex::Regex::new(r"<a?:[0-9a-zA-Z_]{2,32}:[0-9]{18,}>").unwrap();
+    }
+    FIND_EMOJI
+        .find_iter(value.as_ref())
+        .filter_map(|x| serenity::utils::parse_emoji(x.as_str()))
+        .collect()
 }
 
 /// Validate that a string is a valid URL.

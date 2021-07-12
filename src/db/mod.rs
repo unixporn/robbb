@@ -7,6 +7,7 @@ use serenity::{futures::lock::Mutex, prelude::TypeMapKey};
 use sqlx::SqlitePool;
 use std::collections::HashMap;
 pub mod blocklist;
+pub mod emoji_logging;
 pub mod fetch;
 pub mod highlights;
 pub mod mute;

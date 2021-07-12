@@ -60,6 +60,48 @@
       ]
     }
   },
+  "119359a3b3ee926414647c50404ecf27cf2a9ba7bf0b676f827735d1c24941fc": {
+    "query": "select * from emoji_stats where emoji_name=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "emoji_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "emoji_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "animated",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "in_text_usage",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reaction_usage",
+          "ordinal": 4,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "1c405e112c2d3214854e7a9d581a1cfde3c6e026a829155993831ac980d48217": {
     "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\" from warn where usr=?",
     "describe": {
@@ -110,6 +152,48 @@
         "Right": 1
       },
       "nullable": []
+    }
+  },
+  "226b8494595a64c2f94760c4ce6b758da025ed0070b21f3f7ce8e1970c81ccb5": {
+    "query": "select * from emoji_stats where emoji_id=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "emoji_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "emoji_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "animated",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "in_text_usage",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reaction_usage",
+          "ordinal": 4,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ]
     }
   },
   "270180bd034c0134635b29bc20bebab94d2ba8f613a79a49eaf999c8ac805d81": {
@@ -242,6 +326,16 @@
       ]
     }
   },
+  "5b4f365c20ac51a01b7128ae4581c129abf0d3d2894c00e87fa5efbc912cb830": {
+    "query": "insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
   "600a256c4edc6bbeaf4c9f383a7c28e4cec3bad498d4e3f88e01481b188325e3": {
     "query": "delete from highlights where word=? and usr=?",
     "describe": {
@@ -258,6 +352,16 @@
       "columns": [],
       "parameters": {
         "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "6750c0667e8041084a1181006c25686ff4a4de95b02802e08a8855f6e15c03aa": {
+    "query": "insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set reaction_usage=reaction_usage+?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
       },
       "nullable": []
     }
@@ -380,6 +484,54 @@
         "Right": 1
       },
       "nullable": []
+    }
+  },
+  "bd17229e614eafc8ec51aedac87f07a77575f9ac1882a48eb680e4c4544a8167": {
+    "query": "select *, in_text_usage + reaction_usage as \"usage!: i32\" FROM emoji_stats order by \"usage!: i32\" DESC limit ?",
+    "describe": {
+      "columns": [
+        {
+          "name": "emoji_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "emoji_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "animated",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "in_text_usage",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reaction_usage",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usage!: i32",
+          "ordinal": 5,
+          "type_info": "Null"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        false,
+        null
+      ]
     }
   },
   "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {

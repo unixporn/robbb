@@ -23,6 +23,7 @@ use thiserror::Error;
 
 pub mod ban;
 pub mod blocklist;
+pub mod emojistats;
 pub mod errors;
 pub mod fetch;
 pub mod help;
@@ -45,6 +46,7 @@ pub mod version;
 pub mod warn;
 use ban::*;
 use blocklist::*;
+use emojistats::*;
 pub use errors::*;
 pub use fetch::*;
 pub use help::*;
@@ -106,7 +108,7 @@ struct HelperOrMod;
 #[group]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, invite, version, highlights
+    tag, invite, version, highlights, emojistats
 )]
 #[checks(channel_allows_commands)]
 struct General;

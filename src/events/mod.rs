@@ -15,6 +15,7 @@ use indoc::indoc;
 
 mod guild_member_addition;
 mod guild_member_removal;
+mod handle_blocklist;
 mod message_create;
 mod message_delete;
 mod message_update;

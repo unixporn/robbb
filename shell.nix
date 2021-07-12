@@ -11,6 +11,8 @@ pkgs.mkShell {
     sqlx-cli
     rustfmt
     clippy
+    sqlitebrowser
+    sqlite
   ];
 
   shellHook = ''

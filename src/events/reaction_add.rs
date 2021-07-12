@@ -1,5 +1,7 @@
 use super::*;
 
+use serenity::model::channel::ReactionType::Custom;
+
 pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
     let user = event.user(&ctx).await?;
     if user.bot {
@@ -36,5 +38,30 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
             }
         }
     }
+    handle_emoji_logging(ctx, event).await?;
+    Ok(())
+}
+
+async fn handle_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
+    let (id, animated, name) = match event.emoji {
+        Custom {
+            id, animated, name, ..
+        } => (id, animated, name.context("Could not find name for emoji")?),
+        _ => return Ok(()),
+    };
+
+    let guild_emojis = ctx
+        .get_guild_emojis(event.guild_id.context("Not in a guild")?)
+        .await
+        .context("Could not get guild emojis")?;
+    if !guild_emojis.contains_key(&id) {
+        return Ok(());
+    };
+    let data = ctx.data.read().await;
+
+    let db = data.get::<Db>().unwrap();
+    db.increment_emoji_reaction(1, &EmojiIdentifier { animated, id, name })
+        .await?;
+
     Ok(())
 }
