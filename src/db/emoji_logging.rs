@@ -39,7 +39,7 @@ impl Db {
             id, emoji_str, count, emoji.animated)
             .execute(&mut conn)
             .await?;
-        Ok(self.get_emoji_usage(emoji).await?)
+        Ok(self.get_emoji_usage_by_id(emoji).await?)
     }
 
     pub async fn increment_emoji_text(
@@ -55,10 +55,10 @@ impl Db {
             id, emoji_str, count, emoji.animated)
             .execute(&mut conn)
             .await?;
-        Ok(self.get_emoji_usage(emoji).await?)
+        Ok(self.get_emoji_usage_by_id(emoji).await?)
     }
 
-    pub async fn get_emoji_usage(&self, emoji: &EmojiIdentifier) -> Result<EmojiStats> {
+    pub async fn get_emoji_usage_by_id(&self, emoji: &EmojiIdentifier) -> Result<EmojiStats> {
         let mut conn = self.pool.acquire().await?;
         let emoji_id = emoji.id.0 as i64;
         let value = sqlx::query!("select * from emoji_stats where emoji_id=?", emoji_id)
@@ -76,7 +76,7 @@ impl Db {
             })
             .unwrap_or_else(|| EmojiStats::new(emoji.clone())))
     }
-    pub async fn get_emoji_usage_name(&self, emoji: &str) -> Result<EmojiStats> {
+    pub async fn get_emoji_usage_by_name(&self, emoji: &str) -> Result<EmojiStats> {
         let mut conn = self.pool.acquire().await?;
         let value = sqlx::query!("select * from emoji_stats where emoji_name=?", emoji)
             .fetch_optional(&mut conn)
@@ -94,23 +94,10 @@ impl Db {
             .context("Could not find emoji by that name")?)
     }
 
-    pub async fn get_all_emoji_stats(&self) -> Result<impl Iterator<Item = EmojiStats>> {
-        let mut conn = self.pool.acquire().await?;
-        let records = sqlx::query!("select * from emoji_stats")
-            .fetch_all(&mut conn)
-            .await?;
-        Ok(records.into_iter().map(|x| EmojiStats {
-            emoji: EmojiIdentifier {
-                id: EmojiId(x.emoji_id as u64),
-                animated: x.animated != 0,
-                name: x.emoji_name.unwrap(),
-            },
-            in_text: x.in_text_usage as u64,
-            reactions: x.reaction_usage as u64,
-        }))
-    }
-
-    pub async fn get_ordered_emojis(&self, count: u16) -> Result<impl Iterator<Item = EmojiStats>> {
+    pub async fn get_top_emoji_stats(
+        &self,
+        count: u16,
+    ) -> Result<impl Iterator<Item = EmojiStats>> {
         let mut conn = self.pool.acquire().await?;
         let records = sqlx::query!(
             r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!" DESC limit ?"#,
