@@ -9,10 +9,7 @@ use crate::db::emoji_logging::EmojiStats;
 #[usage("emojistats [emoji] ")]
 #[usage("emojistats [emoji] [in_text or reactions]")]
 pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(ctx).await.context("Could not get guild")?;
     let db = ctx.get_db().await;
-
-    let emojis = db.get_all_emoji_stats().await?.collect_vec();
 
     let single_emoji = match args.single_quoted::<String>().ok() {
         Some(x) if !crate::util::find_emojis(&x).is_empty() => Some(
@@ -29,8 +26,11 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
 
     match single_emoji {
         Some(emoji_data) => {
-            let emoji = guild
-                .emojis
+            let guild_emojis = ctx
+                .get_guild_emojis(msg.guild_id.context("could not get guild id")?)
+                .await
+                .context("could not get guild emojis")?;
+            let emoji = guild_emojis
                 .get(&emoji_data.emoji.id)
                 .user_error("Could not find emoji in guild")?;
             msg.reply_embed(ctx, |e| {
@@ -46,10 +46,14 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
             .await?;
         }
         None => {
-            let emojis = emojis.into_iter();
+            let emojis = db.get_ordered_emojis(10).await?;
+            let guild_emojis = ctx
+                .get_guild_emojis(msg.guild_id.context("could not get guild id")?)
+                .await
+                .context("could not guild emojis")?;
             msg.reply_embed(ctx, |e| {
                 e.title("Emoji usage");
-                e.description(display_emoji_list(&guild.emojis, emojis));
+                e.description(display_emoji_list(&guild_emojis, emojis));
             })
             .await?;
         }
