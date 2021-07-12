@@ -113,7 +113,7 @@ impl Db {
     pub async fn get_ordered_emojis(&self, count: u16) -> Result<impl Iterator<Item = EmojiStats>> {
         let mut conn = self.pool.acquire().await?;
         let records = sqlx::query!(
-            r#"select *, in_text_usage + reaction_usage as "usage!: i32"  FROM emoji_stats order by "usage!" limit ?"#,
+            r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!" DESC limit ?"#,
             count
         )
         .fetch_all(&mut conn)
