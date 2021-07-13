@@ -146,15 +146,15 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
     let actual_emojis = actual_emojis
         .into_iter()
         .filter(|iden| guild_emojis.contains_key(&iden.id))
-        .dedup_by_with_count(|x, y| x.id == y.id)
+        .dedup_by(|x, y| x.id == y.id)
         .collect_vec();
     if actual_emojis.is_empty() {
         return Ok(());
     }
     let db = ctx.get_db().await;
-    for (count, emoji) in actual_emojis {
+    for emoji in actual_emojis {
         db.alter_emoji_text_count(
-            count as i64,
+            1,
             &EmojiIdentifier {
                 name: emoji.name.clone(),
                 id: emoji.id,
