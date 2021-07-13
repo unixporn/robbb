@@ -20,6 +20,25 @@ impl EmojiStats {
     }
 }
 
+macro_rules! query_ordering {
+    ($conn:expr,$query:expr,$limit:tt) => {{
+        let records = sqlx::query!($query, $limit).fetch_all(&mut $conn).await?;
+
+        Ok(records
+            .into_iter()
+            .map(|x| EmojiStats {
+                emoji: EmojiIdentifier {
+                    id: EmojiId(x.emoji_id as u64),
+                    animated: x.animated != 0,
+                    name: x.emoji_name.unwrap(),
+                },
+                in_text: x.in_text_usage as u64,
+                reactions: x.reaction_usage as u64,
+            })
+            .collect())
+    }};
+}
+
 pub enum Ordering {
     Ascending,
     Descending,
@@ -96,27 +115,19 @@ impl Db {
         &self,
         count: u16,
         ordering: Ordering,
-    ) -> Result<Box<dyn Iterator<Item = EmojiStats> + Send + Sync>> {
+    ) -> Result<Vec<EmojiStats>> {
         let mut conn = self.pool.acquire().await?;
-        let records = sqlx::query!(
-            r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!: i32" DESC limit ?"#,
-            count
-        )
-        .fetch_all(&mut conn)
-        .await?;
-
-        let final_results = records.into_iter().map(|x| EmojiStats {
-            emoji: EmojiIdentifier {
-                id: EmojiId(x.emoji_id as u64),
-                animated: x.animated != 0,
-                name: x.emoji_name.unwrap(),
-            },
-            in_text: x.in_text_usage as u64,
-            reactions: x.reaction_usage as u64,
-        });
         match ordering {
-            Ordering::Descending => Ok(Box::new(final_results)),
-            Ordering::Ascending => Ok(Box::new(final_results.rev())),
+            Ordering::Ascending => query_ordering!(
+                conn,
+                r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!: i32" ASC limit ?"#,
+                count
+            ),
+            Ordering::Descending => query_ordering!(
+                conn,
+                r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!: i32" DESC limit ?"#,
+                count
+            ),
         }
     }
 }

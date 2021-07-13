@@ -59,7 +59,7 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
                 .context("could not guild emojis")?;
             msg.reply_embed(ctx, |e| {
                 e.title("Emoji usage");
-                e.description(display_emoji_list(&guild_emojis, emojis));
+                e.description(display_emoji_list(&guild_emojis, emojis.into_iter()));
             })
             .await?;
         }
