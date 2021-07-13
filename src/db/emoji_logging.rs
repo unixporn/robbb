@@ -98,7 +98,7 @@ impl Db {
         ordering: Ordering,
     ) -> Result<Box<dyn Iterator<Item = EmojiStats> + Send + Sync>> {
         let mut conn = self.pool.acquire().await?;
-        let records = sqlx::query_unchecked!(
+        let records = sqlx::query!(
             r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!: i32" DESC limit ?"#,
             count
         )
