@@ -5,9 +5,7 @@ use super::*;
 use crate::db::emoji_logging::{EmojiStats, Ordering};
 
 #[command]
-#[usage("emojistats")]
-#[usage("emojistats [emoji] ")]
-#[usage("emojistats --least")]
+#[usage("emojistats [emoji] | --least")]
 pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;
 
