@@ -44,7 +44,7 @@ pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 pub async fn do_kick(
     ctx: &client::Context,
     guild: Guild,
-    mentioned_user: UserId,
+    mentioned_user: &UserId,
     reason: &str,
 ) -> Result<()> {
     let user = mentioned_user
