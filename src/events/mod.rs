@@ -20,6 +20,7 @@ mod message_create;
 mod message_delete;
 mod message_update;
 mod reaction_add;
+mod reaction_remove;
 mod ready;
 
 pub struct Handler;
@@ -114,6 +115,12 @@ impl EventHandler for Handler {
         log_error!(
             "Error while handling reaction_add event",
             reaction_add::reaction_add(ctx, event).await
+        );
+    }
+    async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
+        log_error!(
+            "Error while handling reaction_remove event",
+            reaction_remove::reaction_remove(ctx, event).await
         );
     }
 }

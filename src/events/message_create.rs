@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use crate::attachment_logging;
 use crate::log_error;
 use chrono::Utc;
-use handle_blocklist;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
@@ -26,9 +25,11 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
-    match handle_emoji_logging(&ctx, &msg).await {
-        Ok(_) => {}
-        err => log_error!("Error while handling emoji logging", err),
+    if msg.channel_id != config.channel_bot_messages || !msg.content.starts_with("!emojistats") {
+        match handle_emoji_logging(&ctx, &msg).await {
+            Ok(_) => {}
+            err => log_error!("Error while handling emoji logging", err),
+        }
     }
 
     match handle_spam_protect(&ctx, &msg).await {
@@ -152,8 +153,8 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
     }
     let db = ctx.get_db().await;
     for (count, emoji) in actual_emojis {
-        db.increment_emoji_text(
-            count as u64,
+        db.alter_emoji_text_count(
+            count as i64,
             &EmojiIdentifier {
                 name: emoji.name.clone(),
                 id: emoji.id,
