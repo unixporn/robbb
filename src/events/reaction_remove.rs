@@ -9,19 +9,7 @@ pub async fn reaction_remove(ctx: client::Context, event: Reaction) -> Result<()
     }
 
     let msg = event.message(&ctx).await?;
-    if msg
-        .reactions
-        .iter()
-        //Looks if the emoji exists, if it does, then stop
-        .find_map(|x| {
-            if x.reaction_type == event.emoji {
-                Some(false)
-            } else {
-                None
-            }
-        })
-        .unwrap_or(true)
-    {
+    if !msg.reactions.iter().any(|x| x.reaction_type == event.emoji) {
         handle_emoji_removal(ctx, event).await?;
     }
     Ok(())
