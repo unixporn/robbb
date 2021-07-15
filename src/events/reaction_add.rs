@@ -44,13 +44,17 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
             .iter()
             //Find the emoji in the message reactions and if its the first to be added, then use it
             .find_map(|x| {
-                if x.reaction_type == event.emoji && x.count == 1 {
-                    Some(true)
+                if x.reaction_type == event.emoji {
+                    if x.count == 1 {
+                        Some(true)
+                    } else {
+                        Some(false)
+                    }
                 } else {
                     None
                 }
             })
-            .context("Could not find emoji for some reason")?
+            .unwrap_or(false)
     {
         handle_emoji_logging(ctx, event).await?;
     }
