@@ -2,25 +2,27 @@ use std::collections::hash_map::HashMap;
 
 use super::*;
 
-use crate::db::emoji_logging::EmojiStats;
+use crate::db::emoji_logging::{EmojiStats, Ordering};
 
 #[command]
-#[usage("emojistats [in_text or reactions]")]
-#[usage("emojistats [emoji] ")]
-#[usage("emojistats [emoji] [in_text or reactions]")]
+#[usage("emojistats [emoji] | --least")]
 pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;
 
-    let single_emoji = match args.single_quoted::<String>().ok() {
+    let (ordering, single_emoji) = match args.single_quoted::<String>().ok().as_deref() {
+        Some("--least") => (Some(Ordering::Ascending), None),
+        None => (Some(Ordering::Descending), None),
         Some(arg) => {
             let found_emoji = match crate::util::find_emojis(&arg).first() {
                 Some(searched_emoji) => db.get_emoji_usage_by_id(searched_emoji).await,
                 None => db.get_emoji_usage_by_name(&arg).await,
             };
 
-            Some(found_emoji.user_error("Could not find that emote")?)
+            (
+                None,
+                Some(found_emoji.user_error("Could not find that emote")?),
+            )
         }
-        None => None,
     };
 
     match single_emoji {
@@ -45,14 +47,19 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
             .await?;
         }
         None => {
-            let emojis = db.get_top_emoji_stats(10).await?;
+            let emojis = db
+                .get_top_emoji_stats(
+                    10,
+                    ordering.context("no ordering is found for some reason")?,
+                )
+                .await?;
             let guild_emojis = ctx
                 .get_guild_emojis(msg.guild_id.context("could not get guild id")?)
                 .await
                 .context("could not guild emojis")?;
             msg.reply_embed(ctx, |e| {
                 e.title("Emoji usage");
-                e.description(display_emoji_list(&guild_emojis, emojis));
+                e.description(display_emoji_list(&guild_emojis, emojis.into_iter()));
             })
             .await?;
         }

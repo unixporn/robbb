@@ -23,7 +23,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
         // we're pretty much deleteing all other reactions and are giving it the user to delete the reaction from,
         // such that discord API knows which of the reactions to remove. If the user hasn't reacted
         // with that emote, it'll error, but we don't really care :/
-        for r in msg.reactions {
+        for r in &msg.reactions {
             if r.reaction_type != event.emoji {
                 crate::log_error!(
                     ctx.http
@@ -38,7 +38,14 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
             }
         }
     }
-    handle_emoji_logging(ctx, event).await?;
+    if !is_poll
+        && msg
+            .reactions
+            .iter()
+            .any(|x| x.reaction_type == event.emoji && x.count == 1)
+    {
+        handle_emoji_logging(ctx, event).await?;
+    }
     Ok(())
 }
 
@@ -57,10 +64,9 @@ async fn handle_emoji_logging(ctx: client::Context, event: Reaction) -> Result<(
     if !guild_emojis.contains_key(&id) {
         return Ok(());
     };
-    let data = ctx.data.read().await;
 
-    let db = data.get::<Db>().unwrap();
-    db.increment_emoji_reaction(1, &EmojiIdentifier { animated, id, name })
+    let db = ctx.get_db().await;
+    db.alter_emoji_reaction_count(1, &EmojiIdentifier { animated, id, name })
         .await?;
 
     Ok(())
