@@ -11,6 +11,7 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
 
     let (ordering, single_emoji) = match args.single_quoted::<String>().ok().as_deref() {
         Some("--least") => (Some(Ordering::Ascending), None),
+        None => (Some(Ordering::Descending), None),
         Some(arg) => {
             let found_emoji = match crate::util::find_emojis(&arg).first() {
                 Some(searched_emoji) => db.get_emoji_usage_by_id(searched_emoji).await,
@@ -22,7 +23,6 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
                 Some(found_emoji.user_error("Could not find that emote")?),
             )
         }
-        None => (Some(Ordering::Descending), None),
     };
 
     match single_emoji {
