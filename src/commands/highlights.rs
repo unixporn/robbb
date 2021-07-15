@@ -1,5 +1,6 @@
 use super::*;
 use crate::Arc;
+use tokio::time::{self, Duration};
 
 /// Get notified when someone mentions a word you care about.
 #[allow(unreachable_code)]
@@ -59,11 +60,18 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
         .await
         .user_error("Couldn't add highlight, something went wrong")?;
 
-    msg.reply_success(
-        &ctx,
-        format!("You will be notified whenever someone says {}", trigger),
-    )
-    .await?;
+    let success_msg = msg
+        .reply_success(
+            &ctx,
+            format!("You will be notified whenever someone says {}", trigger),
+        )
+        .await?;
+
+    // Delete both the response and success messages, after a short delay
+    time::sleep(Duration::from_secs(5)).await;
+
+    msg.delete(&ctx).await?;
+    success_msg.delete(&ctx).await?;
 
     Ok(())
 }
@@ -86,7 +94,9 @@ pub async fn highlights_get(ctx: &client::Context, msg: &Message) -> CommandResu
             .create_dm_channel(&ctx)
             .await
             .user_error("Couldn't open a DM to you - do you have me blocked?")?
-            .send_message(&ctx, |m| m.embed(|e| e.description(highlights_list)))
+            .send_message(&ctx, |m| {
+                m.embed(|e| e.title("Highlights").description(highlights_list))
+            })
             .await
             .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
     }
