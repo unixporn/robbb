@@ -29,6 +29,7 @@ pub mod fetch;
 pub mod help;
 pub mod highlights;
 pub mod info;
+pub mod kick;
 pub mod modping;
 pub mod move_users;
 pub mod mute;
@@ -51,6 +52,7 @@ pub use fetch::*;
 pub use help::*;
 use highlights::*;
 use info::*;
+use kick::*;
 use modping::*;
 use move_users::*;
 use mute::*;
@@ -91,7 +93,8 @@ pub static SELECTION_EMOJI: [&str; 19] = [
 #[group]
 #[only_in(guilds)]
 #[commands(
-    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag
+    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag,
+    kick
 )]
 #[checks(moderator, channel_allows_commands)]
 struct Moderator;
