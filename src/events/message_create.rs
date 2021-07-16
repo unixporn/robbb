@@ -25,7 +25,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
-    if msg.channel_id != config.channel_bot_messages || !msg.content.starts_with("!emojistats") {
+    if msg.channel_id != config.channel_bot_messages && !msg.content.starts_with("!emojistats") {
         match handle_emoji_logging(&ctx, &msg).await {
             Ok(_) => {}
             err => log_error!("Error while handling emoji logging", err),
