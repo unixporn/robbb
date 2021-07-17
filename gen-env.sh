@@ -30,10 +30,10 @@ roles=$(curl -s -X GET \
 	-H "Authorization: Bot $token" \
 	-H "Content-Type: application/json" \
 	"https://discord.com/api/v9/guilds/$serverid" \
-	| jq '.roles[]' -c | tr -d '"' | tac)
+	| jq -r '.roles | sort_by(.position) | reverse | .[] | [.id, .name] | join(" ")')
 
 # do a line-by-line loop of the roles to get the variables
-while IFS=':,' read -r _ id _ name _; do
+while read -r id name; do
 	case $name in
 		"@everyone")       ;;
 		"mods")            mod=$id;;
@@ -56,21 +56,11 @@ EOF
 channels=$(curl -s -X GET \
 	-H "Authorization: Bot $token" \
 	-H "Content-Type: application/json" \
-	"https://discord.com/api/v9/guilds/$serverid/channels" | jq '.[]' -c | tr -d '"')
+	"https://discord.com/api/v9/guilds/$serverid/channels" \
+	| jq -r '.[] | [.id, .name] | join(" ")')
 
 # do a line-by-line loop of the channels to get the variables
-while IFS=':,' read -r _ a _ b _ c _ d _; do
-	# discord is kinda weird with channels - this makes that easier to deal with
-	# category: id, type, name
-	# channel:  id, last_message, type, name
-	set -- "$a" "$b" "$c" "$d"
-	# id is always the first
-	id=$1; shift
-	# if second is null or a high number (likely snowflake)
-	# assume that it's last_message and skip it
-	[ "$1" = null ] || [ "$1" -gt 99 ] && shift
-	name=$2
-
+while read -r id name; do
 	case $name in
 		server-feedback) feedback=$id;;
 		showcase)        showcase=$id;;
