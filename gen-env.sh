@@ -30,10 +30,11 @@ roles=$(curl -s -X GET \
 	-H "Authorization: Bot $token" \
 	-H "Content-Type: application/json" \
 	"https://discord.com/api/v9/guilds/$serverid" \
-	| jq -r '.roles | sort_by(.position) | reverse | .[] | [.id, .name] | join(" ")')
+	| jq -r '.roles | sort_by(.position) | reverse | .[] | [.id, .name] | join("\t")')
 
 # do a line-by-line loop of the roles to get the variables
-while read -r id name; do
+# note: posix sh doesn't support escape codes in variables
+while IFS=$(printf '\t') read -r id name; do
 	case $name in
 		"@everyone")       ;;
 		"mods")            mod=$id;;
@@ -57,10 +58,11 @@ channels=$(curl -s -X GET \
 	-H "Authorization: Bot $token" \
 	-H "Content-Type: application/json" \
 	"https://discord.com/api/v9/guilds/$serverid/channels" \
-	| jq -r '.[] | [.id, .name] | join(" ")')
+	| jq -r '.[] | [.id, .name] | join("\t")')
 
 # do a line-by-line loop of the channels to get the variables
-while read -r id name; do
+# note: posix sh doesn't support escape codes in variables
+while IFS=$(printf '\t') read -r id name; do
 	case $name in
 		server-feedback) feedback=$id;;
 		showcase)        showcase=$id;;
