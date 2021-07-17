@@ -104,7 +104,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
                 "`{}` has been mentioned in {}
                 [link to message]({})
 
-                Don't care about this anymore? 
+                Don't care about this anymore?
                 Run `!highlights remove {}` in #bot to stop getting these notifications.",
                 word,
                 msg.channel_id.mention(),
@@ -119,7 +119,13 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
             .footer(|f| f.text(format!("#{}", channel.name)));
 
         for user_id in users {
-            if user_id == msg.author.id || handled_users.contains(&user_id) {
+            let user_can_see_channel = channel
+                .permissions_for_user(&ctx, user_id)
+                .await?
+                .read_messages();
+
+            if user_id == msg.author.id || handled_users.contains(&user_id) || !user_can_see_channel
+            {
                 continue;
             }
             handled_users.insert(user_id);
