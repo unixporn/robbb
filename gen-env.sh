@@ -24,8 +24,7 @@ unset showcase modcat feedback modlog botmod botlog botstuff humantrafficking
 #  roles
 #
 
-# get general server info
-# -> use jq to get the roles -> remove quotes -> reverse list
+# curl general server info -> use jq to get the roles in an easily-parsable format
 roles=$(curl -s -X GET \
 	-H "Authorization: Bot $token" \
 	-H "Content-Type: application/json" \
@@ -53,7 +52,7 @@ EOF
 #  channels
 #
 
-# get channel list -> use jq to put every channel on a new line -> delete quotes
+# curl channel list -> use jq to change to an easily-parsable format
 channels=$(curl -s -X GET \
 	-H "Authorization: Bot $token" \
 	-H "Content-Type: application/json" \
