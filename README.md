@@ -16,17 +16,19 @@ The bot reads the data it needs from environment variables.
 To see which values have to be set, check out the provided [.env.example](./.env.example) file.
 you can use `export $(cat .env)` to export the variables from a .env file in your current environment.
 
-### Extra information 
+### Extra information
 
 Most environment variables are retrieved by right clicking, and copying the ID of the relevant channel, category, role.
-You need to have developer mode turned on for that to be possible. 
+You need to have developer mode turned on for that to be possible.
 
 - TOKEN: The discord bot token, retrieved from: https://discord.com/developers/applications
 - GUILD: The ID of the guild, where the host resides
-- ROLE_*: IDs of relevant roles, easily copied from Server Settings -> Roles.
-- ROLE_COLOR: Unlike other ROLE variables, this is a comma (`,`) separated list, ex.: `ROLES_COLOR=825158129711972372,635627141123538966`
-- CHANNEL_*: Channel IDs, based on which the bot performs moderation or responses
-- ATTACHMENT_CACHE_*: Location (directory) and size of local message attachments cache (in case they get deleted)
+- ROLE\_\*: IDs of relevant roles, easily copied from Server Settings -> Roles.
+- ROLE\_COLOR: Unlike other ROLE variables, this is a comma (`,`) separated list, ex.: `ROLES_COLOR=825158129711972372,635627141123538966`
+- CHANNEL\_\*: Channel IDs, based on which the bot performs moderation or responses
+- ATTACHMENT\_CACHE\_\*: Location (directory) and size of local message attachments cache (in case they get deleted)
+
+Additionally, you can use [this script](gen-env.sh) to generate the role & channel variables from [a template server](https://discord.new/zkhTrUTEbtg9)
 
 
 ## Database
