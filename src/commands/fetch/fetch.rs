@@ -11,9 +11,15 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let mentioned_user_id = match args.single_quoted::<String>() {
-        Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
-            .await?
-            .ok_or(UserErr::MentionedUserNotFound)?,
+        Ok(mentioned_user) => {
+            if mentioned_user.as_str() == "self" {
+                msg.author.id
+            } else {
+                disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
+                    .await?
+                    .ok_or(UserErr::MentionedUserNotFound)?
+            }
+        }
         Err(_) => msg.author.id,
     };
 
