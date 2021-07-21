@@ -10,9 +10,14 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let db = ctx.get_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let mut desired_field: Option<String> = None;
     let mentioned_user_id = match args.single_quoted::<String>() {
         Ok(mentioned_user) => {
-            if mentioned_user.as_str() == "self" {
+            if find_fetch_key_matching(&mentioned_user).is_some()
+                || IMAGE_KEY == mentioned_user.to_lowercase()
+            {
+                println!("does contain");
+                desired_field = Some(mentioned_user);
                 msg.author.id
             } else {
                 disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
@@ -23,7 +28,10 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         Err(_) => msg.author.id,
     };
 
-    let desired_field = args.single_quoted::<String>().ok();
+    let desired_field = match desired_field {
+        None => args.single_quoted::<String>().ok(),
+        field => field,
+    };
 
     let all_data = get_fetch_and_profile_data_of(&db, mentioned_user_id)
         .await?
