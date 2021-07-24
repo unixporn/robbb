@@ -15,7 +15,6 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
             if find_fetch_key_matching(&mentioned_user).is_some()
                 || IMAGE_KEY == mentioned_user.to_lowercase()
             {
-                println!("does contain");
                 (Some(mentioned_user), msg.author.id)
             } else {
                 (
