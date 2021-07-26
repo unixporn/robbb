@@ -10,14 +10,23 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let db = ctx.get_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user_id = match args.single_quoted::<String>() {
-        Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
-            .await?
-            .ok_or(UserErr::MentionedUserNotFound)?,
-        Err(_) => msg.author.id,
+    let (desired_field, mentioned_user_id) = match args.single_quoted::<String>() {
+        Ok(mentioned_user) => {
+            if find_fetch_key_matching(&mentioned_user).is_some()
+                || IMAGE_KEY == mentioned_user.to_lowercase()
+            {
+                (Some(mentioned_user), msg.author.id)
+            } else {
+                (
+                    args.single_quoted().ok(),
+                    disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
+                        .await?
+                        .ok_or(UserErr::MentionedUserNotFound)?,
+                )
+            }
+        }
+        Err(_) => (args.single_quoted().ok(), msg.author.id),
     };
-
-    let desired_field = args.single_quoted::<String>().ok();
 
     let all_data = get_fetch_and_profile_data_of(&db, mentioned_user_id)
         .await?
