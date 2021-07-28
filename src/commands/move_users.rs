@@ -36,9 +36,14 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
         e
     };
 
-    let continuation_msg = channel
+    let mut continuation_msg = channel
         .send_message(&ctx, |m| m.content(mentions).set_embed(create_embed))
         .await?;
+
+    // WORKAROUND
+    // Currently, Discords API seems to not set the guild_id field for message objects returned from send_message invocations.
+    // tracking issue: https://github.com/serenity-rs/serenity/issues/832
+    continuation_msg.guild_id = msg.guild_id;
 
     let _ = msg
         .channel_id
@@ -48,7 +53,7 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
                 "Continued at {}: [Conversation]({})
                 Please continue your conversation **there**!",
                 channel.mention(),
-                continuation_msg.link()
+                continuation_msg.link(),
             ));
         })
         .await?;
