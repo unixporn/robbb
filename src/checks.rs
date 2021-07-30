@@ -53,7 +53,7 @@ async fn check_role(ctx: &client::Context, msg: &Message, role: RoleId) -> Resul
     match msg.guild_id {
         Some(guild_id) => match msg.author.has_role(&ctx, guild_id, role).await {
             Ok(true) => Ok(()),
-            Ok(false) => Err(Reason::User("Insufficient permissions.".to_string())),
+            Ok(false) => Err(Reason::User("Insufficient Permissions.".to_string())),
             Err(err) => Err(Reason::UserAndLog {
                 user: "Something went wrong while checking for permissions".to_string(),
                 log: format!("failed to check role of user {}: {}", msg.author.name, err),
