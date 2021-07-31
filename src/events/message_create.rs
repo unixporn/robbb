@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use crate::attachment_logging;
+use crate::commands::fetch::FetchField;
 use crate::log_error;
 use chrono::Utc;
 use itertools::Itertools;
@@ -363,8 +364,9 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
                 let db = ctx.get_db().await;
                 db.update_fetch(
                     msg.author.id,
-                    hashmap! { crate::commands::fetch::IMAGE_KEY.to_string() => attachment.url.to_string() },
-                ).await?;
+                    hashmap! { FetchField::Image => attachment.url.to_string() },
+                )
+                .await?;
             }
         }
     }

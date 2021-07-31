@@ -1,6 +1,7 @@
 use super::*;
 use crate::extensions::StrExt;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
     Run this: 
@@ -61,7 +62,7 @@ async fn do_set_fetch(
     let image_url: Option<String> = msg.find_image_urls().first().cloned();
 
     if let Some(image) = image_url {
-        info.insert(IMAGE_KEY.to_string(), image);
+        info.insert(FetchField::Image, image);
     }
 
     if update {
@@ -91,25 +92,31 @@ fn parse_setfetch(lines: Vec<&str>) -> Result<HashMap<String, String>> {
 }
 
 /// Sanitize field values and check validity of user-provided fetch data.
-fn sanitize_fetch(mut fetch: HashMap<String, String>) -> Result<HashMap<String, String>, UserErr> {
+fn sanitize_fetch(
+    mut fetch: HashMap<String, String>,
+) -> Result<HashMap<FetchField, String>, UserErr> {
+    let mut new: HashMap<FetchField, String> = HashMap::new();
     for (key, value) in fetch.iter_mut() {
-        if !NORMAL_FETCH_KEYS.contains(&key.as_ref()) {
+        let field = FetchField::from_str(key);
+        if field.is_err() {
             abort_with!(UserErr::Other(format!("Illegal fetch field: {}", key)))
         }
-        match key.as_str() {
-            MEMORY_KEY => {
+        let field = field.unwrap();
+        match field {
+            FetchField::Memory => {
                 *value = byte_unit::Byte::from_str(&value)
                     .user_error("Malformed value provided for Memory")?
                     .get_bytes()
                     .to_string()
             }
-            IMAGE_KEY => {
+            FetchField::Image => {
                 if !util::validate_url(&value) {
-                    abort_with!("Got malformed url for Image")
+                    abort_with!("Malformed url provided for Image")
                 }
             }
             _ => {}
         }
+        new.insert(field, value.to_string());
     }
-    Ok(fetch)
+    Ok(new)
 }

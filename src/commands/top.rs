@@ -6,6 +6,8 @@ use crate::db::fetch::Fetch;
 use super::*;
 use std::collections::HashMap;
 
+use fetch::FetchField;
+
 /// Get statistics on what the community uses.
 #[command]
 #[only_in(guilds)]
@@ -16,14 +18,12 @@ use std::collections::HashMap;
 pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;
 
-    let field_name = args.single_quoted::<String>().ok();
-
     let fetches = db.get_all_fetches().await?;
 
-    if let Some(field_name) = field_name {
-        let field_name = super::fetch::find_fetch_key_matching(&field_name)
-            .user_error("Not a valid fetch field")?;
-
+    if args.len() != 0 {
+        let field_name = args
+            .single_quoted::<FetchField>()
+            .user_error("Not a valid field.")?;
         if let Some(value_pattern) = args.remains() {
             let value_pattern = util::parse_backticked_string(&value_pattern)
                 .user_error("Must be surrounded in \\`backticks\\`")?;
@@ -42,7 +42,7 @@ async fn top_for_regex(
     ctx: &client::Context,
     msg: &Message,
     fetches: Vec<Fetch>,
-    field_name: &str,
+    field_name: FetchField,
     value_pattern: &str,
 ) -> CommandResult {
     let regex = regex::RegexBuilder::new(&value_pattern)
@@ -52,7 +52,7 @@ async fn top_for_regex(
 
     let field_values = fetches
         .into_iter()
-        .filter_map(|mut x| x.info.remove(field_name))
+        .filter_map(|mut x| x.info.remove(&field_name))
         .collect_vec();
 
     let total_field_values = field_values.len();
@@ -82,17 +82,17 @@ async fn top_for_field(
     ctx: &client::Context,
     msg: &Message,
     fetches: Vec<Fetch>,
-    field_name: &str,
+    field_name: FetchField,
 ) -> CommandResult {
     let field_values = fetches
         .into_iter()
-        .filter_map(|mut x| x.info.remove(field_name))
+        .filter_map(|mut x| x.info.remove(&field_name))
         .filter(|x| !x.is_empty() && x != "0")
-        .filter_map(|value| format_fetch_field_value(field_name, value))
+        .filter_map(|value| format_fetch_field_value(field_name.clone(), value))
         .map(|value| canonicalize_top_value(&value));
 
     // only compare the first word when looking at distros
-    let field_value_counts = if field_name == "Distro" {
+    let field_value_counts = if field_name == FetchField::Distro {
         field_values
             .filter_map(|value| value.split(' ').next().map(|x| x.to_string()))
             .counts()
@@ -122,7 +122,7 @@ async fn top_for_field(
         .join("\n");
 
     msg.reply_embed(&ctx, |e| {
-        e.title(format!("Top {}", util::pluralize(&field_name)));
+        e.title(format!("Top {}", field_name));
         e.description(top_values_text);
     })
     .await?;
@@ -134,37 +134,34 @@ async fn top_all_values(
     msg: &Message,
     fetches: Vec<Fetch>,
 ) -> CommandResult {
-    let mut data = HashMap::<String, Vec<String>>::new();
+    let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
-        for field_name in super::fetch::NORMAL_FETCH_KEYS.iter() {
-            let data_value = data.entry(field_name.to_string()).or_insert_with(Vec::new);
-            if let Some(field) = fetch.info.get(*field_name) {
+        for field_name in super::fetch::FETCH_KEY_ORDER.iter() {
+            let data_value = data.entry(field_name.clone()).or_insert_with(Vec::new);
+            if let Some(field) = fetch.info.get(field_name) {
                 data_value.push(field.clone());
             }
         }
     }
-    let maxes = data
-        .into_iter()
-        .sorted()
-        .filter_map(|(field_name, values)| {
-            let values = values.into_iter().filter(|x| !x.is_empty() && "0" != x);
+    let maxes = data.into_iter().filter_map(|(field_name, values)| {
+        let values = values.into_iter().filter(|x| !x.is_empty() && "0" != x);
 
-            let (most_popular_value, most_popular_cnt) = values
-                .clone()
-                .map(|value| canonicalize_top_value(&value))
-                .counts()
-                .into_iter()
-                .max_by_key(|(_, cnt)| *cnt)?;
+        let (most_popular_value, most_popular_cnt) = values
+            .clone()
+            .map(|value| canonicalize_top_value(&value))
+            .counts()
+            .into_iter()
+            .max_by_key(|(_, cnt)| *cnt)?;
 
-            let most_popular_value = format_fetch_field_value(&field_name, most_popular_value)?;
+        let most_popular_value = format_fetch_field_value(field_name.clone(), most_popular_value)?;
 
-            Some((
-                field_name,
-                most_popular_value,
-                most_popular_cnt,
-                ((most_popular_cnt as f64 / values.count() as f64) * 100f64),
-            ))
-        });
+        Some((
+            field_name,
+            most_popular_value,
+            most_popular_cnt,
+            ((most_popular_cnt as f64 / values.count() as f64) * 100f64),
+        ))
+    });
 
     let top_values_text = maxes
         .map(|(field, value, _cnt, perc)| format!("**{}**: {} ({:.2}%)", field, value, perc))

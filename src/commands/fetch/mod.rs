@@ -3,24 +3,25 @@ pub use super::*;
 pub mod fetch;
 pub mod setfetch;
 pub use fetch::*;
+use serde::{Deserialize, Serialize};
 pub use setfetch::*;
+use std::fmt;
 
 /// convert the field-value into the desired format.
 /// Returns `None` if the string is empty, as empty values must not be included in embeds.
-pub fn format_fetch_field_value(field_name: &str, value: String) -> Option<String> {
-    if value.is_empty() {
-        None
-    } else {
-        match field_name {
-            MEMORY_KEY => {
-                if value == "0" {
-                    None
-                } else {
-                    Some(format_bytes(&value))
-                }
+pub fn format_fetch_field_value(field_name: FetchField, value: String) -> Option<String> {
+    if !value.is_empty() {
+        if field_name == FetchField::Memory {
+            if value == "0" {
+                None
+            } else {
+                Some(format_bytes(&value))
             }
-            _ => Some(value),
+        } else {
+            Some(value)
         }
+    } else {
+        None
     }
 }
 
@@ -35,13 +36,6 @@ fn format_bytes(s: &str) -> String {
     }
 }
 
-pub fn find_fetch_key_matching(s: &str) -> Option<&str> {
-    NORMAL_FETCH_KEYS
-        .iter()
-        .find(|x| str::eq_ignore_ascii_case(x, s))
-        .copied()
-}
-
 fn find_distro_image(distro: &str) -> Option<&str> {
     DISTRO_IMAGES
         .iter()
@@ -49,28 +43,81 @@ fn find_distro_image(distro: &str) -> Option<&str> {
         .map(|(_, url)| *url)
 }
 
-pub const IMAGE_KEY: &str = "image";
-pub const MEMORY_KEY: &str = "Memory";
-pub const DISTRO_KEY: &str = "Distro";
-pub const DESCRIPTION_KEY: &str = "description";
-
-/// All the non-special fetch keys. This does not include IMAGE_KEY or the profile-keys.
-pub static NORMAL_FETCH_KEYS: [&str; 14] = [
-    "Distro",
-    "Kernel",
-    "Terminal",
-    "Editor",
-    "DE/WM",
-    "Bar",
-    "Resolution",
-    "Display Protocol",
-    "Shell",
-    "GTK3 Theme",
-    "GTK Icon Theme",
-    "CPU",
-    "GPU",
-    MEMORY_KEY,
+pub static FETCH_KEY_ORDER: [FetchField; 14] = [
+    FetchField::Distro,
+    FetchField::Kernel,
+    FetchField::Terminal,
+    FetchField::Editor,
+    FetchField::DEWM,
+    FetchField::Bar,
+    FetchField::Resolution,
+    FetchField::DisplayProtocol,
+    FetchField::Shell,
+    FetchField::GTK3,
+    FetchField::Icons,
+    FetchField::CPU,
+    FetchField::GPU,
+    FetchField::Memory,
 ];
+
+#[derive(Debug, Serialize, Deserialize, Hash, PartialEq, Eq, Clone)]
+pub enum FetchField {
+    Distro,
+    Kernel,
+    Terminal,
+    Editor,
+    #[serde(rename = "DE/WM")]
+    DEWM,
+    Bar,
+    Resolution,
+    #[serde(rename = "Display Protocol")]
+    DisplayProtocol,
+    Shell,
+    #[serde(rename = "GTK3 Theme")]
+    GTK3,
+    #[serde(rename = "GTK Icon Theme")]
+    Icons,
+    CPU,
+    GPU,
+    Memory,
+    Image,
+}
+
+impl fmt::Display for FetchField {
+    fn fmt(&self, writer: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FetchField::DEWM => write!(writer, "DE/WM"),
+            FetchField::DisplayProtocol => write!(writer, "Display Protocol"),
+            FetchField::GTK3 => write!(writer, "GTK3 Theme"),
+            FetchField::Icons => write!(writer, "GTK Icon Theme"),
+            _ => write!(writer, "{:?}", self),
+        }
+    }
+}
+
+impl std::str::FromStr for FetchField {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "distro" => Ok(Self::Distro),
+            "kernel" => Ok(Self::Kernel),
+            "terminal" => Ok(Self::Terminal),
+            "editor" => Ok(Self::Editor),
+            "dewm" | "de" | "wm" | "de/wm" => Ok(Self::DEWM),
+            "bar" => Ok(Self::Bar),
+            "resolution" => Ok(Self::Resolution),
+            "display protocol" => Ok(Self::DisplayProtocol),
+            "shell" => Ok(Self::Shell),
+            "gtk theme" | "gtk3 theme" | "theme" | "gtk" => Ok(Self::GTK3),
+            "icons" | "icon theme" | "gtk icon theme" => Ok(Self::Icons),
+            "cpu" => Ok(Self::CPU),
+            "gpu" => Ok(Self::GPU),
+            "memory" => Ok(Self::Memory),
+            "image" => Ok(Self::Image),
+            _ => Err("Not a valid fetch field.".into()),
+        }
+    }
+}
 
 pub static DISTRO_IMAGES: [(&str, &str); 90] = [
     ("nixos", "https://nixos.org/logo/nixos-hires.png"),
