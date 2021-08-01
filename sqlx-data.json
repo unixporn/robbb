@@ -60,6 +60,16 @@
       ]
     }
   },
+  "0c88576dce38c07fa9d77263ab5e3e02b5fd72effb664ff96af236e7fe973374": {
+    "query": "insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage + ?3)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
   "119359a3b3ee926414647c50404ecf27cf2a9ba7bf0b676f827735d1c24941fc": {
     "query": "select * from emoji_stats where emoji_name=?",
     "describe": {
@@ -374,16 +384,6 @@
       ]
     }
   },
-  "5b4f365c20ac51a01b7128ae4581c129abf0d3d2894c00e87fa5efbc912cb830": {
-    "query": "insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set in_text_usage=in_text_usage+?3",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 4
-      },
-      "nullable": []
-    }
-  },
   "600a256c4edc6bbeaf4c9f383a7c28e4cec3bad498d4e3f88e01481b188325e3": {
     "query": "delete from highlights where word=? and usr=?",
     "describe": {
@@ -400,16 +400,6 @@
       "columns": [],
       "parameters": {
         "Right": 2
-      },
-      "nullable": []
-    }
-  },
-  "6750c0667e8041084a1181006c25686ff4a4de95b02802e08a8855f6e15c03aa": {
-    "query": "insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set reaction_usage=reaction_usage+?3",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 4
       },
       "nullable": []
     }
@@ -502,6 +492,16 @@
       "nullable": [
         false
       ]
+    }
+  },
+  "90bd03f2eb3931509feb58ef5fbf6b54075dc465976cad31cc612849d712ab65": {
+    "query": "insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set in_text_usage=max(0, in_text_usage + ?3)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
     }
   },
   "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d": {

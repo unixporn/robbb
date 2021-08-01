@@ -34,7 +34,7 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
         let emoji_str = &emoji.name;
         let id = emoji.id.0 as i64;
-        sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage+?3)",
+        sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage + ?3)",
             id, emoji_str, amount, emoji.animated)
             .execute(&mut conn)
             .await?;
@@ -49,7 +49,7 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
         let id = emoji.id.0 as i64;
         let emoji_str = &emoji.name;
-        sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, ?3, ?4) on conflict(emoji_id) do update set in_text_usage=max(0, in_text_usage+?3)",
+        sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set in_text_usage=max(0, in_text_usage + ?3)",
             id, emoji_str, amount, emoji.animated)
             .execute(&mut conn)
             .await?;
