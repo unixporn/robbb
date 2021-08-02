@@ -9,9 +9,9 @@ use std::fmt;
 
 /// convert the field-value into the desired format.
 /// Returns `None` if the string is empty, as empty values must not be included in embeds.
-pub fn format_fetch_field_value(field_name: FetchField, value: String) -> Option<String> {
+pub fn format_fetch_field_value(field_name: &FetchField, value: String) -> Option<String> {
     if !value.is_empty() {
-        if field_name == FetchField::Memory {
+        if *field_name == FetchField::Memory {
             if value == "0" {
                 None
             } else {

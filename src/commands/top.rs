@@ -88,7 +88,7 @@ async fn top_for_field(
         .into_iter()
         .filter_map(|mut x| x.info.remove(&field_name))
         .filter(|x| !x.is_empty() && x != "0")
-        .filter_map(|value| format_fetch_field_value(field_name.clone(), value))
+        .filter_map(|value| format_fetch_field_value(&field_name, value))
         .map(|value| canonicalize_top_value(&value));
 
     // only compare the first word when looking at distros
@@ -153,7 +153,7 @@ async fn top_all_values(
             .into_iter()
             .max_by_key(|(_, cnt)| *cnt)?;
 
-        let most_popular_value = format_fetch_field_value(field_name.clone(), most_popular_value)?;
+        let most_popular_value = format_fetch_field_value(&field_name, most_popular_value)?;
 
         Some((
             field_name,

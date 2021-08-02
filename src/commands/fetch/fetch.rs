@@ -2,7 +2,6 @@ use anyhow::*;
 
 use super::*;
 use std::str::FromStr;
-use serenity::framework::standard::ArgError;
 
 /// Fetch a users system information.
 #[command("fetch")]
@@ -13,20 +12,25 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let (desired_field, mentioned_user_id) = match args.single_quoted::<String>() {
-        Ok(mentioned_user) => {
+        Ok(first_arg) => {
             // if first argument is a field, fetch the author's field
-            match FetchField::from_str(&mentioned_user) {
+            match FetchField::from_str(&first_arg) {
                 Ok(field) => (Some(field), msg.author.id),
                 Err(_) => {
-                    let field = args.single_quoted::<FetchField>();
-                    match field {
-                        Err(ArgError::Eos) => (None, disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await?.ok_or(UserErr::MentionedUserNotFound)?),
-                        _ => (Some(field.user_error("Not a valid fetch field.")?), disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user).await?.ok_or(UserErr::MentionedUserNotFound)?)
-                    }
+                    let field = args
+                        .single_quoted::<String>()
+                        .ok()
+                        .map(|x| FetchField::from_str(&x))
+                        .transpose()
+                        .map_err(|_| UserErr::other("Not a valid fetch field."))?;
+                    let user = disambiguate_user_mention(&ctx, &guild, msg, &first_arg)
+                        .await?
+                        .ok_or(UserErr::MentionedUserNotFound)?;
+                    (field, user)
                 }
             }
         }
-        Err(_) => (args.single_quoted::<FetchField>().ok(), msg.author.id),
+        Err(_) => (args.single_quoted().ok(), msg.author.id),
     };
 
     let fetch_data = get_fetch_of(&db, mentioned_user_id)
@@ -49,7 +53,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                 e.color_opt(color);
                 if desired_field == FetchField::Image {
                     e.image(value);
-                } else if let Some(value) = format_fetch_field_value(field_name, value) {
+                } else if let Some(value) = format_fetch_field_value(&field_name, value) {
                     e.description(value);
                 } else {
                     e.description("Not set");
@@ -75,7 +79,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                                 e.thumbnail(url);
                             }
                         }
-                        if let Some(val) = format_fetch_field_value(key.clone(), value) {
+                        if let Some(val) = format_fetch_field_value(&key, value) {
                             e.field(key, val, true);
                         }
                     }

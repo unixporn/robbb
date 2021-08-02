@@ -92,30 +92,22 @@ fn parse_setfetch(lines: Vec<&str>) -> Result<HashMap<String, String>> {
 }
 
 /// Sanitize field values and check validity of user-provided fetch data.
-fn sanitize_fetch(
-    mut fetch: HashMap<String, String>,
-) -> Result<HashMap<FetchField, String>, UserErr> {
+fn sanitize_fetch(fetch: HashMap<String, String>) -> Result<HashMap<FetchField, String>, UserErr> {
     let mut new: HashMap<FetchField, String> = HashMap::new();
-    for (key, value) in fetch.iter_mut() {
-        let field = FetchField::from_str(key);
-        if field.is_err() {
-            abort_with!(UserErr::Other(format!("Illegal fetch field: {}", key)))
-        }
-        let field = field.unwrap();
-        match field {
-            FetchField::Memory => {
-                *value = byte_unit::Byte::from_str(&value)
-                    .user_error("Malformed value provided for Memory")?
-                    .get_bytes()
-                    .to_string()
+    for (key, value) in fetch.into_iter() {
+        let field = FetchField::from_str(&key)
+            .map_err(|_| UserErr::Other(format!("Illegal fetch field: {}", key)))?;
+        let value = match field {
+            FetchField::Memory => byte_unit::Byte::from_str(&value)
+                .user_error("Malformed value provided for Memory")?
+                .get_bytes()
+                .to_string(),
+
+            FetchField::Image if !util::validate_url(&value) => {
+                abort_with!("Malformed url provided for Image")
             }
-            FetchField::Image => {
-                if !util::validate_url(&value) {
-                    abort_with!("Malformed url provided for Image")
-                }
-            }
-            _ => {}
-        }
+            _ => value,
+        };
         new.insert(field, value.to_string());
     }
     Ok(new)
