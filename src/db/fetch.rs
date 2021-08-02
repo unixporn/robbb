@@ -6,27 +6,33 @@ use serenity::model::id::UserId;
 
 use super::Db;
 
+use crate::commands::fetch::{FetchField, FETCH_KEY_ORDER};
+
 #[derive(Debug)]
 pub struct Fetch {
     pub user: UserId,
-    pub info: HashMap<String, String>,
+    pub info: HashMap<FetchField, String>,
 }
 
 impl Fetch {
-    pub fn get_values_ordered(mut self) -> Vec<(String, String)> {
-        let mut entries: Vec<(String, String)> = crate::commands::fetch::NORMAL_FETCH_KEYS
+    pub fn get_values_ordered(mut self) -> Vec<(FetchField, String)> {
+        let mut entries: Vec<(FetchField, String)> = FETCH_KEY_ORDER
             .iter()
-            .filter_map(|x| Some((x.to_string(), self.info.remove(*x)?)))
+            .filter_map(|x| Some((x.clone(), self.info.remove(x)?)))
             .collect();
-        if let Some(image) = self.info.remove(crate::commands::fetch::IMAGE_KEY) {
-            entries.push((crate::commands::fetch::IMAGE_KEY.to_string(), image));
+        if let Some(image) = self.info.remove(&FetchField::Image) {
+            entries.push((FetchField::Image, image));
         }
         entries
     }
 }
 
 impl Db {
-    pub async fn set_fetch(&self, user: UserId, info: HashMap<String, String>) -> Result<Fetch> {
+    pub async fn set_fetch(
+        &self,
+        user: UserId,
+        info: HashMap<FetchField, String>,
+    ) -> Result<Fetch> {
         let mut conn = self.pool.acquire().await?;
         {
             let user = user.0 as i64;
@@ -63,7 +69,7 @@ impl Db {
     pub async fn update_fetch(
         &self,
         user: UserId,
-        new_values: HashMap<String, String>,
+        new_values: HashMap<FetchField, String>,
     ) -> Result<Fetch> {
         let mut fetch = self
             .get_fetch(user)
