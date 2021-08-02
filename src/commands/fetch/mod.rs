@@ -80,6 +80,7 @@ pub enum FetchField {
     CPU,
     GPU,
     Memory,
+    #[serde(rename = "image")]
     Image,
 }
 
@@ -90,6 +91,7 @@ impl fmt::Display for FetchField {
             FetchField::DisplayProtocol => write!(writer, "Display Protocol"),
             FetchField::GTK3 => write!(writer, "GTK3 Theme"),
             FetchField::Icons => write!(writer, "GTK Icon Theme"),
+            FetchField::Image => write!(writer, "image"),
             _ => write!(writer, "{:?}", self),
         }
     }
