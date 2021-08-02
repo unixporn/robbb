@@ -20,7 +20,7 @@ pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
 
     let fetches = db.get_all_fetches().await?;
 
-    if args.len() != 0 {
+    if !args.is_empty() {
         let field_name = args
             .single_quoted::<FetchField>()
             .user_error("Not a valid field.")?;
