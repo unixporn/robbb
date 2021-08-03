@@ -15,6 +15,7 @@ use indoc::indoc;
 
 mod guild_member_addition;
 mod guild_member_removal;
+mod guild_member_update;
 mod handle_blocklist;
 mod message_create;
 mod message_delete;
@@ -32,6 +33,13 @@ impl EventHandler for Handler {
             "Error while handling ready event",
             ready::ready(ctx, data_about_bot).await
         )
+    }
+
+    async fn guild_member_update(&self, ctx: client::Context, old: Option<Member>, new: Member) {
+        log_error!(
+            "Error while handling guild member update event",
+            guild_member_update::guild_member_update(ctx, old, new).await
+        );
     }
 
     async fn message(&self, ctx: client::Context, msg: Message) {

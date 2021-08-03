@@ -1,3 +1,5 @@
+use serenity::futures::StreamExt;
+
 use super::*;
 
 pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
@@ -28,9 +30,30 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
         .set_presence(Some(Activity::listening("!help")), OnlineStatus::Online)
         .await;
 
+    let before_time = std::time::Instant::now();
+    dehoist_everyone(ctx.clone(), config.guild).await;
+    let dehoist_duration = before_time.elapsed();
+    log::info!(
+        "Checking all users for hoisting characters took {}ms",
+        dehoist_duration.as_millis(),
+    );
+
     start_mute_handler(ctx.clone()).await;
     start_attachment_log_handler(ctx).await;
     Ok(())
+}
+
+async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
+    guild_id
+        .members_iter(&ctx)
+        .filter_map(|x| async { x.ok() })
+        .for_each_concurrent(None, |member| async {
+            log_error!(
+                "Error while dehoisting a member",
+                guild_member_update::dehoist_member(ctx.clone(), member).await
+            );
+        })
+        .await;
 }
 
 async fn start_mute_handler(ctx: client::Context) {
