@@ -4,9 +4,9 @@ use crate::Arc;
 /// Get notified when someone mentions a word you care about.
 #[allow(unreachable_code)]
 #[command("highlights")]
-#[sub_commands(highlights_add, highlights_get, highlights_remove)]
+#[sub_commands(highlights_add, highlights_get, highlights_remove, highlights_clear)]
 #[aliases("highlight", "hl")]
-#[usage("!highlights <add | get | remove>")]
+#[usage("!highlights <add | get | remove | clear>")]
 pub async fn highlights(_: &client::Context, _: &Message) -> CommandResult {
     abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS))
 }
@@ -111,5 +111,14 @@ pub async fn highlights_remove(ctx: &client::Context, msg: &Message, args: Args)
         ),
     )
     .await?;
+    Ok(())
+}
+
+#[command("clear")]
+#[usage("!highlights clear")]
+pub async fn highlights_clear(ctx: &client::Context, msg: &Message, _args: Args) -> CommandResult {
+    let db = ctx.get_db().await;
+    db.rm_highlights_of(msg.author.id).await?;
+    msg.reply_success(&ctx, "Your highlights have been successfully cleared.".to_string()).await?;
     Ok(())
 }
