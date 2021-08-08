@@ -119,6 +119,10 @@ pub async fn highlights_remove(ctx: &client::Context, msg: &Message, args: Args)
 pub async fn highlights_clear(ctx: &client::Context, msg: &Message, _args: Args) -> CommandResult {
     let db = ctx.get_db().await;
     db.rm_highlights_of(msg.author.id).await?;
-    msg.reply_success(&ctx, "Your highlights have been successfully cleared.".to_string()).await?;
+    msg.reply_success(
+        &ctx,
+        "Your highlights have been successfully cleared.".to_string(),
+    )
+    .await?;
     Ok(())
 }
