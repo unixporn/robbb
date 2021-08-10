@@ -1,3 +1,4 @@
+#![allow(clippy::needless_borrow)]
 use crate::extensions::*;
 use db::Db;
 use rand::prelude::IteratorRandom;
