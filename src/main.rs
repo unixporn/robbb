@@ -177,7 +177,12 @@ async fn main() {
 }
 
 #[hook]
-async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError, _command_name: &str) {
+async fn dispatch_error_hook(
+    ctx: &client::Context,
+    msg: &Message,
+    error: DispatchError,
+    _command_name: &str,
+) {
     // Log dispatch errors that should be logged
     match &error {
         DispatchError::CheckFailed(required, Reason::Log(log))

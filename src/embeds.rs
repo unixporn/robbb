@@ -56,7 +56,7 @@ impl PaginatedFieldsEmbed {
                 .await?)
         } else {
             let mut current_page_idx = 0;
-            let mut created_msg = msg
+            let created_msg = msg
                 .channel_id
                 .send_message(&ctx, |m| {
                     m.clone_from(pages.get(current_page_idx).unwrap());
@@ -64,37 +64,56 @@ impl PaginatedFieldsEmbed {
                 })
                 .await?;
 
-            let emoji_left = ReactionType::from('◀');
-            let emoji_right = ReactionType::from('▶');
+            let ctx = ctx.clone();
+            let user_id = msg.author.id;
 
-            let reaction_left = created_msg.react(&ctx, emoji_left.clone()).await?;
-            let reaction_right = created_msg.react(&ctx, emoji_right.clone()).await?;
+            tokio::spawn({
+                let mut created_msg = created_msg.clone();
+                async move {
+                    let res: Result<()> = async move {
+                        let emoji_left = ReactionType::from('◀');
+                        let emoji_right = ReactionType::from('▶');
 
-            let mut collector = created_msg
-                .await_reactions(&ctx)
-                .timeout(std::time::Duration::from_secs(30))
-                .collect_limit(10)
-                .author_id(msg.author.id)
-                .filter(move |r| r.emoji == reaction_left.emoji || r.emoji == reaction_right.emoji)
-                .await;
-            while let Some(reaction) = collector.next().await {
-                let reaction = &reaction.as_ref().as_inner_ref();
-                let emoji = &reaction.emoji;
+                        let reaction_left = created_msg.react(&ctx, emoji_left.clone()).await?;
+                        let reaction_right = created_msg.react(&ctx, emoji_right.clone()).await?;
 
-                reaction.delete(&ctx).await?;
+                        let mut collector = created_msg
+                            .await_reactions(&ctx)
+                            .timeout(std::time::Duration::from_secs(30))
+                            .collect_limit(10)
+                            .author_id(user_id)
+                            .filter(move |r| {
+                                r.emoji == reaction_left.emoji || r.emoji == reaction_right.emoji
+                            })
+                            .await;
 
-                if emoji == &emoji_left && current_page_idx > 0 {
-                    current_page_idx -= 1;
-                } else if emoji == &emoji_right && current_page_idx < pages.len() - 1 {
-                    current_page_idx += 1;
+                        while let Some(reaction) = collector.next().await {
+                            let reaction = &reaction.as_ref().as_inner_ref();
+                            let emoji = &reaction.emoji;
+
+                            if emoji == &emoji_left && current_page_idx > 0 {
+                                current_page_idx -= 1;
+                            } else if emoji == &emoji_right && current_page_idx < pages.len() - 1 {
+                                current_page_idx += 1;
+                            }
+                            created_msg
+                                .edit(&ctx, |e| {
+                                    e.0.clone_from(&pages.get(current_page_idx).unwrap().0);
+                                    e
+                                })
+                                .await?;
+                            reaction.delete(&ctx).await?;
+                        }
+
+                        created_msg.delete_reactions(&ctx).await?;
+                        Ok(())
+                    }
+                    .await;
+                    if let Err(err) = res {
+                        log::error!("{}", err);
+                    }
                 }
-                created_msg
-                    .edit(&ctx, |e| {
-                        e.0.clone_from(&pages.get(current_page_idx).unwrap().0);
-                        e
-                    })
-                    .await?;
-            }
+            });
 
             Ok(created_msg)
         }
