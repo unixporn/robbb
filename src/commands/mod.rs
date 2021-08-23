@@ -139,9 +139,7 @@ pub async fn disambiguate_user_mention(
         Ok(Some(member.user.id))
     } else if DISCRIMINATOR.is_match(name) {
         let users = &guild.members;
-        let user: Option<(&UserId, &Member)> = users
-            .iter()
-            .find(|(_, mem)| mem.user.tag() == name);
+        let user: Option<(&UserId, &Member)> = users.iter().find(|(_, mem)| mem.user.tag() == name);
         let user = user.map(|(&id, _)| id);
         Ok(user)
     } else {
