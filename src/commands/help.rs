@@ -38,11 +38,15 @@ async fn my_help(
         for group in groups {
             for cmd in group.options.commands {
                 if cmd.options.help_available && {
-                    let (a, b) = tokio::join!(
-                        help_commands::has_all_requirements(&ctx, cmd.options, msg),
-                        passes_all_checks(group.options.checks, &ctx, &msg, &mut args, cmd.options)
-                    );
-                    a && b
+                    help_commands::has_all_requirements(&ctx, cmd.options, msg)
+                        && passes_all_checks(
+                            group.options.checks,
+                            &ctx,
+                            &msg,
+                            &mut args,
+                            cmd.options,
+                        )
+                        .await
                 } {
                     commands.push(cmd.options)
                 }
@@ -111,7 +115,7 @@ async fn reply_help_full(
         e.title("Help");
     })
     .await
-    .send(&ctx, &msg)
+    .reply_to(&ctx, &msg)
     .await
 }
 

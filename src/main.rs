@@ -162,7 +162,7 @@ async fn main() {
         .group(&GENERAL_GROUP)
         .help(&help::MY_HELP);
 
-    client.cache_and_http.cache.set_max_messages(500).await;
+    client.cache_and_http.cache.set_max_messages(500);
 
     {
         let mut data = client.data.write().await;
@@ -177,7 +177,7 @@ async fn main() {
 }
 
 #[hook]
-async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError) {
+async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError, _command_name: &str) {
     // Log dispatch errors that should be logged
     match &error {
         DispatchError::CheckFailed(required, Reason::Log(log))
@@ -201,7 +201,7 @@ fn display_dispatch_error(err: DispatchError) -> String {
             _ => "You're not allowed to use this command".to_string(),
         },
         DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),
-        DispatchError::CommandDisabled(_) => "Command is disabled".to_string(),
+        DispatchError::CommandDisabled => "Command is disabled".to_string(),
         DispatchError::BlockedUser => "User not allowed to use bot".to_string(),
         DispatchError::BlockedGuild => "Guild is blocked by bot".to_string(),
         DispatchError::BlockedChannel => "Channel is blocked by bot".to_string(),

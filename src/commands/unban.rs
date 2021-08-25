@@ -6,7 +6,7 @@ use super::*;
 pub async fn unban(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let config = ctx.get_config().await;
 
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
 
     let user_id = args
         .single::<UserId>()

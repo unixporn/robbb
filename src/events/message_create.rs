@@ -82,7 +82,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
         .await
         .context("Couldn't get channel")?
         .guild()
-        .context("Couldn't get server")?;
+        .context("Couldn't get a guild-channel from the channel")?;
 
     if config.category_mod_private == channel.category_id.context("Couldn't get category_id")? {
         return Ok(());
@@ -120,10 +120,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
             .footer(|f| f.text(format!("#{}", channel.name)));
 
         for user_id in users {
-            let user_can_see_channel = channel
-                .permissions_for_user(&ctx, user_id)
-                .await?
-                .read_messages();
+            let user_can_see_channel = channel.permissions_for_user(&ctx, user_id)?.read_messages();
 
             if user_id == msg.author.id || handled_users.contains(&user_id) || !user_can_see_channel
             {
@@ -229,8 +226,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .guild()
         .context("Message not in a guild-channel")?;
     let user_can_see_channel = channel
-        .permissions_for_user(&ctx, msg.author.id)
-        .await?
+        .permissions_for_user(&ctx, msg.author.id)?
         .read_messages();
 
     if Some(GuildId(guild_id)) != msg.guild_id || !user_can_see_channel {
@@ -311,9 +307,9 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     if is_spam || is_ping_spam {
         let config = ctx.get_config().await;
 
-        let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+        let guild = msg.guild(&ctx).context("Failed to load guild")?;
         let member = guild.member(&ctx, msg.author.id).await?;
-        let bot_id = ctx.cache.current_user_id().await;
+        let bot_id = ctx.cache.current_user_id();
 
         let duration = std::time::Duration::from_secs(60 * 30);
 
