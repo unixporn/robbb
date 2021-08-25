@@ -10,7 +10,7 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
     let config = ctx.get_config().await;
     let reason = args.remains().invalid_usage(&MODPING_COMMAND_OPTIONS)?;
 
-    let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
+    let guild = msg.guild(&ctx).context("Failed to fetch guild")?;
 
     let mods_and_helpers = guild
         .members_with_status(Online)

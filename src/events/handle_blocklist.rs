@@ -51,7 +51,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         });
 
         let note_future = async {
-            let bot_id = ctx.cache.current_user_id().await;
+            let bot_id = ctx.cache.current_user_id();
             let note_content = format!("Message deleted because of word `{}`", word);
             let _ = db
                 .add_note(

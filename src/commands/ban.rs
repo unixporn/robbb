@@ -34,7 +34,7 @@ async fn do_ban(
 ) -> CommandResult {
     let config = ctx.get_config().await;
 
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
 
     let mentioned_user = &args
         .single::<UserId>()

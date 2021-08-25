@@ -1,5 +1,4 @@
 use crate::extensions::*;
-use std::sync::Arc;
 
 use anyhow::*;
 use chrono::Utc;
@@ -7,9 +6,9 @@ use itertools::Itertools;
 use serenity::{
     builder::{CreateEmbed, CreateMessage},
     client,
+    futures::StreamExt,
     model::channel::{Message, ReactionType},
 };
-use serenity_utils::menu::*;
 
 pub struct PaginatedFieldsEmbed {
     create_embed: CreateEmbed,
@@ -30,7 +29,7 @@ impl PaginatedFieldsEmbed {
         }
     }
 
-    pub async fn send(&self, ctx: &client::Context, msg: &Message) -> Result<Message> {
+    pub async fn reply_to(&self, ctx: &client::Context, msg: &Message) -> Result<Message> {
         let pages = self.fields.iter().chunks(25);
         let pages = pages
             .into_iter()
@@ -56,24 +55,67 @@ impl PaginatedFieldsEmbed {
                 })
                 .await?)
         } else {
-            let controls = vec![
-                Control::new(
-                    ReactionType::from('◀'),
-                    Arc::new(|m, r| Box::pin(prev_page(m, r))),
-                ),
-                Control::new(
-                    ReactionType::from('▶'),
-                    Arc::new(|m, r| Box::pin(next_page(m, r))),
-                ),
-            ];
+            let mut current_page_idx = 0;
+            let created_msg = msg
+                .channel_id
+                .send_message(&ctx, |m| {
+                    m.clone_from(pages.get(current_page_idx).unwrap());
+                    m.reference_message(msg)
+                })
+                .await?;
 
-            let options = MenuOptions {
-                controls,
-                ..Default::default()
-            };
+            let ctx = ctx.clone();
+            let user_id = msg.author.id;
 
-            let menu = Menu::new(ctx, msg, &pages, options);
-            Ok(menu.run().await?.context("No paginated message sent")?)
+            tokio::spawn({
+                let mut created_msg = created_msg.clone();
+                async move {
+                    let res: Result<()> = async move {
+                        let emoji_left = ReactionType::from('◀');
+                        let emoji_right = ReactionType::from('▶');
+
+                        let reaction_left = created_msg.react(&ctx, emoji_left.clone()).await?;
+                        let reaction_right = created_msg.react(&ctx, emoji_right.clone()).await?;
+
+                        let mut collector = created_msg
+                            .await_reactions(&ctx)
+                            .timeout(std::time::Duration::from_secs(30))
+                            .collect_limit(10)
+                            .author_id(user_id)
+                            .filter(move |r| {
+                                r.emoji == reaction_left.emoji || r.emoji == reaction_right.emoji
+                            })
+                            .await;
+
+                        while let Some(reaction) = collector.next().await {
+                            let reaction = &reaction.as_ref().as_inner_ref();
+                            let emoji = &reaction.emoji;
+
+                            if emoji == &emoji_left && current_page_idx > 0 {
+                                current_page_idx -= 1;
+                            } else if emoji == &emoji_right && current_page_idx < pages.len() - 1 {
+                                current_page_idx += 1;
+                            }
+                            created_msg
+                                .edit(&ctx, |e| {
+                                    e.0.clone_from(&pages.get(current_page_idx).unwrap().0);
+                                    e
+                                })
+                                .await?;
+                            reaction.delete(&ctx).await?;
+                        }
+
+                        created_msg.delete_reactions(&ctx).await?;
+                        Ok(())
+                    }
+                    .await;
+                    if let Err(err) = res {
+                        log::error!("{}", err);
+                    }
+                }
+            });
+
+            Ok(created_msg)
         }
     }
 }

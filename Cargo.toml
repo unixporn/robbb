@@ -6,8 +6,8 @@ edition = "2018"
 
 
 [dependencies]
-serenity = { version = "0.10", features = ["collector"]}
-serenity_utils = "0.6"
+serenity = { git = "https://github.com/serenity-rs/serenity/", branch = "next", features = ["collector"]}
+#serenity = { version = "0.10", features = ["collector"]}
 anyhow = "1.0"
 chrono = "0.4"
 chrono-humanize = "0.2"

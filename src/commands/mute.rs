@@ -7,7 +7,7 @@ use super::*;
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let config = ctx.get_config().await;
 
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
 
     let mentioned_user_id = match args.single_quoted::<String>() {
         Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
@@ -22,7 +22,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let reason = args.remains();
 
-    let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
+    let guild = msg.guild(&ctx).context("Failed to fetch guild")?;
     let member = guild.member(&ctx, mentioned_user_id).await?;
 
     do_mute(&ctx, guild, msg.author.id, member, *duration, reason).await?;

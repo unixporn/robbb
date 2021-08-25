@@ -1,6 +1,9 @@
 use anyhow::*;
 use chrono::Timelike;
-use serenity::model::misc::EmojiIdentifier;
+use serenity::{
+    client,
+    model::{id::ChannelId, misc::EmojiIdentifier},
+};
 use std::env;
 
 /// return with an error value immediately.
@@ -129,4 +132,14 @@ pub fn is_image_file(s: &str) -> bool {
 /// Return the bot version, as read from the VERSION environment variable at build time.
 pub fn bot_version() -> &'static str {
     option_env!("VERSION").unwrap_or("<no version>")
+}
+
+pub async fn channel_name(ctx: &client::Context, channel_id: ChannelId) -> Result<String> {
+    let channel = channel_id
+        .to_channel(&ctx)
+        .await
+        .context("Failed to get channel object for channel id")?
+        .guild()
+        .context("Failed to get guild channel for channel object")?;
+    Ok(channel.name().to_string())
 }

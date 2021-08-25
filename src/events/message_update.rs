@@ -22,11 +22,9 @@ pub async fn message_update(
         err => log_error!("error while handling blocklist in message_update", err),
     };
 
-    let channel_name = event
-        .channel_id
-        .name(&ctx)
+    let channel_name = util::channel_name(&ctx, event.channel_id)
         .await
-        .unwrap_or_else(|| "unknown".to_string());
+        .unwrap_or_else(|_| "unknown".to_string());
 
     config
         .guild

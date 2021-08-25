@@ -1,8 +1,5 @@
 use itertools::Itertools;
-use serenity::{
-    futures::{stream, StreamExt},
-    http::AttachmentType,
-};
+use serenity::http::AttachmentType;
 
 use super::*;
 
@@ -24,7 +21,7 @@ pub async fn message_delete(
     )
     .await?;
 
-    let msg = ctx.cache.message(channel_id, deleted_message_id).await;
+    let msg = ctx.cache.message(channel_id, deleted_message_id);
     // if the message can't be loaded, there's no need to try anything more,
     // so let's just give up. No need to error.
     let msg = match msg {
@@ -54,10 +51,9 @@ pub async fn message_delete(
     //handle_ghostping(&ctx, &msg).await;
 
     let deletor = find_deletor(&ctx, &config, &msg).await?;
-    let channel_name = channel_id
-        .name(&ctx)
+    let channel_name = util::channel_name(&ctx, channel_id)
         .await
-        .unwrap_or_else(|| "unknown".to_string());
+        .unwrap_or_else(|_| "unknown".to_string());
 
     config
         .channel_bot_messages
@@ -112,10 +108,10 @@ pub async fn message_delete_bulk(
         return Ok(());
     }
 
-    let msgs: Vec<Message> = stream::iter(deleted_message_ids)
+    let msgs: Vec<Message> = deleted_message_ids
+        .iter()
         .filter_map(|id| ctx.cache.message(channel_id, id))
-        .collect()
-        .await;
+        .collect();
 
     let channel_name = channel_id
         .name(&ctx)
