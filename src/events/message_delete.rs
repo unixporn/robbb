@@ -51,10 +51,9 @@ pub async fn message_delete(
     //handle_ghostping(&ctx, &msg).await;
 
     let deletor = find_deletor(&ctx, &config, &msg).await?;
-    let channel_name = channel_id
-        .name(&ctx)
+    let channel_name = util::channel_name(&ctx, channel_id)
         .await
-        .unwrap_or_else(|| "unknown".to_string());
+        .unwrap_or_else(|_| "unknown".to_string());
 
     config
         .channel_bot_messages
