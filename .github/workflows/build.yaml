@@ -1,4 +1,4 @@
-name: Docker
+name: Build & Push
 
 on:
   push:
@@ -17,26 +17,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
 
-      - uses: cachix/install-nix-action@v13
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
+      - name: Install rust stable
+        uses: actions-rs/toolchain@v1
 
-      - uses: cachix/cachix-action@v10
-        with:
-          name: robbb
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-
-      - name: Build image
-        run: |
-          docker load < $(nix-build -E '(import <nixpkgs> {}).callPackage ./. { robbbSrc = builtins.fetchGit ./.; robbbRev = "${{ github.sha }}"; robbbVersion = "'"$(git log --format=oneline -n 1 HEAD)"'"; }' -A image)
+      - uses: Swatinem/rust-cache@v1
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Push image
+      - name: Build and push image
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:${{ github.sha }}
 
@@ -45,5 +35,7 @@ jobs:
 
           echo IMAGE_ID=$IMAGE_ID
 
-          docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_ID
+          cargo build --release --locked
+          cp target/release/robbb .
+          docker build -t $IMAGE_ID .
           docker push $IMAGE_ID
