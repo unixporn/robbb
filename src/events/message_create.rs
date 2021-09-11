@@ -84,7 +84,10 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
         .guild()
         .context("Couldn't get a guild-channel from the channel")?;
 
-    if config.category_mod_private == channel.category_id.context("Couldn't get category_id")? {
+    // don't highlight in threads or mod internal channels
+    if channel.thread_metadata.is_some()
+        || config.category_mod_private == channel.parent_id.context("Couldn't get parent_id")?
+    {
         return Ok(());
     }
 
