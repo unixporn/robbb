@@ -15,8 +15,7 @@ pub async fn ask(ctx: &client::Context, msg: &Message) -> CommandResult {
     let question = question_parts.1.trim();
     let title = question
         .lines()
-        .filter(|x| !x.trim().is_empty())
-        .next()
+        .find(|x| !x.trim().is_empty())
         .invalid_usage(&ASK_COMMAND_OPTIONS)?;
 
     let title = if title.len() >= 97 {
