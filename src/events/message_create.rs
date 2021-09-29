@@ -24,6 +24,8 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
         log_error!(handle_showcase_post(&ctx, &msg).await);
     } else if msg.channel_id == config.channel_feedback {
         log_error!(handle_feedback_post(&ctx, &msg).await);
+    } else if msg.channel_id == config.channel_tech_support {
+        log_error!(handle_techsupport_post(ctx.clone(), &msg).await);
     }
 
     if msg.channel_id != config.channel_bot_messages && !msg.content.starts_with("!emojistats") {
@@ -65,6 +67,41 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
             .clone();
 
         framework.dispatch(ctx, msg).await;
+    }
+    Ok(())
+}
+
+async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<()> {
+    let config = ctx.get_config().await;
+    if msg.content.starts_with("!ask") {
+        return Ok(());
+    }
+
+    msg.delete(&ctx).await?;
+
+    let result = msg.author.dm(&ctx, |m| {
+        m.content(format!(
+            "Your message in {} has been deleted. Please use `!ask` to ask any questions, and respond in the thread.\nYour messages was:\n\n{}", 
+            config.channel_tech_support.mention(),
+            msg.content,
+        ))
+    }).await;
+
+    if result.is_err() {
+        let error_msg = msg
+            .channel_id
+            .send_error(
+                &ctx,
+                format!(
+                    "{}, please use !ask to ask any questions, and respond in the thread.",
+                    msg.author.mention(),
+                ),
+            )
+            .await?;
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            log_error!(error_msg.delete(ctx).await);
+        });
     }
     Ok(())
 }

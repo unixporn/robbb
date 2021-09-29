@@ -224,6 +224,22 @@ pub trait ChannelIdExt {
     async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync;
+
+    async fn send_error(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message> {
+        let pensibe = ctx
+            .get_up_emotes()
+            .await
+            .map(|x| format!(" {}", x.pensibe.clone()));
+        self.send_embed(&ctx, |e| {
+            e.description(format!("{}{}", s, pensibe.unwrap_or_default()));
+            e.color(0xfb4934);
+        })
+        .await
+    }
 }
 
 #[async_trait]
