@@ -77,8 +77,6 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
         return Ok(());
     }
 
-    msg.delete(&ctx).await?;
-
     let result = msg.author.dm(&ctx, |m| {
         m.content(format!(
             "Your message in {} has been deleted. Please use `!ask` to ask any questions, and respond in the thread.\nYour messages was:\n\n{}", 
@@ -87,20 +85,18 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
         ))
     }).await;
 
-    if result.is_err() {
-        let error_msg = msg
-            .channel_id
-            .send_error(
-                &ctx,
-                format!(
-                    "{}, please use !ask to ask any questions, and respond in the thread.",
-                    msg.author.mention(),
-                ),
-            )
-            .await?;
-        tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-            log_error!(error_msg.delete(ctx).await);
+    if result.is_ok() {
+        msg.delete(&ctx).await?;
+    } else {
+        let error_msg = msg.reply_error(&ctx, "Please use !ask to ask any questions and respond to others in the thread.\n**Your message will be deleted in a few seconds.**").await?;
+        tokio::spawn({
+            let ctx = ctx.clone();
+            let msg = msg.clone();
+            async move {
+                tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                log_error!(msg.delete(&ctx).await);
+                log_error!(error_msg.delete(ctx).await);
+            }
         });
     }
     Ok(())
