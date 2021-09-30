@@ -13,7 +13,7 @@
 serverid=SERVERIDGOESHERE
 
 
-[ "$token" ] && [ "$serverid" ] || exec \
+[ "${#token}" -ge 50 ] && [ "$serverid" -ge 999 ] || exec \
 	echo "Please add the bot's token and the server's ID to the script"
 
 # clean the env
