@@ -31,6 +31,23 @@ macro_rules! log_error {
     };
 }
 
+pub fn thread_title_from_text(text: &str) -> Result<String> {
+    let title = text
+        .lines()
+        .find(|x| !x.trim().is_empty())
+        .context("Text was empty")?;
+
+    if title.len() >= 97 {
+        let mut cutoff = 97;
+        while !title.is_char_boundary(cutoff) {
+            cutoff -= 1;
+        }
+        Ok(format!("{}...", title.split_at(cutoff).0))
+    } else {
+        Ok(title.to_string())
+    }
+}
+
 /// Get an environment variable, returning an Err with a
 /// nice error message mentioning the missing variable in case the value is not found.
 pub fn required_env_var(key: &str) -> Result<String> {

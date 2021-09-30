@@ -13,19 +13,22 @@ pub async fn ask(ctx: &client::Context, msg: &Message) -> CommandResult {
 
     let question_parts = msg.content.split_at_word("!ask");
     let question = question_parts.1.trim();
-    let title = question
-        .lines()
-        .find(|x| !x.trim().is_empty())
-        .invalid_usage(&ASK_COMMAND_OPTIONS)?;
+    let title = util::thread_title_from_text(&question);
 
-    let title = if title.len() >= 97 {
-        let mut cutoff = 97;
-        while !title.is_char_boundary(cutoff) {
-            cutoff -= 1;
-        }
-        format!("{}...", title.split_at(cutoff).0)
+    let title = if let Ok(title) = title {
+        title
     } else {
-        title.to_string()
+        let response = msg.reply_error(&ctx, "You must provide a question").await?;
+        tokio::spawn({
+            let ctx = ctx.clone();
+            let msg = msg.clone();
+            async move {
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                let _ = response.delete(&ctx).await;
+                let _ = msg.delete(&ctx).await;
+            }
+        });
+        return Ok(());
     };
 
     msg.channel(&ctx)
