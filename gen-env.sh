@@ -1,20 +1,21 @@
 #!/bin/sh
 # generate .env file for testing up's bot
 #  https://github.com/unixporn/Supreme-Demolition-Droid
-#
-# server template link:
-#  https://discord.new/zkhTrUTEbtg9
-#
-# link to add bot to server:
-#  https://discord.com/oauth2/authorize?scope=bot&client_id=<BOTID>
-# where <BOTID> is the bot's snowflake
 
-[ "$token" ] || token=TOKENGOESHERE
-serverid=SERVERIDGOESHERE
+cat << EOF
+Note:  Don't forget to enable the [34m'Presence'[0m & [34m'Server members'[0m intents in the bot's settings
+Link to template:  [34mhttps://discord.new/zkhTrUTEbtg9[0m
+Link to add bot:   [34mhttps://discord.com/oauth2/authorize?scope=bot&client_id=[31m<BOT-SNOWFLAKE>[0m
+EOF
+# You can also export these variables in your normal environment
+# If variable is empty, then ask the user to type (/paste) the new contents.
+[ ! "$token" ]    && printf "[input the bot's token]: "          && read -r token
+[ ! "$serverid" ] && printf "[input the template server's ID]: " && read -r serverid
 
 
+# ${#VAR} == get length of variable
 [ "${#token}" -ge 50 ] && [ "$serverid" -ge 999 ] || exec \
-	echo "Please add the bot's token and the server's ID to the script"
+	echo "Please input/export a valid token & server ID"
 
 # clean the env
 unset col start mod mute intern
@@ -78,6 +79,7 @@ EOF
 
 
 cat << EOF
+
 export DATABASE_URL=sqlite:base.db
 export TOKEN=$token
 export GUILD=$serverid
@@ -95,4 +97,5 @@ export CHANNEL_MOD_BOT_STUFF=$botstuff
 export CHANNEL_BOT_TRAFFIC=$humantrafficking
 export ATTACHMENT_CACHE_PATH=./cache
 export ATTACHMENT_CACHE_MAX_SIZE=50000000
+
 EOF
