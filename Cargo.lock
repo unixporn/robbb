@@ -367,7 +367,6 @@ checksum = "a12aa0eb539080d55c3f2d45a67c3b58b6b0773c1a3ca2dfec66d58c97fd66ca"
 dependencies = [
  "futures-channel",
  "futures-core",
- "futures-executor",
  "futures-io",
  "futures-sink",
  "futures-task",
@@ -389,17 +388,6 @@ name = "futures-core"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88d1c26957f23603395cd326b0ffe64124b818f4449552f960d815cfba83a53d"
-
-[[package]]
-name = "futures-executor"
-version = "0.3.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45025be030969d763025784f7f355043dc6bc74093e4ecc5000ca4dc50d8745c"
-dependencies = [
- "futures-core",
- "futures-task",
- "futures-util",
-]
 
 [[package]]
 name = "futures-intrusive"
@@ -1412,9 +1400,9 @@ dependencies = [
 
 [[package]]
 name = "sqlx"
-version = "0.5.7"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e4b94ab0f8c21ee4899b93b06451ef5d965f1a355982ee73684338228498440"
+checksum = "7911b0031a0247af40095838002999c7a52fba29d9739e93326e71a5a1bc9d43"
 dependencies = [
  "sqlx-core",
  "sqlx-macros",
@@ -1422,9 +1410,9 @@ dependencies = [
 
 [[package]]
 name = "sqlx-core"
-version = "0.5.7"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec28b91a01e1fe286d6ba66f68289a2286df023fc97444e1fd86c2fd6d5dc026"
+checksum = "aec89bfaca8f7737439bad16d52b07f1ccd0730520d3bf6ae9d069fe4b641fb1"
 dependencies = [
  "ahash",
  "atoi",
@@ -1443,6 +1431,7 @@ dependencies = [
  "futures-util",
  "hashlink",
  "hex",
+ "indexmap",
  "itoa",
  "libc",
  "libsqlite3-sys",
@@ -1468,13 +1457,12 @@ dependencies = [
 
 [[package]]
 name = "sqlx-macros"
-version = "0.5.7"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dc33c35d54774eed73d54568d47a6ac099aed8af5e1556a017c131be88217d5"
+checksum = "584866c833511b1a152e87a7ee20dee2739746f60c858b3c5209150bc4b466f5"
 dependencies = [
  "dotenv",
  "either",
- "futures",
  "heck",
  "hex",
  "once_cell",
@@ -1491,9 +1479,9 @@ dependencies = [
 
 [[package]]
 name = "sqlx-rt"
-version = "0.5.7"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14302b678d9c76b28f2e60115211e25e0aabc938269991745a169753dc00e35c"
+checksum = "0d1bd069de53442e7a320f525a6d4deb8bb0621ac7a55f7eccbc2b58b57f43d0"
 dependencies = [
  "once_cell",
  "tokio",
