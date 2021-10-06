@@ -407,7 +407,6 @@ async fn init_cpu_logging() {
                     let percentage = duration.non_idle() * 100.;
                     tracing::info!(cpu_usage = percentage);
                 }
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             }
         }
         .instrument(tracing::info_span!("cpu-usage")),
