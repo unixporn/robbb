@@ -20,7 +20,7 @@ impl Db {
     pub async fn get_blocklist(&self) -> Result<Vec<String>> {
         let mut conn = self.pool.acquire().await?;
 
-        let mut cache = self.blocklist_cache.lock().await;
+        let mut cache = self.blocklist_cache.write().await;
 
         if let Some(cache) = cache.as_ref() {
             Ok(cache.clone())
@@ -44,7 +44,7 @@ impl Db {
         .execute(&mut conn)
         .await?;
 
-        let mut cache = self.blocklist_cache.lock().await;
+        let mut cache = self.blocklist_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
             cache.push(s.to_string());
         }
@@ -58,7 +58,7 @@ impl Db {
             .execute(&mut conn)
             .await?;
 
-        let mut cache = self.blocklist_cache.lock().await;
+        let mut cache = self.blocklist_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
             if let Some((pos, _)) = cache.iter().find_position(|x| x.as_str() == s) {
                 cache.remove(pos);

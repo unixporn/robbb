@@ -3,7 +3,8 @@ use std::sync::Arc;
 use anyhow::*;
 
 use serenity::model::id::UserId;
-use serenity::{futures::lock::Mutex, prelude::TypeMapKey};
+use serenity::prelude::RwLock;
+use serenity::prelude::TypeMapKey;
 use sqlx::SqlitePool;
 use std::collections::HashMap;
 pub mod blocklist;
@@ -18,8 +19,8 @@ pub mod warn;
 
 pub struct Db {
     pool: SqlitePool,
-    blocklist_cache: Arc<Mutex<Option<Vec<String>>>>,
-    highlight_cache: Mutex<Option<highlights::HighlightsData>>,
+    blocklist_cache: Arc<RwLock<Option<Vec<String>>>>,
+    highlight_cache: RwLock<Option<highlights::HighlightsData>>,
 }
 
 impl TypeMapKey for Db {
@@ -31,8 +32,8 @@ impl Db {
         let pool = SqlitePool::connect(&std::env::var("DATABASE_URL")?).await?;
         Ok(Self {
             pool,
-            blocklist_cache: Arc::new(Mutex::new(None)),
-            highlight_cache: Mutex::new(None),
+            blocklist_cache: Arc::new(RwLock::new(None)),
+            highlight_cache: RwLock::new(None),
         })
     }
 

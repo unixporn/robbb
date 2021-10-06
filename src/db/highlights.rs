@@ -102,7 +102,7 @@ impl HighlightsData {
 
 impl Db {
     pub async fn get_highlights(&self) -> Result<HighlightsData> {
-        let mut cache = self.highlight_cache.lock().await;
+        let mut cache = self.highlight_cache.write().await;
         if let Some(cache) = cache.as_ref() {
             Ok(cache.clone())
         } else {
@@ -132,7 +132,7 @@ impl Db {
             .execute(&mut conn)
             .await?;
         }
-        let mut cache = self.highlight_cache.lock().await;
+        let mut cache = self.highlight_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
             cache.remove_entry(&trigger, user)?;
         }
@@ -158,7 +158,7 @@ impl Db {
             .execute(&mut conn)
             .await?;
         }
-        let mut cache = self.highlight_cache.lock().await;
+        let mut cache = self.highlight_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
             cache.add_entry(word, user)?;
         }
@@ -175,7 +175,7 @@ impl Db {
                 .await?;
         }
 
-        let mut cache = self.highlight_cache.lock().await;
+        let mut cache = self.highlight_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
             cache.remove_entries_of(user)?;
         }
