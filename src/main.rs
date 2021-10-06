@@ -193,10 +193,10 @@ async fn main() {
 fn init_tracing(honeycomb_api_key: Option<String>) {
     let filter = tracing_subscriber::filter::Targets::new()
         .with_target("serenity", Level::DEBUG)
-        //.with_target(
-        //"serenity::http::ratelimiting",
-        //tracing::metadata::LevelFilter::OFF,
-        //)
+        .with_target(
+            "serenity::http::ratelimiting",
+            tracing::metadata::LevelFilter::OFF,
+        )
         .with_target("robbb", Level::TRACE);
 
     let sub = tracing_subscriber::registry()
