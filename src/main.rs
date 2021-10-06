@@ -204,6 +204,7 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
         .with(tracing_subscriber::fmt::Layer::default());
 
     if let Some(api_key) = honeycomb_api_key {
+        log::info!("honeycomb api key is set, initializing honeycomb layer");
         let config = libhoney::Config {
             options: libhoney::client::Options {
                 api_key,
@@ -217,6 +218,7 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
         ));
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     } else {
+        log::info!("no honeycomb api key is set");
         let sub = sub.with(tracing_honeycomb::new_blackhole_telemetry_layer());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     };
