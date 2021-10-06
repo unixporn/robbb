@@ -7,6 +7,7 @@ pub async fn guild_member_update(
     _old: Option<Member>,
     new: Member,
 ) -> Result<()> {
+    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     dehoist_member(ctx, new).await?;
     Ok(())
 }

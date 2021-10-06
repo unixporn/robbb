@@ -11,6 +11,8 @@ use serenity::prelude::*;
 use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
 use std::io::Write;
 use std::{path::PathBuf, sync::Arc};
+use tracing::Level;
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 
 use crate::util::*;
 use anyhow::Result;
@@ -135,6 +137,15 @@ impl TypeMapKey for FrameworkKey {
 async fn main() {
     init_logger();
 
+    let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
+
+    init_tracing(honeycomb_api_key);
+
+    let span = tracing::span!(Level::DEBUG, "main");
+    let _enter = span.enter();
+
+    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
+
     let config = Config::from_environment().expect("Failed to load experiment");
 
     let db = Db::new().await.expect("Failed to initialize database");
@@ -158,6 +169,7 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("!").delimiters(vec![" ", "\n"]))
         .on_dispatch_error(dispatch_error_hook)
+        .before(before)
         .after(after)
         .group(&MODERATOR_GROUP)
         .group(&HELPERORMOD_GROUP)
@@ -176,6 +188,49 @@ async fn main() {
     if let Err(why) = client.start().await {
         log::error!("An error occurred while running the client: {:?}", why);
     }
+}
+
+fn init_tracing(honeycomb_api_key: Option<String>) {
+    let filter = tracing_subscriber::filter::Targets::new()
+        .with_target("serenity", Level::DEBUG)
+        .with_target(
+            "serenity::http::ratelimiting",
+            tracing::metadata::LevelFilter::OFF,
+        )
+        .with_target("robbb", Level::TRACE);
+
+    let sub = tracing_subscriber::registry()
+        .with(filter)
+        .with(tracing_subscriber::fmt::Layer::default());
+
+    if let Some(api_key) = honeycomb_api_key {
+        let config = libhoney::Config {
+            options: libhoney::client::Options {
+                api_key,
+                dataset: "robbb".to_string(),
+                ..libhoney::client::Options::default()
+            },
+            transmission_options: libhoney::transmission::Options::default(),
+        };
+        let sub = sub.with(tracing_honeycomb::new_honeycomb_telemetry_layer(
+            "robbb", config,
+        ));
+        tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
+    } else {
+        let sub = sub.with(tracing_honeycomb::new_blackhole_telemetry_layer());
+        tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
+    };
+}
+
+#[hook]
+async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
+    tracing::trace!(
+        command_name,
+        "command '{}' invoked by '{}'",
+        command_name,
+        msg.author.tag()
+    );
+    true
 }
 
 #[hook]

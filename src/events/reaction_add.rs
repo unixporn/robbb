@@ -2,6 +2,7 @@ use super::*;
 
 use serenity::model::channel::ReactionType::Custom;
 
+#[tracing::instrument(skip(ctx))]
 pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
     let user = event.user(&ctx).await?;
     if user.bot {
@@ -49,6 +50,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip(ctx))]
 async fn handle_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
     let (id, animated, name) = match event.emoji {
         Custom {
