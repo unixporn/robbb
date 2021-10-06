@@ -49,6 +49,7 @@ pub async fn mute_check(ctx: &client::Context, msg: &Message) -> Result<(), Reas
     check_role(&ctx, msg, config.role_mute).await
 }
 
+#[tracing::instrument(skip_all, fields(user_id = %msg.author.id.0, role_id = %role.0))]
 async fn check_role(ctx: &client::Context, msg: &Message, role: RoleId) -> Result<(), Reason> {
     match msg.guild_id {
         Some(guild_id) => match msg.author.has_role(&ctx, guild_id, role).await {
@@ -70,6 +71,7 @@ pub enum PermissionLevel {
     User,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_permission_level(ctx: &client::Context, msg: &Message) -> PermissionLevel {
     let config = ctx.get_config().await;
 

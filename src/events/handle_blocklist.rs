@@ -3,6 +3,7 @@ use crate::{
     db::note::NoteType,
 };
 use chrono::Utc;
+use tracing_futures::Instrument;
 
 use super::*;
 
@@ -40,17 +41,20 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
                     })
                 })
                 .await;
-        };
+        }
+        .instrument(tracing::debug_span!("blocklist-dm"));
 
-        let bot_log_future = config.log_automod_action(&ctx, |e| {
-            e.author(|a| a.name("Message Autodelete"));
-            e.title(format!(
-                "{} - deleted because of `{}`",
-                msg.author.tag(),
-                word,
-            ));
-            e.description(format!("{} {}", msg.content, msg.to_context_link()));
-        });
+        let bot_log_future = config
+            .log_automod_action(&ctx, |e| {
+                e.author(|a| a.name("Message Autodelete"));
+                e.title(format!(
+                    "{} - deleted because of `{}`",
+                    msg.author.tag(),
+                    word,
+                ));
+                e.description(format!("{} {}", msg.content, msg.to_context_link()));
+            })
+            .instrument(tracing::debug_span!("blocklist-automod-entry"));
 
         let note_future = async {
             let bot_id = ctx.cache.current_user_id();
@@ -64,10 +68,14 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
                     NoteType::BlocklistViolation,
                 )
                 .await;
-        };
+        }
+        .instrument(tracing::debug_span!("blocklist-note"));
 
         // well, msg.delete does not work for some reason,...
-        let delete_future = msg.channel_id.delete_message(ctx, msg.id);
+        let delete_future = msg
+            .channel_id
+            .delete_message(ctx, msg.id)
+            .instrument(tracing::debug_span!("blocklist-delete"));
 
         tokio::join!(dm_future, bot_log_future, note_future, delete_future).3?;
 
