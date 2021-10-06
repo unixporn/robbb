@@ -224,6 +224,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea221b5284a47e40033bf9b66f35f984ec0ea2931eb03505246cd27a963f981b"
 
 [[package]]
+name = "cpu-monitor"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "371ccaa6693d0832f471c8bc479c9565b2fa47b4e12a8f39c18929b3cb969afa"
+dependencies = [
+ "linux_proc",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -903,6 +913,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "linux_proc"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b28d590ab488f1014d856b45b55eb16afb4c401352e5e9fd3f9f67582ac3c86"
+
+[[package]]
 name = "lock_api"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1507,6 +1523,7 @@ dependencies = [
  "byte-unit",
  "chrono",
  "chrono-humanize",
+ "cpu-monitor",
  "humantime 2.1.0",
  "indoc",
  "itertools 0.10.1",

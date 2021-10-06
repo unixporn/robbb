@@ -12,6 +12,7 @@ use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
 use std::io::Write;
 use std::{path::PathBuf, sync::Arc};
 use tracing::Level;
+use tracing_futures::Instrument;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 
 use crate::util::*;
@@ -143,6 +144,8 @@ async fn main() {
 
     let span = tracing::span!(Level::DEBUG, "main");
     let _enter = span.enter();
+
+    init_cpu_logging().await;
 
     tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
 
@@ -388,4 +391,25 @@ fn init_logger() {
         builder.parse_filters(&log_var);
     }
     builder.init();
+}
+
+async fn init_cpu_logging() {
+    use cpu_monitor::CpuInstant;
+    use std::time::Duration;
+    tokio::spawn(
+        async {
+            loop {
+                let start = CpuInstant::now();
+                tokio::time::sleep(Duration::from_millis(1000)).await;
+                let end = CpuInstant::now();
+                if let (Ok(start), Ok(end)) = (start, end) {
+                    let duration = end - start;
+                    let percentage = duration.non_idle() * 100.;
+                    tracing::info!(cpu_usage = percentage);
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            }
+        }
+        .instrument(tracing::info_span!("cpu-usage")),
+    );
 }
