@@ -115,6 +115,7 @@ struct HelperOrMod;
 #[checks(channel_allows_commands)]
 struct General;
 
+#[tracing::instrument(skip_all)]
 pub async fn disambiguate_user_mention(
     ctx: &client::Context,
     guild: &Guild,
@@ -157,6 +158,7 @@ pub async fn disambiguate_user_mention(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
     ctx: &client::Context,
     replying_to: &Message,
@@ -168,6 +170,9 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
     if options.is_empty() {
         return Ok(None);
     }
+
+    tracing::debug!("starting a reaction selection menu");
+
     let options = SELECTION_EMOJI
         .iter()
         .map(|a| a.to_string())
@@ -207,6 +212,8 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
             })
             .await
     };
+
+    tracing::debug!("Got reaction selection or timeout");
 
     let _ = selection_message.delete(&ctx).await;
 

@@ -6,6 +6,7 @@ use chrono::Utc;
 
 use super::*;
 
+#[tracing::instrument(skip_all)]
 /// If the message contains a blocked word, delete the message, notify the user and #bot-auto-mod.
 pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
     // allow mods to remove from blocklist
@@ -24,6 +25,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
 
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     if let Some(word) = blocklist_regex.find(&normalized_msg) {
+        tracing::debug!("Found a blocked word");
         let word = word.as_str();
 
         let dm_future = async {

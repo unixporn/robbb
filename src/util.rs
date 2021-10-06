@@ -21,12 +21,13 @@ macro_rules! abort_with {
 macro_rules! log_error {
     ($e:expr) => {
         if let Err(e) = $e {
-            log::error!("{:?}", e);
+            tracing::error!("{:?}", e);
         }
     };
     ($context:expr, $e:expr $(,)?) => {
         if let Err(e) = $e {
-            log::error!("{:?}", ::anyhow::anyhow!(e).context($context));
+            let e = format!("{:?}", ::anyhow::anyhow!(e).context($context));
+            tracing::error!("{}", e);
         }
     };
 }

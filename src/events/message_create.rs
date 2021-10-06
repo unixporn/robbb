@@ -8,6 +8,8 @@ use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
 use serenity::framework::Framework;
+use tracing::debug;
+use tracing_futures::Instrument;
 
 use super::*;
 
@@ -65,12 +67,12 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
             .get::<crate::FrameworkKey>()
             .unwrap()
             .clone();
-
         framework.dispatch(ctx, msg).await;
     }
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<()> {
     let config = ctx.get_config().await;
     if msg.content.starts_with("!ask") {
@@ -102,6 +104,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()> {
     // don't trigger on bot commands
     if msg.content.starts_with('!') {
@@ -126,11 +129,16 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
 
     let highlights_data = db.get_highlights().await?;
 
+    debug!("Got highlights_data");
+
     let highlight_matches = tokio::task::spawn_blocking({
         let msg_content = msg.content.to_string();
         move || highlights_data.get_triggers_for_message(&msg_content)
     })
+    .instrument(tracing::debug_span!("highlights-trigger-check"))
     .await?;
+
+    debug!("Computed highlights matches");
 
     let mut handled_users = HashSet::new();
     for (word, users) in highlight_matches {
@@ -171,9 +179,11 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
             }
         }
     }
+    debug!("Notified users about {} highlights", handled_users.len());
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
     let actual_emojis = util::find_emojis(&msg.content);
     if actual_emojis.is_empty() {
@@ -183,11 +193,14 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
         .get_guild_emojis(msg.guild_id.context("could not get guild")?)
         .await
         .context("could not get emojis for guild")?;
+    debug!("Got all guild_emojis");
     let actual_emojis = actual_emojis
         .into_iter()
         .filter(|iden| guild_emojis.contains_key(&iden.id))
         .dedup_by(|x, y| x.id == y.id)
         .collect_vec();
+    debug!("Filtered out all emojis from the message");
+
     if actual_emojis.is_empty() {
         return Ok(());
     }
@@ -203,9 +216,11 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
         )
         .await?;
     }
+    debug!("Updated database to include emojis");
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     if msg.attachments.is_empty() {
         return;
@@ -230,6 +245,7 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     });
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     lazy_static::lazy_static! {
         static ref MSG_LINK_PATTERN: Regex = Regex::new(r#"<?https://(?:canary|ptb\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)>?"#).unwrap();
@@ -249,6 +265,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         }
         None => return Ok(false),
     };
+    debug!("Finished regex checking message for message link");
 
     let (guild_id, channel_id, message_id) = (
         caps.get(1).unwrap().as_str().parse::<u64>()?,
@@ -261,9 +278,12 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .await?
         .guild()
         .context("Message not in a guild-channel")?;
+
     let user_can_see_channel = channel
         .permissions_for_user(&ctx, msg.author.id)?
         .read_messages();
+
+    debug!("checked if user can see the channel");
 
     if Some(GuildId(guild_id)) != msg.guild_id || !user_can_see_channel {
         return Ok(false);
@@ -274,6 +294,8 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .attachments
         .iter()
         .find(|x| x.dimensions().is_some());
+
+    debug!("retrieved the mentioned message");
 
     if (image_attachment.is_none() && mentioned_msg.content.trim().is_empty())
         || mentioned_msg.author.bot
@@ -296,6 +318,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     Ok(true)
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<bool> {
     let account_age = Utc::now() - msg.author.created_at();
 
@@ -375,6 +398,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     }
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     if msg.attachments.is_empty() && msg.embeds.is_empty() && !msg.content.contains("http") {
         msg.delete(&ctx)
@@ -405,6 +429,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     msg.react(&ctx, ReactionType::Unicode("👍".to_string()))
         .await

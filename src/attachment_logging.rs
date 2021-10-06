@@ -35,9 +35,11 @@ pub async fn store_attachments(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 /// Store a single attachment in the given directory path.
 async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachment) -> Result<()> {
     let file_path = dir_path.as_ref().join(attachment.filename);
+    tracing::debug!("Storing file {}", &file_path.display());
 
     let resp = reqwest::get(attachment.url)
         .await
@@ -53,9 +55,11 @@ async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachm
         .context("Failed to create attachment log file")?;
 
     tokio::io::copy(&mut body, &mut attachment_file).await?;
+    tracing::debug!("Finished storing file");
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 /// Search for logged attachments for a given message.
 pub async fn find_attachments_for(
     attachment_cache_path: impl AsRef<Path>,
@@ -80,6 +84,7 @@ pub async fn find_attachments_for(
     Ok(entries)
 }
 
+#[tracing::instrument(skip_all)]
 /// Restrict the disk-space used up by attachment logs by removing old files.
 pub async fn cleanup(config: &Config) -> Result<()> {
     let mut read_dir = tokio::fs::read_dir(&config.attachment_cache_path).await?;
