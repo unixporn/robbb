@@ -11,8 +11,9 @@ use super::*;
 /// If the message contains a blocked word, delete the message, notify the user and #bot-auto-mod.
 pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
     // allow mods to remove from blocklist
-    let permission_level = checks::get_permission_level(&ctx, &msg).await;
-    if permission_level == PermissionLevel::Mod && msg.content.starts_with("!blocklist") {
+    if msg.content.starts_with("!blocklist")
+        && checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod
+    {
         return Ok(false);
     }
 
