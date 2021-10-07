@@ -216,9 +216,7 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
             },
             transmission_options: libhoney::transmission::Options::default(),
         };
-        let sub = sub.with(tracing_honeycomb::new_honeycomb_telemetry_layer(
-            "robbb", config,
-        ));
+        let sub = sub.with(tracing_honeycomb::Builder::new_libhoney("robbb", config).build());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     } else {
         log::info!("no honeycomb api key is set");
