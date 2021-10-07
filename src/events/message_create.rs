@@ -401,6 +401,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 #[tracing::instrument(skip_all)]
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     if msg.attachments.is_empty() && msg.embeds.is_empty() && !msg.content.contains("http") {
+        tracing::debug!(msg = ?msg, "Deleting invalid showcase post");
         msg.delete(&ctx)
             .await
             .context("Failed to delete invalid showcase submission")?;
