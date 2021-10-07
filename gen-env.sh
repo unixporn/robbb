@@ -18,8 +18,9 @@ EOF
 	echo "Please input/export a valid token & server ID"
 
 # clean the env
-unset col start mod mute intern
-unset showcase modcat feedback modlog botmod botlog botstuff humantrafficking
+unset mod intern mute col start
+unset feedback showcase techsupport modcat botstuff modlog botmod botlog humantrafficking
+
 
 #
 #  roles
@@ -66,9 +67,10 @@ while IFS=$(printf '\t') read -r id name; do
 	case $name in
 		server-feedback) feedback=$id;;
 		showcase)        showcase=$id;;
+		tech-support)    techsupport=$id;;
 		/root/)          modcat=$id;;
-		mod-log)         modlog=$id;;
 		bot-stuff)       botstuff=$id;;
+		mod-log)         modlog=$id;;
 		bot-auto-mod)    botmod=$id;;
 		bot-messages)    botlog=$id;;
 		user-log)        humantrafficking=$id;;
@@ -95,6 +97,7 @@ export CHANNEL_AUTO_MOD=$botmod
 export CHANNEL_BOT_MESSAGES=$botlog
 export CHANNEL_MOD_BOT_STUFF=$botstuff
 export CHANNEL_BOT_TRAFFIC=$humantrafficking
+export CHANNEL_TECH_SUPPORT=$techsupport
 export ATTACHMENT_CACHE_PATH=./cache
 export ATTACHMENT_CACHE_MAX_SIZE=50000000
 
