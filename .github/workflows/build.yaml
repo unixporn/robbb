@@ -35,7 +35,7 @@ jobs:
 
           echo IMAGE_ID=$IMAGE_ID
 
-          cargo build --release --locked
+          VERSION="$(git log --format=oneline -n 1 HEAD)" cargo build --release --locked
           cp target/release/robbb .
           docker build -t $IMAGE_ID .
           docker push $IMAGE_ID
