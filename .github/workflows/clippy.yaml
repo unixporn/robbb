@@ -9,5 +9,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: rustup component add clippy
+      - uses: Swatinem/rust-cache@v1
       - run: cargo clippy -- -D warnings
-
