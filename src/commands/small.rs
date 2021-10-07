@@ -154,3 +154,19 @@ pub async fn invite(ctx: &client::Context, msg: &Message) -> CommandResult {
     msg.reply(&ctx, "https://discord.gg/4M7SYzn3BW").await?;
     Ok(())
 }
+
+#[command]
+#[usage("uptime")]
+pub async fn uptime(ctx: &client::Context, msg: &Message) -> CommandResult {
+    let config = ctx.get_config().await;
+    msg.reply(
+        &ctx,
+        format!(
+            "{} ({})",
+            util::format_date_ago(config.start),
+            util::format_date(config.start)
+        ),
+    )
+    .await?;
+    Ok(())
+}

@@ -68,6 +68,8 @@ pub struct Config {
 
     pub attachment_cache_path: PathBuf,
     pub attachment_cache_max_size: usize,
+
+    pub start: chrono::DateTime<chrono::Utc>,
 }
 
 impl Config {
@@ -93,6 +95,7 @@ impl Config {
             channel_tech_support: ChannelId(parse_required_env_var("CHANNEL_TECH_SUPPORT")?),
             attachment_cache_path: parse_required_env_var("ATTACHMENT_CACHE_PATH")?,
             attachment_cache_max_size: parse_required_env_var("ATTACHMENT_CACHE_MAX_SIZE")?,
+            start: chrono::Utc::now(),
         })
     }
 
