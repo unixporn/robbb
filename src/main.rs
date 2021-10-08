@@ -140,7 +140,10 @@ async fn main() {
 
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
 
-    init_tracing(honeycomb_api_key);
+    init_tracing(honeycomb_api_key.clone());
+    if let Some(honeycomb_api_key) = honeycomb_api_key {
+        send_honeycomb_deploy_marker(&honeycomb_api_key).await;
+    }
 
     let span = tracing::span!(Level::DEBUG, "main");
     let _enter = span.enter();
@@ -389,6 +392,21 @@ fn init_logger() {
         builder.parse_filters(&log_var);
     }
     builder.init();
+}
+
+async fn send_honeycomb_deploy_marker(api_key: &str) {
+    let client = reqwest::Client::new();
+    log_error!(
+        client
+            .post("https://api.honeycomb.io/1/markers/robbb")
+            .header("X-Honeycomb-Team", api_key)
+            .body(format!(
+                r#"{{"message": "{}", "type": "deploy"}}"#,
+                util::bot_version()
+            ))
+            .send()
+            .await
+    );
 }
 
 async fn init_cpu_logging() {
