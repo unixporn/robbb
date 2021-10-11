@@ -9,8 +9,8 @@ Link to add bot:   [34mhttps://discord.com/oauth2/authorize?scope=bot&client_id
 EOF
 # You can also export these variables in your normal environment
 # If variable is empty, then ask the user to type (/paste) the new contents.
-[ ! "$token" ]    && printf "[input the bot's token]: "          && read -r token
 [ ! "$serverid" ] && printf "[input the template server's ID]: " && read -r serverid
+[ ! "$token" ]    && printf "[input the bot's token]: "          && read -r token
 
 
 # ${#VAR} == get length of variable
