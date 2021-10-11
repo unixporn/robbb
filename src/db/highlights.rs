@@ -141,7 +141,6 @@ impl Db {
         Ok(())
     }
 
-
     #[tracing::instrument(skip_all)]
     pub async fn set_highlight(&self, user: UserId, word: String) -> Result<()> {
         if BLOCKED_WORDS.contains(&unicase::Ascii::new(word.as_str())) {

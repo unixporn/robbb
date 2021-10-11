@@ -88,7 +88,8 @@ async fn start_mute_handler(ctx: client::Context) {
 
 async fn start_attachment_log_handler(ctx: client::Context) {
     tokio::spawn(async move {
-        let _ = tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
+        let _ =
+            tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
         let config = ctx.get_config().await;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
