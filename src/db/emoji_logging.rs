@@ -39,7 +39,7 @@ impl Db {
             id, emoji_str, amount, emoji.animated)
             .execute(&mut conn)
             .await?;
-        Ok(self.get_emoji_usage_by_id(emoji).await?)
+        self.get_emoji_usage_by_id(emoji).await
     }
 
     #[tracing::instrument(skip_all)]
@@ -55,7 +55,7 @@ impl Db {
             id, emoji_str, amount, emoji.animated)
             .execute(&mut conn)
             .await?;
-        Ok(self.get_emoji_usage_by_id(emoji).await?)
+        self.get_emoji_usage_by_id(emoji).await
     }
 
     #[tracing::instrument(skip_all)]
@@ -84,7 +84,7 @@ impl Db {
         let value = sqlx::query!("select * from emoji_stats where emoji_name=?", emoji)
             .fetch_optional(&mut conn)
             .await?;
-        Ok(value
+        value
             .map(|x| EmojiStats {
                 emoji: EmojiIdentifier {
                     id: EmojiId(x.emoji_id as u64),
@@ -94,7 +94,7 @@ impl Db {
                 in_text: x.in_text_usage as u64,
                 reactions: x.reaction_usage as u64,
             })
-            .context("Could not find emoji by that name")?)
+            .context("Could not find emoji by that name")
     }
 
     #[tracing::instrument(skip_all)]
