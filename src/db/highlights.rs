@@ -34,6 +34,7 @@ impl HighlightsData {
         })
     }
 
+    #[tracing::instrument(skip_all, fields(msg.content = %s))]
     pub fn get_triggers_for_message(&self, s: &str) -> Vec<(String, Vec<UserId>)> {
         self.combined_regex
             .find_iter(s)
@@ -47,6 +48,7 @@ impl HighlightsData {
             .collect()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn triggers_for_user(&self, user_id: UserId) -> impl Iterator<Item = &str> {
         self.entries
             .iter()
@@ -139,6 +141,8 @@ impl Db {
         Ok(())
     }
 
+
+    #[tracing::instrument(skip_all)]
     pub async fn set_highlight(&self, user: UserId, word: String) -> Result<()> {
         if BLOCKED_WORDS.contains(&unicase::Ascii::new(word.as_str())) {
             bail!(

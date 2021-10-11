@@ -33,7 +33,8 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
     let before_time = std::time::Instant::now();
     dehoist_everyone(ctx.clone(), config.guild).await;
     let dehoist_duration = before_time.elapsed();
-    log::info!(
+    tracing::info!(
+        dehoisting.duration_ms = %dehoist_duration.as_millis(),
         "Checking all users for hoisting characters took {}ms",
         dehoist_duration.as_millis(),
     );
@@ -58,19 +59,21 @@ async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
 
 async fn start_mute_handler(ctx: client::Context) {
     tokio::spawn(async move {
+        let _ =
+            tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
         let (config, db) = ctx.get_config_and_db().await;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             let mutes = match db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {
-                    log::error!("Failed to request expired mutes: {}", err);
+                    tracing::error!(error.message = %err, "Failed to request expired mutes: {}", err);
                     continue;
                 }
             };
             for mute in mutes {
                 if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
-                    log::error!("Error handling mute removal: {}", err);
+                    tracing::error!(error.message = %err, "Error handling mute removal: {}", err);
                 } else {
                     config
                         .log_bot_action(&ctx, |e| {
@@ -85,9 +88,10 @@ async fn start_mute_handler(ctx: client::Context) {
 
 async fn start_attachment_log_handler(ctx: client::Context) {
     tokio::spawn(async move {
+        let _ = tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
         let config = ctx.get_config().await;
         loop {
-            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
 
             log_error!(
                 "Failed to clean up attachments",

@@ -26,6 +26,7 @@ pub enum Ordering {
 }
 
 impl Db {
+    #[tracing::instrument(skip_all)]
     pub async fn alter_emoji_reaction_count(
         &self,
         amount: i64,
@@ -41,6 +42,7 @@ impl Db {
         Ok(self.get_emoji_usage_by_id(emoji).await?)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn alter_emoji_text_count(
         &self,
         amount: i64,
@@ -56,6 +58,7 @@ impl Db {
         Ok(self.get_emoji_usage_by_id(emoji).await?)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_emoji_usage_by_id(&self, emoji: &EmojiIdentifier) -> Result<EmojiStats> {
         let mut conn = self.pool.acquire().await?;
         let emoji_id = emoji.id.0 as i64;
@@ -74,6 +77,8 @@ impl Db {
             })
             .unwrap_or_else(|| EmojiStats::new(emoji.clone())))
     }
+
+    #[tracing::instrument(skip_all)]
     pub async fn get_emoji_usage_by_name(&self, emoji: &str) -> Result<EmojiStats> {
         let mut conn = self.pool.acquire().await?;
         let value = sqlx::query!("select * from emoji_stats where emoji_name=?", emoji)
@@ -92,6 +97,7 @@ impl Db {
             .context("Could not find emoji by that name")?)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_top_emoji_stats(
         &self,
         count: u16,

@@ -21,13 +21,13 @@ macro_rules! abort_with {
 macro_rules! log_error {
     ($e:expr) => {
         if let Err(e) = $e {
-            tracing::error!("{:?}", e);
+            tracing::error!(error.message = %format!("{}", &e), "{:?}", e);
         }
     };
     ($context:expr, $e:expr $(,)?) => {
         if let Err(e) = $e {
             let e = format!("{:?}", ::anyhow::anyhow!(e).context($context));
-            tracing::error!("{}", e);
+            tracing::error!(error.message = %format!("{}", &e), "{:?}", e);
         }
     };
 }
@@ -108,6 +108,7 @@ pub fn format_count(num: i32) -> String {
 }
 
 /// Find all emojis in a String
+#[tracing::instrument(skip_all)]
 pub fn find_emojis(value: impl AsRef<str>) -> Vec<EmojiIdentifier> {
     lazy_static::lazy_static! {
         static ref FIND_EMOJI : regex::Regex = regex::Regex::new(r"<a?:[0-9a-zA-Z_]{2,32}:[0-9]{18,}>").unwrap();

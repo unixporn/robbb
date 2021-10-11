@@ -230,10 +230,12 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
 
 #[hook]
 async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
-    tracing::trace!(
+    tracing::debug!(
         command_name,
         msg.content = %msg.content,
         msg.author = %msg.author,
+        msg.id = %msg.id,
+        msg.channel_id = %msg.channel_id,
         "command '{}' invoked by '{}'",
         command_name,
         msg.author.tag()
@@ -242,6 +244,7 @@ async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
 }
 
 #[hook]
+#[tracing::instrument(skip_all, fields(%msg.content, %msg.channel_id, error.command_name = %_command_name, %error))]
 async fn dispatch_error_hook(
     ctx: &client::Context,
     msg: &Message,
@@ -316,7 +319,9 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
             None => match err.downcast::<serenity::Error>() {
                 Ok(err) => {
                     let err = *err;
-                    log::warn!(
+                    tracing::warn!(
+                        error.command_name = %command_name,
+                        error.message = %err,
                         "Serenity error [handling {}]: {} ({:?})",
                         command_name,
                         &err,
@@ -344,7 +349,9 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                 }
                 Err(err) => {
                     let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                    log::warn!(
+                    tracing::warn!(
+                        error.command_name = %command_name,
+                        error.message = %err,
                         "Internal error [handling {}]: {} ({:#?})",
                         command_name,
                         &err,

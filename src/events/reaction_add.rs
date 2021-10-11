@@ -45,13 +45,13 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
             .iter()
             .any(|x| x.reaction_type == event.emoji && x.count == 1)
     {
-        handle_emoji_logging(ctx, event).await?;
+        handle_reaction_emoji_logging(ctx, event).await?;
     }
     Ok(())
 }
 
 #[tracing::instrument(skip(ctx))]
-async fn handle_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
+async fn handle_reaction_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
     let (id, animated, name) = match event.emoji {
         Custom {
             id, animated, name, ..

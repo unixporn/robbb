@@ -15,6 +15,7 @@ use serenity::{
 
 use crate::Config;
 
+#[tracing::instrument(skip_all, fields(msg.id = %msg_id, msg.channel_id = %channel_id))]
 pub async fn store_attachments(
     attachments: impl IntoIterator<Item = Attachment>,
     msg_id: MessageId,
@@ -35,13 +36,13 @@ pub async fn store_attachments(
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip_all, fields(%attachment.url, %attachment.size, %attachment.filename, ?attachment.content_type))]
 /// Store a single attachment in the given directory path.
 async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachment) -> Result<()> {
     let file_path = dir_path.as_ref().join(attachment.filename);
     tracing::debug!("Storing file {}", &file_path.display());
 
-    let resp = reqwest::get(attachment.url)
+    let resp = reqwest::get(&attachment.url)
         .await
         .context("Failed to load attachment")?;
     let mut body = resp
@@ -55,7 +56,6 @@ async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachm
         .context("Failed to create attachment log file")?;
 
     tokio::io::copy(&mut body, &mut attachment_file).await?;
-    tracing::debug!("Finished storing file");
     Ok(())
 }
 

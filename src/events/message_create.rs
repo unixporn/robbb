@@ -31,7 +31,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
     }
 
     if msg.channel_id != config.channel_bot_messages && !msg.content.starts_with("!emojistats") {
-        match handle_emoji_logging(&ctx, &msg).await {
+        match handle_msg_emoji_logging(&ctx, &msg).await {
             Ok(_) => {}
             err => log_error!("Error while handling emoji logging", err),
         }
@@ -104,7 +104,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip_all, fields(highlights.notified_user_cnt))]
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()> {
     // don't trigger on bot commands
     if msg.content.starts_with('!') {
@@ -129,16 +129,12 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
 
     let highlights_data = db.get_highlights().await?;
 
-    debug!("Got highlights_data");
-
     let highlight_matches = tokio::task::spawn_blocking({
         let msg_content = msg.content.to_string();
         move || highlights_data.get_triggers_for_message(&msg_content)
     })
     .instrument(tracing::debug_span!("highlights-trigger-check"))
     .await?;
-
-    debug!("Computed highlights matches");
 
     let mut handled_users = HashSet::new();
     for (word, users) in highlight_matches {
@@ -179,12 +175,13 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
             }
         }
     }
-    debug!("Notified users about {} highlights", handled_users.len());
+
+    tracing::Span::current().record("highlights.notified_user_cnt", &handled_users.len());
     Ok(())
 }
 
 #[tracing::instrument(skip_all)]
-async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
+async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
     let actual_emojis = util::find_emojis(&msg.content);
     if actual_emojis.is_empty() {
         return Ok(());
@@ -193,13 +190,15 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
         .get_guild_emojis(msg.guild_id.context("could not get guild")?)
         .await
         .context("could not get emojis for guild")?;
-    debug!("Got all guild_emojis");
-    let actual_emojis = actual_emojis
-        .into_iter()
-        .filter(|iden| guild_emojis.contains_key(&iden.id))
-        .dedup_by(|x, y| x.id == y.id)
-        .collect_vec();
-    debug!("Filtered out all emojis from the message");
+
+    let actual_emojis = tracing::debug_span!("find_guild_emojis_in_message", %msg.content)
+        .in_scope(|| {
+            actual_emojis
+                .into_iter()
+                .filter(|iden| guild_emojis.contains_key(&iden.id))
+                .dedup_by(|x, y| x.id == y.id)
+                .collect_vec()
+        });
 
     if actual_emojis.is_empty() {
         return Ok(());
@@ -216,7 +215,6 @@ async fn handle_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()
         )
         .await?;
     }
-    debug!("Updated database to include emojis");
     Ok(())
 }
 
@@ -231,18 +229,21 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     let channel_id = msg.channel_id;
 
     let attachments = msg.attachments.clone();
-    tokio::spawn(async move {
-        log_error!(
-            "Storing attachments in message",
-            attachment_logging::store_attachments(
-                attachments,
-                msg_id,
-                channel_id,
-                config.attachment_cache_path.clone(),
+    tokio::spawn(
+        async move {
+            log_error!(
+                "Storing attachments in message",
+                attachment_logging::store_attachments(
+                    attachments,
+                    msg_id,
+                    channel_id,
+                    config.attachment_cache_path.clone(),
+                )
+                .await,
             )
-            .await,
-        )
-    });
+        }
+        .instrument(tracing::info_span!("store-attachments")),
+    );
 }
 
 #[tracing::instrument(skip_all)]

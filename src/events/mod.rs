@@ -45,7 +45,10 @@ impl EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all, fields(command_name, msg.content = %msg.content, msg.author = %msg.author.tag()))]
+    #[tracing::instrument(
+        skip_all,
+        fields(command_name, %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id)
+    )]
     async fn message(&self, ctx: client::Context, msg: Message) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
@@ -55,7 +58,7 @@ impl EventHandler for Handler {
         )
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(skip_all, fields(msg.id = %event.id, msg.channel_id = %event.channel_id, ?event))]
     async fn message_update(
         &self,
         ctx: client::Context,
@@ -72,6 +75,7 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all)]
+    #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
     async fn message_delete(
         &self,
         ctx: client::Context,
@@ -109,7 +113,7 @@ impl EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(skip_all, fields(member.tag = %new_member.user.tag()))]
     async fn guild_member_addition(
         &self,
         ctx: client::Context,
@@ -124,7 +128,7 @@ impl EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]
     async fn guild_member_removal(
         &self,
         ctx: client::Context,
@@ -140,7 +144,15 @@ impl EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            reaction.emoji = %event.emoji,
+            reaction.channel_id = %event.channel_id,
+            reaction.user_id = ?event.user_id,
+            reaction.message_id = ?event.message_id
+        )
+    )]
     async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
@@ -149,7 +161,15 @@ impl EventHandler for Handler {
             reaction_add::reaction_add(ctx, event).await
         );
     }
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            reaction.emoji = %event.emoji,
+            reaction.channel_id = %event.channel_id,
+            reaction.user_id = ?event.user_id,
+            reaction.message_id = ?event.message_id
+        )
+    )]
     async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
