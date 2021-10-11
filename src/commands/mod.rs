@@ -110,7 +110,7 @@ struct HelperOrMod;
 #[group]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, invite, version, highlights, emojistats, ask
+    tag, invite, version, highlights, emojistats, ask, uptime
 )]
 #[checks(channel_allows_commands)]
 struct General;
