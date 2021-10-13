@@ -175,10 +175,13 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
             .timestamp(&msg.timestamp)
             .footer(|f| f.text(format!("#{}", channel.name)));
 
+        tracing::debug!(highlights.word = %word, highlights.users = ?users, "Notifying {} users about a mention of the word '{}'", users.len(), word);
         for user_id in users {
-            let user_can_see_channel = channel.permissions_for_user(&ctx, user_id)?.read_messages();
-
-            if user_id == msg.author.id || handled_users.contains(&user_id) || !user_can_see_channel
+            if user_id == msg.author.id
+                // check if the user has already been notified of another word in this message
+                || handled_users.contains(&user_id)
+                // check if the user can read that channel
+                || !channel.permissions_for_user(&ctx, user_id)?.read_messages()
             {
                 continue;
             }
