@@ -69,6 +69,24 @@ pub fn format_date_ago(date: chrono::DateTime<chrono::Utc>) -> String {
     format!("<t:{}:R>", date.timestamp())
 }
 
+/// Format a date into the time difference between it and another date in a plain text relative-time format.
+pub fn format_date_before_plaintext(
+    a: chrono::DateTime<chrono::Utc>,
+    b: chrono::DateTime<chrono::Utc>,
+) -> String {
+    let actual_date = a.checked_add_signed(chrono::Utc::now().signed_duration_since(b)).unwrap();
+    let formatted = chrono_humanize::HumanTime::from(actual_date).to_text_en(
+        chrono_humanize::Accuracy::Rough,
+        chrono_humanize::Tense::Past,
+    );
+    // lmao
+    if formatted == "now ago" {
+        "now".to_string()
+    } else {
+        formatted
+    }
+}
+
 /// Format a date into a discord absolute-time timestamp.
 pub fn format_date(date: chrono::DateTime<chrono::Utc>) -> String {
     format!("<t:{}>", date.timestamp())

@@ -19,13 +19,24 @@ pub async fn guild_member_addition(
             e.author(|a| a.name("Member Join").icon_url(new_member.user.face()));
             e.title(new_member.user.name_with_disc_and_id());
             e.description(format!("User {} joined the server", new_member.mention()));
-            e.field(
-                "Account Creation Date",
-                util::format_date_detailed(date),
-                false,
-            );
             if let Some(join_date) = new_member.joined_at {
+                e.field(
+                    "Account Creation Date",
+                    format!(
+                        "{} ({})",
+                        util::format_date(date),
+                        util::format_date_before_plaintext(date, join_date)
+                            .replace("ago", "before joining")
+                    ),
+                    false,
+                );
                 e.field("Join Date", util::format_date(join_date), false);
+            } else {
+                e.field(
+                    "Account Creation Date",
+                    util::format_date_detailed(date),
+                    false,
+                );
             }
             if date
                 .signed_duration_since(DateTime::<Utc>::from(SystemTime::now()))
