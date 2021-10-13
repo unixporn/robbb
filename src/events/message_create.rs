@@ -32,30 +32,46 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
 
     if msg.channel_id != config.channel_bot_messages && !msg.content.starts_with("!emojistats") {
         match handle_msg_emoji_logging(&ctx, &msg).await {
-            Ok(_) => {}
+            Ok(emoji_used) => {
+                tracing::Span::current().record("message_create.emoji_used", &emoji_used);
+            }
             err => log_error!("Error while handling emoji logging", err),
         }
     }
 
     match handle_spam_protect(&ctx, &msg).await {
-        Ok(true) => return Ok(()),
-        Ok(false) => {}
+        Ok(stop) => {
+            tracing::Span::current().record("message_create.stopped_at_spam_protect", &stop);
+            if stop {
+                return Ok(());
+            }
+        }
         err => log_error!("error while handling spam-protection", err),
     };
     match handle_blocklist::handle_blocklist(&ctx, &msg).await {
-        Ok(true) => return Ok(()),
-        Ok(false) => {}
+        Ok(stop) => {
+            tracing::Span::current().record("message_create.stopped_at_blocklist", &stop);
+            if stop {
+                return Ok(());
+            }
+        }
         err => log_error!("error while handling blocklist", err),
     };
 
     match handle_highlighting(&ctx, &msg).await {
-        Ok(_) => {}
+        Ok(notified_users) => {
+            tracing::Span::current().record("message_create.notified_user_cnt", &notified_users);
+        }
         err => log_error!("error while checking/handling highlights", err),
     }
 
     match handle_quote(&ctx, &msg).await {
-        Ok(true) => return Ok(()),
-        Ok(false) => {}
+        Ok(stop) => {
+            tracing::Span::current().record("message_create.stopped_at_quote", &stop);
+            if stop {
+                return Ok(());
+            }
+        }
         err => log_error!("error while Handling a quoted message", err),
     };
 
@@ -105,10 +121,10 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
 }
 
 #[tracing::instrument(skip_all, fields(highlights.notified_user_cnt))]
-async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()> {
+async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
     // don't trigger on bot commands
     if msg.content.starts_with('!') {
-        return Ok(());
+        return Ok(0);
     }
 
     let (config, db) = ctx.get_config_and_db().await;
@@ -124,7 +140,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
     if channel.thread_metadata.is_some()
         || config.category_mod_private == channel.parent_id.context("Couldn't get parent_id")?
     {
-        return Ok(());
+        return Ok(0);
     }
 
     let highlights_data = db.get_highlights().await?;
@@ -177,14 +193,14 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<()>
     }
 
     tracing::Span::current().record("highlights.notified_user_cnt", &handled_users.len());
-    Ok(())
+    Ok(handled_users.len())
 }
 
-#[tracing::instrument(skip_all)]
-async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<()> {
+#[tracing::instrument(skip_all, fields(msg_emoji_logging.emoji_used))]
+async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<usize> {
     let actual_emojis = util::find_emojis(&msg.content);
     if actual_emojis.is_empty() {
-        return Ok(());
+        return Ok(0);
     }
     let guild_emojis = ctx
         .get_guild_emojis(msg.guild_id.context("could not get guild")?)
@@ -201,10 +217,10 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
         });
 
     if actual_emojis.is_empty() {
-        return Ok(());
+        return Ok(0);
     }
     let db = ctx.get_db().await;
-    for emoji in actual_emojis {
+    for emoji in &actual_emojis {
         db.alter_emoji_text_count(
             1,
             &EmojiIdentifier {
@@ -215,7 +231,8 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
         )
         .await?;
     }
-    Ok(())
+    tracing::Span::current().record("msg_emoji_logging.emoji_used", &actual_emojis.len());
+    Ok(actual_emojis.len())
 }
 
 #[tracing::instrument(skip_all)]
