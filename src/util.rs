@@ -74,7 +74,9 @@ pub fn format_date_before_plaintext(
     a: chrono::DateTime<chrono::Utc>,
     b: chrono::DateTime<chrono::Utc>,
 ) -> String {
-    let actual_date = a.checked_add_signed(chrono::Utc::now().signed_duration_since(b)).unwrap();
+    let actual_date = a
+        .checked_add_signed(chrono::Utc::now().signed_duration_since(b))
+        .unwrap();
     let formatted = chrono_humanize::HumanTime::from(actual_date).to_text_en(
         chrono_humanize::Accuracy::Rough,
         chrono_humanize::Tense::Past,
