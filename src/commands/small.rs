@@ -159,14 +159,12 @@ pub async fn invite(ctx: &client::Context, msg: &Message) -> CommandResult {
 #[usage("uptime")]
 pub async fn uptime(ctx: &client::Context, msg: &Message) -> CommandResult {
     let config = ctx.get_config().await;
-    msg.reply(
-        &ctx,
-        format!(
-            "{} ({})",
-            util::format_date_ago(config.start),
-            util::format_date(config.start)
-        ),
-    )
+    msg.reply_embed(&ctx, |e| {
+        e.description(format!(
+            "Started {}",
+            util::format_date_detailed(config.time_started)
+        ));
+    })
     .await?;
     Ok(())
 }

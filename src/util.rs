@@ -1,5 +1,4 @@
 use anyhow::*;
-use chrono::Timelike;
 use serenity::{
     client,
     model::{id::ChannelId, misc::EmojiIdentifier},
@@ -65,9 +64,18 @@ pub fn parse_required_env_var<E: Into<anyhow::Error>, T: std::str::FromStr<Err =
         .with_context(|| format!("Failed to parse env-var {}", key))
 }
 
-/// Format a date into a normalized "2 days ago"-like format.
+/// Format a date into a discord relative-time timestamp.
 pub fn format_date_ago(date: chrono::DateTime<chrono::Utc>) -> String {
-    let formatted = chrono_humanize::HumanTime::from(date).to_text_en(
+    format!("<t:{}:R>", date.timestamp())
+}
+
+/// Format a date into the time difference between it and another date in a plain text relative-time format.
+pub fn format_date_before_plaintext(
+    a: chrono::DateTime<chrono::Utc>,
+    b: chrono::DateTime<chrono::Utc>,
+) -> String {
+    let actual_date = a.checked_add_signed(chrono::Utc::now().signed_duration_since(b)).unwrap();
+    let formatted = chrono_humanize::HumanTime::from(actual_date).to_text_en(
         chrono_humanize::Accuracy::Rough,
         chrono_humanize::Tense::Past,
     );
@@ -79,15 +87,13 @@ pub fn format_date_ago(date: chrono::DateTime<chrono::Utc>) -> String {
     }
 }
 
-/// Format a date.
+/// Format a date into a discord absolute-time timestamp.
 pub fn format_date(date: chrono::DateTime<chrono::Utc>) -> String {
-    let date = date.with_nanosecond(0).unwrap_or(date);
-    format!("{}", date)
+    format!("<t:{}>", date.timestamp())
 }
 
 /// Format a date, showing both the concrete date and the "n days ago"-format.
 pub fn format_date_detailed(date: chrono::DateTime<chrono::Utc>) -> String {
-    let date = date.with_nanosecond(0).unwrap_or(date);
     format!("{} ({})", format_date(date), format_date_ago(date))
 }
 
