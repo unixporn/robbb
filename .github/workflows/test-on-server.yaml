@@ -9,6 +9,9 @@ on:
       git_tag:
         description: "git tag (example: master or commit like 097803edee03e25b086e1a674c3091a458e0da9f)"
         required: true
+      environment_vars:
+        description: "Environment variables for the bot (example: CHANNEL_SAY_HI=blabla CHANNEL_RULES=blabla)"
+        required: false
 
 jobs:
   build:
@@ -55,6 +58,6 @@ jobs:
 
       - name: Start the bot
         run: |
-          export $(cat .env) && chmod +x ./robbb
+          export $(cat .env) ${{github.event.inputs.environment_vars}} && chmod +x ./robbb
           mkdir $ATTACHMENT_CACHE_PATH
           timeout $((60 * 60)) ./robbb || exit 0
