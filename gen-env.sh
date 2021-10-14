@@ -2,20 +2,20 @@
 # generate .env file for testing up's bot
 #  https://github.com/unixporn/Supreme-Demolition-Droid
 
-cat << EOF
+cat << EOF >&2
 Note:  Don't forget to enable the [34m'Presence'[0m & [34m'Server members'[0m intents in the bot's settings
 Link to template:  [34mhttps://discord.new/zkhTrUTEbtg9[0m
 Link to add bot:   [34mhttps://discord.com/oauth2/authorize?scope=bot&client_id=[31m<BOT-SNOWFLAKE>[0m
 EOF
 # You can also export these variables in your normal environment
 # If variable is empty, then ask the user to type (/paste) the new contents.
-[ ! "$serverid" ] && printf "[input the template server's ID]: " && read -r serverid
-[ ! "$token" ]    && printf "[input the bot's token]: "          && read -r token
+[ ! "$serverid" ] && printf "[input the template server's ID]: " >&2 && read -r serverid
+[ ! "$token" ]    && printf "[input the bot's token]: "          >&2 && read -r token
 
 
 # ${#VAR} == get length of variable
 [ "${#token}" -ge 50 ] && [ "$serverid" -ge 999 ] || exec \
-	echo "Please input/export a valid token & server ID"
+	echo "Please input/export a valid token & server ID" >&2
 
 # clean the env
 unset mod intern mute col start
