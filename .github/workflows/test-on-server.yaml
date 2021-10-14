@@ -1,0 +1,60 @@
+name: Test on server
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_clone_arg:
+        description: "git clone <your argument> (example: https://github.com/unixporn/robbb.git)"
+        required: true
+      git_tag:
+        description: "git tag (example: master or commit like 097803edee03e25b086e1a674c3091a458e0da9f)"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone target repository
+        run: |
+          git clone "${{github.event.inputs.git_clone_arg}}" .
+          git checkout "${{github.event.inputs.git_tag}}"
+
+      - name: Install rust stable
+        uses: actions-rs/toolchain@v1
+
+      - uses: Swatinem/rust-cache@v1
+        with:
+          key: test-on-server
+
+      - name: Build
+        run: |
+          VERSION="${{github.event.inputs.git_clone_arg}}#${{github.event.inputs.git_tag}} $(git log --format=oneline -n 1 HEAD)" cargo build --locked
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: executable
+          path: target/debug/robbb
+
+  run:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Checkout our repository
+        uses: actions/checkout@v2
+
+      - run: sudo apt-get install -y jq
+
+      - name: Generate environment variables
+        run: |
+          echo -e "${{secrets.GUILD}}\n${{secrets.TOKEN}}\n" | ./gen-env.sh >.env
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: executable
+
+      - name: Start the bot
+        run: |
+          export $(cat .env) && chmod +x ./robbb
+          mkdir $ATTACHMENT_CACHE_PATH
+          timeout $((60 * 60)) ./robbb || exit 0
