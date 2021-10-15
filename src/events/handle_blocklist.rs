@@ -10,10 +10,7 @@ use super::*;
 #[tracing::instrument(skip_all)]
 /// If the message contains a blocked word, delete the message, notify the user and #bot-auto-mod.
 pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    // allow mods to remove from blocklist
-    if msg.content.starts_with("!blocklist")
-        && checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod
-    {
+    if checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod {
         return Ok(false);
     }
 
