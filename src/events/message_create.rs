@@ -124,6 +124,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
     // don't trigger on bot commands
     if msg.content.starts_with('!') {
+        tracing::Span::current().record("highlights.notified_user_cnt", &0);
         return Ok(0);
     }
 
@@ -138,6 +139,10 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     .instrument(tracing::debug_span!("highlights-trigger-check"))
     .await?;
 
+    if highlight_matches.is_empty() {
+        tracing::Span::current().record("highlights.notified_user_cnt", &0);
+        return Ok(0);
+    }
     // don't highlight in threads or mod internal channels
     // We do this after checking for highlights as checking for highlights is a lot
     // cheaper than potentially sending discord API requests for
