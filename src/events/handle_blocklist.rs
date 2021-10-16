@@ -7,13 +7,9 @@ use tracing_futures::Instrument;
 
 use super::*;
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip_all, fields(blocklist.blocked_word, msg.author = %msg.author.tag(), %msg.id))]
 /// If the message contains a blocked word, delete the message, notify the user and #bot-auto-mod.
 pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    if checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod {
-        return Ok(false);
-    }
-
     let (config, db) = ctx.get_config_and_db().await;
 
     // remove invisible characters
@@ -24,8 +20,15 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
 
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     if let Some(word) = blocklist_regex.find(&normalized_msg) {
-        tracing::debug!("Found a blocked word");
+        if checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod {
+            tracing::info!("Moderator sent blocked word. Ignoring...");
+            return Ok(false);
+        }
+
         let word = word.as_str();
+
+        tracing::info!(blocklist.word = %word, "Found blocked word '{}'", word);
+        tracing::Span::current().record("blocklist.blocked_word", &word);
 
         let dm_future = async {
             let _ = msg
