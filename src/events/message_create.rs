@@ -129,13 +129,6 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
 
     let (config, db) = ctx.get_config_and_db().await;
 
-    let channel = msg
-        .channel(&ctx)
-        .await
-        .context("Couldn't get channel")?
-        .guild()
-        .context("Couldn't get a guild-channel from the channel")?;
-
     let highlights_data = db.get_highlights().await?;
 
     let highlight_matches = tokio::task::spawn_blocking({
@@ -149,6 +142,12 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     // We do this after checking for highlights as checking for highlights is a lot
     // cheaper than potentially sending discord API requests for
     // a lot of messages, specifically in threads
+    let channel = msg
+        .channel(&ctx)
+        .await
+        .context("Couldn't get channel")?
+        .guild()
+        .context("Couldn't get a guild-channel from the channel")?;
     if channel.thread_metadata.is_some()
         || config.category_mod_private == channel.parent_id.context("Couldn't get parent_id")?
     {
