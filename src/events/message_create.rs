@@ -136,13 +136,6 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         .guild()
         .context("Couldn't get a guild-channel from the channel")?;
 
-    // don't highlight in threads or mod internal channels
-    if channel.thread_metadata.is_some()
-        || config.category_mod_private == channel.parent_id.context("Couldn't get parent_id")?
-    {
-        return Ok(0);
-    }
-
     let highlights_data = db.get_highlights().await?;
 
     let highlight_matches = tokio::task::spawn_blocking({
@@ -151,6 +144,16 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     })
     .instrument(tracing::debug_span!("highlights-trigger-check"))
     .await?;
+
+    // don't highlight in threads or mod internal channels
+    // We do this after checking for highlights as checking for highlights is a lot
+    // cheaper than potentially sending discord API requests for
+    // a lot of messages, specifically in threads
+    if channel.thread_metadata.is_some()
+        || config.category_mod_private == channel.parent_id.context("Couldn't get parent_id")?
+    {
+        return Ok(0);
+    }
 
     let mut handled_users = HashSet::new();
     for (word, users) in highlight_matches {
