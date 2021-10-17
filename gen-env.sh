@@ -19,7 +19,7 @@ EOF
 
 # clean the env
 unset mod intern mute col start
-unset feedback showcase techsupport modcat botstuff modlog botmod botlog humantrafficking
+unset feedback showcase techsupport modcat botstuff modlog botmod botlog humantrafficking polls
 
 
 #
@@ -68,6 +68,7 @@ while IFS=$(printf '\t') read -r id name; do
 		server-feedback) feedback=$id;;
 		showcase)        showcase=$id;;
 		tech-support)    techsupport=$id;;
+		polls)           polls=$id;;
 		/root/)          modcat=$id;;
 		bot-stuff)       botstuff=$id;;
 		mod-log)         modlog=$id;;
@@ -98,6 +99,7 @@ export CHANNEL_BOT_MESSAGES=$botlog
 export CHANNEL_MOD_BOT_STUFF=$botstuff
 export CHANNEL_BOT_TRAFFIC=$humantrafficking
 export CHANNEL_TECH_SUPPORT=$techsupport
+export CHANNEL_MOD_POLLS=$polls
 export ATTACHMENT_CACHE_PATH=./cache
 export ATTACHMENT_CACHE_MAX_SIZE=50000000
 
