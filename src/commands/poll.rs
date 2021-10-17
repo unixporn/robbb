@@ -20,7 +20,8 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
 
     msg.delete(&ctx).await?;
 
-    msg.channel_id
+    let poll_msg = msg
+        .channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Poll");
@@ -34,6 +35,16 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
             ])
         })
         .await?;
+
+    let config = ctx.get_config().await;
+    if msg.channel_id == config.channel_mod_polls {
+        poll_msg
+            .create_thread(
+                &ctx,
+                util::thread_title_from_text(question).unwrap_or_else(|_| "Poll".to_string()),
+            )
+            .await?;
+    }
     Ok(())
 }
 
@@ -62,11 +73,12 @@ async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
 
     let options = SELECTION_EMOJI.iter().zip(options_lines).collect_vec();
 
-    msg.channel_id
+    let poll_msg = msg
+        .channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| {
                 e.title("Poll");
-                if let Some(title) = title {
+                if let Some(title) = &title {
                     e.description(title);
                 }
                 for (emoji, option) in options.iter() {
@@ -82,5 +94,17 @@ async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
             )
         })
         .await?;
+
+    let config = ctx.get_config().await;
+    if msg.channel_id == config.channel_mod_polls {
+        poll_msg
+            .create_thread(
+                &ctx,
+                title
+                    .and_then(|x| util::thread_title_from_text(&x).ok())
+                    .unwrap_or_else(|| "Poll".to_string()),
+            )
+            .await?;
+    }
     Ok(())
 }

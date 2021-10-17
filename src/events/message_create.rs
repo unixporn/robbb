@@ -480,11 +480,7 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
 
     let thread_title = util::thread_title_from_text(&msg.content);
     if let Ok(title) = thread_title {
-        msg.channel(&ctx)
-            .await?
-            .guild()
-            .context("Failed to request guild channel")?
-            .create_public_thread(&ctx, msg, |e| e.name(title))
+        msg.create_thread(&ctx, title)
             .await
             .context("Failed to create thread for feedback post")?;
     }

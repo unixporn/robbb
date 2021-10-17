@@ -6,7 +6,7 @@ use serenity::{
     builder::CreateEmbed,
     client,
     model::{
-        channel::Message,
+        channel::{GuildChannel, Message},
         guild::Emoji,
         id::{ChannelId, EmojiId, GuildId},
         prelude::User,
@@ -129,6 +129,12 @@ pub trait MessageExt {
     ) -> Result<Message>;
 
     fn to_context_link(&self) -> String;
+
+    async fn create_thread(
+        &self,
+        ctx: &client::Context,
+        title: impl Display + Send + Sync + 'static,
+    ) -> Result<GuildChannel>;
 }
 
 #[async_trait]
@@ -212,6 +218,20 @@ impl MessageExt for Message {
             e.color(0xb8bb26);
         })
         .await
+    }
+
+    async fn create_thread(
+        &self,
+        ctx: &client::Context,
+        title: impl Display + Send + Sync + 'static,
+    ) -> Result<GuildChannel> {
+        self.channel(&ctx)
+            .await?
+            .guild()
+            .context("Failed to request guild channel")?
+            .create_public_thread(&ctx, self, |e| e.name(title))
+            .await
+            .context("Failed to create a thread")
     }
 
     fn to_context_link(&self) -> String {
