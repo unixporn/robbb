@@ -13,7 +13,6 @@ pub async fn guild_member_update(
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn dehoist_member(ctx: client::Context, member: Member) -> Result<()> {
     let display_name = member.display_name();
     if !display_name.starts_with(HOISTING_CHAR) {
