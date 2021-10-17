@@ -19,8 +19,14 @@ pub async fn dehoist_member(ctx: client::Context, member: Member) -> Result<()> 
         return Ok(());
     }
     let cleaned_name = display_name.trim_start_matches(HOISTING_CHAR);
+    // If the users name is _exclusively_ hoisting chars, just prepend a couple "z"s to put them at the very bottom.
+    let cleaned_name = if cleaned_name.is_empty() {
+        format!("zzz{}", display_name)
+    } else {
+        cleaned_name.to_string()
+    };
     member
-        .edit(&ctx, |edit| edit.nickname(cleaned_name))
+        .edit(&ctx, |edit| edit.nickname(&cleaned_name))
         .instrument(tracing::info_span!("dehoist-edit-nickname", member.tag = %member.user.tag(), dehoist.old_nick = %display_name, dehoist.new_nick = %cleaned_name))
         .await
         .with_context(|| format!("Failed to rename user {}", member.user.tag()))?;
