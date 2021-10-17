@@ -72,10 +72,10 @@ fn display_emoji_list(
     emojis: impl Iterator<Item = EmojiStats>,
 ) -> String {
     emojis
+        .filter_map(|emoji| Some((guildemojis.get(&emoji.emoji.id)?, emoji)))
         .enumerate()
-        .filter_map(|(num, emoji)| {
-            let guild_emoji = guildemojis.get(&emoji.emoji.id)?;
-            Some(format!(
+        .map(|(num, (guild_emoji, emoji))| {
+            format!(
                 "{} {} `{}`: total: {}, reaction: {}, in text: {}",
                 num + 1,
                 guild_emoji,
@@ -83,7 +83,7 @@ fn display_emoji_list(
                 emoji.reactions + emoji.in_text,
                 emoji.reactions,
                 emoji.in_text
-            ))
+            )
         })
         .join("\n")
 }
