@@ -38,7 +38,10 @@ impl EventHandler for Handler {
         )
     }
 
+    #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %new.user.tag()))]
     async fn guild_member_update(&self, ctx: client::Context, old: Option<Member>, new: Member) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
         log_error!(
             "Error while handling guild member update event",
             guild_member_update::guild_member_update(ctx, old, new).await

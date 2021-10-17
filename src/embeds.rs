@@ -9,7 +9,9 @@ use serenity::{
     futures::StreamExt,
     model::channel::{Message, ReactionType},
 };
+use tracing_futures::Instrument;
 
+#[derive(Debug)]
 pub struct PaginatedFieldsEmbed {
     create_embed: CreateEmbed,
     fields: Vec<(String, String)>,
@@ -29,6 +31,7 @@ impl PaginatedFieldsEmbed {
         }
     }
 
+    #[tracing::instrument(skip_all, fields(?self, %msg.id))]
     pub async fn reply_to(&self, ctx: &client::Context, msg: &Message) -> Result<Message> {
         let pages = self.fields.iter().chunks(25);
         let pages = pages
@@ -69,6 +72,7 @@ impl PaginatedFieldsEmbed {
 
             tokio::spawn({
                 let mut created_msg = created_msg.clone();
+                let created_msg_id = created_msg.id;
                 async move {
                     let res: Result<()> = async move {
                         let emoji_left = ReactionType::from('◀');
@@ -108,11 +112,17 @@ impl PaginatedFieldsEmbed {
                         created_msg.delete_reactions(&ctx).await?;
                         Ok(())
                     }
+                    .instrument(
+                        tracing::info_span!("paginate-embed", embed_msg.id = %created_msg_id),
+                    )
                     .await;
                     if let Err(err) = res {
                         log::error!("{}", err);
                     }
                 }
+                .instrument(
+                    tracing::info_span!("paginate-embed-outer", embed_msg.id = %created_msg_id),
+                )
             });
 
             Ok(created_msg)

@@ -426,7 +426,7 @@ async fn init_cpu_logging() {
         async {
             loop {
                 let start = CpuInstant::now();
-                tokio::time::sleep(Duration::from_millis(1000)).await;
+                tokio::time::sleep(Duration::from_millis(4000)).await;
                 let end = CpuInstant::now();
                 if let (Ok(start), Ok(end)) = (start, end) {
                     let duration = end - start;

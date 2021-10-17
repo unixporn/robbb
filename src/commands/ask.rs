@@ -22,11 +22,13 @@ pub async fn ask(ctx: &client::Context, msg: &Message) -> CommandResult {
         tokio::spawn({
             let ctx = ctx.clone();
             let msg = msg.clone();
+            let msg_id = msg.id;
             async move {
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                 let _ = response.delete(&ctx).await;
                 let _ = msg.delete(&ctx).await;
             }
+            .instrument(tracing::info_span!("delete-invalid-ask-invocation", msg.id = %msg_id))
         });
         return Ok(());
     };

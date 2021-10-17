@@ -20,6 +20,7 @@ use serenity::{
 };
 use std::collections::HashSet;
 use thiserror::Error;
+use tracing_futures::Instrument;
 
 pub mod ask;
 pub mod ban;
@@ -237,9 +238,12 @@ pub async fn await_reaction_selection<'a, T: 'static + Clone + Send + Sync>(
 pub fn react_async(ctx: &client::Context, msg: &Message, reactions: Vec<ReactionType>) {
     let msg = msg.clone();
     let ctx = ctx.clone();
-    tokio::spawn(async move {
-        for emoji in reactions {
-            let _ = msg.react(&ctx, emoji).await;
+    tokio::spawn(
+        async move {
+            for emoji in reactions {
+                let _ = msg.react(&ctx, emoji).await;
+            }
         }
-    });
+        .instrument(tracing::info_span!("react-async")),
+    );
 }

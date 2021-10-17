@@ -115,6 +115,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
                 log_error!(msg.delete(&ctx).await);
                 log_error!(error_msg.delete(ctx).await);
             }
+            .instrument(tracing::info_span!("techsupport-delete-message"))
         });
     }
     Ok(())

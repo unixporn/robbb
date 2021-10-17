@@ -1,3 +1,5 @@
+use tracing_futures::Instrument;
+
 use super::*;
 
 static HOISTING_CHAR: &[char] = &['!', '"', '$', '\'', '(', ')', '*', '-', '+', '.', '/', '='];
@@ -11,6 +13,7 @@ pub async fn guild_member_update(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn dehoist_member(ctx: client::Context, member: Member) -> Result<()> {
     let display_name = member.display_name();
     if !display_name.starts_with(HOISTING_CHAR) {
@@ -19,6 +22,7 @@ pub async fn dehoist_member(ctx: client::Context, member: Member) -> Result<()> 
     let cleaned_name = display_name.trim_start_matches(HOISTING_CHAR);
     member
         .edit(&ctx, |edit| edit.nickname(cleaned_name))
+        .instrument(tracing::info_span!("dehoist-edit-nickname", member.tag = %member.user.tag(), dehoist.old_nick = %display_name, dehoist.new_nick = %cleaned_name))
         .await
         .with_context(|| format!("Failed to rename user {}", member.user.tag()))?;
     Ok(())
