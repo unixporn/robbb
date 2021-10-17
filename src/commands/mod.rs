@@ -97,7 +97,7 @@ pub static SELECTION_EMOJI: [&str; 19] = [
 #[only_in(guilds)]
 #[commands(
     restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag,
-    kick
+    kick, emojistats
 )]
 #[checks(moderator, channel_allows_commands)]
 struct Moderator;
@@ -111,7 +111,7 @@ struct HelperOrMod;
 #[group]
 #[commands(
     info, modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, invite, version, highlights, emojistats, ask, uptime
+    tag, invite, version, highlights, ask, uptime
 )]
 #[checks(channel_allows_commands)]
 struct General;
