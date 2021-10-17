@@ -65,6 +65,7 @@ pub struct Config {
     pub channel_bot_messages: ChannelId,
     pub channel_bot_traffic: ChannelId,
     pub channel_tech_support: ChannelId,
+    pub channel_mod_polls: ChannelId,
 
     pub attachment_cache_path: PathBuf,
     pub attachment_cache_max_size: usize,
@@ -93,6 +94,7 @@ impl Config {
             channel_bot_messages: ChannelId(parse_required_env_var("CHANNEL_BOT_MESSAGES")?),
             channel_bot_traffic: ChannelId(parse_required_env_var("CHANNEL_BOT_TRAFFIC")?),
             channel_tech_support: ChannelId(parse_required_env_var("CHANNEL_TECH_SUPPORT")?),
+            channel_mod_polls: ChannelId(parse_required_env_var("CHANNEL_MOD_POLLS")?),
             attachment_cache_path: parse_required_env_var("ATTACHMENT_CACHE_PATH")?,
             attachment_cache_max_size: parse_required_env_var("ATTACHMENT_CACHE_MAX_SIZE")?,
             time_started: chrono::Utc::now(),

@@ -35,12 +35,16 @@ pub async fn poll(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
             ])
         })
         .await?;
-    poll_msg
-        .create_thread(
-            &ctx,
-            util::thread_title_from_text(question).unwrap_or_else(|_| "Poll".to_string()),
-        )
-        .await?;
+
+    let config = ctx.get_config().await;
+    if msg.channel_id == config.channel_mod_polls {
+        poll_msg
+            .create_thread(
+                &ctx,
+                util::thread_title_from_text(question).unwrap_or_else(|_| "Poll".to_string()),
+            )
+            .await?;
+    }
     Ok(())
 }
 
@@ -91,13 +95,16 @@ async fn poll_multi(ctx: &client::Context, msg: &Message) -> CommandResult {
         })
         .await?;
 
-    poll_msg
-        .create_thread(
-            &ctx,
-            title
-                .and_then(|x| util::thread_title_from_text(&x).ok())
-                .unwrap_or_else(|| "Poll".to_string()),
-        )
-        .await?;
+    let config = ctx.get_config().await;
+    if msg.channel_id == config.channel_mod_polls {
+        poll_msg
+            .create_thread(
+                &ctx,
+                title
+                    .and_then(|x| util::thread_title_from_text(&x).ok())
+                    .unwrap_or_else(|| "Poll".to_string()),
+            )
+            .await?;
+    }
     Ok(())
 }
