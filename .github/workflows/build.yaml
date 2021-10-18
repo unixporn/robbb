@@ -14,6 +14,19 @@ jobs:
   push:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    strategy:
+      max-parallel: 1
+      matrix:
+        profile:
+          - debug
+          - release
+        include:
+          - profile: release
+            cargo_flags: "--release"
+            cargo_env: ""
+          - profile: debug
+            cargo_flags: ""
+            cargo_env: "RUSTFLAGS='-C debuginfo=0'"
 
     steps:
       - uses: actions/checkout@v2
@@ -21,21 +34,44 @@ jobs:
       - name: Install rust stable
         uses: actions-rs/toolchain@v1
 
-      - uses: Swatinem/rust-cache@v1
+      - name: Rust version
+        id: rust-version
+        run: |
+          echo "::set-output name=rust_version::$(rustc --version)"
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.profile }} ${{ runner.os }} ${{ steps.rust-version.outputs.rust_version }} ${{ hashFiles('Cargo.lock') }} ${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ matrix.profile }} ${{ runner.os }} ${{ steps.rust-version.outputs.rust_version }} ${{ hashFiles('Cargo.lock') }}
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push image
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:${{ github.sha }}
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:${{ github.sha }}-${{ matrix.profile }}
 
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
           echo IMAGE_ID=$IMAGE_ID
 
-          VERSION="[$(git log --format=oneline -n 1 HEAD)](https://github.com/unixporn/robbb/commit/$(git log --format='%H' -n 1 HEAD))" cargo build --release --locked
-          cp target/release/robbb .
-          docker build -t $IMAGE_ID .
+          mkdir artifacts
+
+          # prebuild docker image
+          touch artifacts/robbb
+          docker build -f Dockerfile artifacts >/dev/null 2>/dev/null &
+
+          VERSION="Profile: ${{ matrix.profile }}; [$(git log --format=oneline -n 1 HEAD)](https://github.com/unixporn/robbb/commit/$(git log --format='%H' -n 1 HEAD))" ${{ matrix.cargo_env }} cargo build ${{ matrix.cargo_flags }} --locked &
+          wait
+
+          cp target/${{ matrix.profile }}/robbb artifacts/
+          docker build -t $IMAGE_ID -f Dockerfile artifacts/
           docker push $IMAGE_ID
