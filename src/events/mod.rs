@@ -81,7 +81,6 @@ impl EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all)]
     #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
     async fn message_delete(
         &self,
