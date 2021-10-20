@@ -15,7 +15,8 @@ pub async fn message_update(
         return Ok(());
     };
 
-    let msg = event.channel_id.message(&ctx, event.id).await?;
+    let mut msg = event.channel_id.message(&ctx, event.id).await?;
+    msg.guild_id = event.guild_id;
 
     match handle_blocklist::handle_blocklist(&ctx, &msg).await {
         Ok(false) => {}
