@@ -31,9 +31,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install rust stable
-        uses: actions-rs/toolchain@v1
-
       - name: Rust version
         id: rust-version
         run: |
