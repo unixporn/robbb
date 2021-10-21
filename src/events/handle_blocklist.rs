@@ -49,8 +49,9 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
             .log_automod_action(&ctx, |e| {
                 e.author(|a| a.name("Message Autodelete"));
                 e.title(format!(
-                    "{} - deleted because of `{}`",
+                    "{} ({}) - deleted because of `{}`",
                     msg.author.tag(),
+                    msg.author.id,
                     word,
                 ));
                 e.description(format!("{} {}", msg.content, msg.to_context_link()));
