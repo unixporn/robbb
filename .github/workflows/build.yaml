@@ -68,9 +68,14 @@ jobs:
           # prebuild docker image
           touch artifacts/robbb
           docker build -f Dockerfile artifacts >/dev/null 2>/dev/null &
+          prebuild_pid=$!
 
-          VERSION="Profile: ${{ matrix.profile }}; [$(git log --format=oneline -n 1 HEAD)](https://github.com/unixporn/robbb/commit/$(git log --format='%H' -n 1 HEAD))" ${{ matrix.cargo_env }} cargo build ${{ matrix.cargo_flags }} --locked &
-          wait
+          VERSION="Profile: ${{ matrix.profile }}; [$(git log --format=oneline -n 1 HEAD)](https://github.com/unixporn/robbb/commit/$(git log --format='%H' -n 1 HEAD))" \
+            ${{ matrix.cargo_env }} \
+            cargo build ${{ matrix.cargo_flags }} --locked &
+          cargo_pid=$!
+
+          wait $prebuild_pid $cargo_pid
 
           cp target/${{ matrix.profile }}/robbb artifacts/
           docker build -t $IMAGE_ID -f Dockerfile artifacts/
