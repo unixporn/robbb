@@ -45,15 +45,23 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
     // tracking issue: https://github.com/serenity-rs/serenity/issues/832
     continuation_msg.guild_id = msg.guild_id;
 
+    let police_emote = ctx
+        .get_up_emotes()
+        .await
+        .map(|emotes| emotes.police.to_string())
+        .unwrap_or_default();
+
     let _ = msg
         .channel_id
         .send_embed(&ctx, |e| {
             e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
             e.description(indoc::formatdoc!(
-                "Continued at {}: [Conversation]({})
+                "{police}{police}**MOVE THIS CONVERSATION!**{police}{police}
+                Continued at {}: [Conversation]({})
                 Please continue your conversation **there**!",
                 channel.mention(),
                 continuation_msg.link(),
+                police = police_emote,
             ));
         })
         .await?;
