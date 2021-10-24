@@ -40,6 +40,3 @@ tracing-honeycomb = "0.4.2"
 libhoney-rust = "0.1.6"
 cpu-monitor = "0.1.1"
 
-
-[profile.release]
-debug = true
