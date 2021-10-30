@@ -10,7 +10,7 @@ Also note that !git, !dotfiles, and !desc are different commands.
 
 !setfetch
 Distro: $NAME $ver
-Kernel: $(uname -sr)
+Kernel: $kernel
 Terminal: $term
 Editor: ${EDITOR##*/}
 Shell: ${SHELL##*/}
@@ -26,7 +26,8 @@ Memory: $ram
 EOF
 }
 
-case $(uname -s) in
+kernel=$(uname -s)
+case $kernel in
 Linux)
 	# get distro
 	if [ -f /bedrock/etc/os-release ]; then
@@ -37,6 +38,12 @@ Linux)
 		. /etc/lsb-release
 		NAME=$DISTRIB_ID
 	fi
+
+	# get kernel variant
+	variant=$(uname -r | grep -o '[a-z]*' | head -n1)
+	## vanilla sounds better than generic -- also handle empty.
+	[ "$variant" = generic ] || [ ! "$variant" ] && variant=vanilla
+	kernel="$kernel ($variant)"
 
 	# get display protocol
 	[ "$DISPLAY" ] && displayprot="x11"
