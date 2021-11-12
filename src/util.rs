@@ -9,10 +9,10 @@ use std::env;
 #[macro_export]
 macro_rules! abort_with {
     ($err:literal) => {
-        return Err(UserErr::other($err).into());
+        return Err(UserErr::other($err).into())
     };
     ($err:expr) => {
-        return Err($err.into());
+        return Err($err.into())
     };
 }
 
