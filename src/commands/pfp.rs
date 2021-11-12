@@ -21,7 +21,7 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     msg.reply_embed(&ctx, |e| {
         e.title(format!("{}'s profile picture", member.user.tag()));
         e.color_opt(color);
-        e.image(member.user.face());
+        e.image(member.face());
     })
     .await?;
 
