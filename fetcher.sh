@@ -146,10 +146,13 @@ Linux)
 		-e " terminator$" \
 		-e " termonad$" \
 		-e " x*st$" \
-		-e " tilda$")
+		-e " tilda$" \
+		-e " wezterm-gui$")
 	# remove leading space
 	term=${term# }
-
+	# if unset, falback to $TERM_PROGRAM 
+	term=${term:-$TERM_PROGRAM}
+	term=${term:-$TERM}
 	# Screen resolution
 	unset i resolution
 	command -v xrandr >/dev/null && {
