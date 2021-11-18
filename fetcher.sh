@@ -152,6 +152,7 @@ Linux)
 	term=${term# }
     # if unset, falback to $TERM_PROGRAM 
     term=${term:-$TERM_PROGRAM}
+    term=${term:-$TERM}
 	# Screen resolution
 	unset i resolution
 	command -v xrandr >/dev/null && {
