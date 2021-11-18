@@ -147,14 +147,11 @@ Linux)
 		-e " termonad$" \
 		-e " x*st$" \
 		-e " tilda$" \
-        -e " wezterm-gui$")
+		-e " wezterm-gui$")
 	# remove leading space
 	term=${term# }
-    # if term doesn't appear, then check TERM_PROGRAM as some cross platform terms set it
-    if [ -z  "$term"]; then
-        term="$TERM_PROGRAM"
-    fi
-
+    # if unset, falback to $TERM_PROGRAM 
+    term=${term:-$TERM_PROGRAM}
 	# Screen resolution
 	unset i resolution
 	command -v xrandr >/dev/null && {
