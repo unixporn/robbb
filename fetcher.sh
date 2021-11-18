@@ -150,9 +150,9 @@ Linux)
 		-e " wezterm-gui$")
 	# remove leading space
 	term=${term# }
-    # if unset, falback to $TERM_PROGRAM 
-    term=${term:-$TERM_PROGRAM}
-    term=${term:-$TERM}
+	# if unset, falback to $TERM_PROGRAM 
+	term=${term:-$TERM_PROGRAM}
+	term=${term:-$TERM}
 	# Screen resolution
 	unset i resolution
 	command -v xrandr >/dev/null && {
