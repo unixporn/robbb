@@ -146,9 +146,14 @@ Linux)
 		-e " terminator$" \
 		-e " termonad$" \
 		-e " x*st$" \
-		-e " tilda$")
+		-e " tilda$" \
+        -e " wezterm-gui$")
 	# remove leading space
 	term=${term# }
+    # if term doesn't appear, then check TERM_PROGRAM as some cross platform terms set it
+    if [ -z  "$term"]; then
+        term="$TERM_PROGRAM"
+    fi
 
 	# Screen resolution
 	unset i resolution
