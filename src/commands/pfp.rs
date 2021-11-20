@@ -1,5 +1,7 @@
 use serenity::builder::CreateEmbed;
 
+use crate::embeds::basic_create_embed;
+
 use super::*;
 
 /// Show the profile-picture of a user.
@@ -19,10 +21,13 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
 
     let member = guild.member(&ctx, mentioned_user_id).await?;
 
-    embeds::PaginatedEmbed::create(vec![
-        create_pfp_embed(&ctx, "Server's Profile Picture", member.face()).await,
-        create_pfp_embed(&ctx, "User's Profile Picture", member.user.face()).await,
-    ])
+    embeds::PaginatedEmbed::create(
+        vec![
+            create_pfp_embed(&ctx, "Server's Profile Picture", member.face()).await,
+            create_pfp_embed(&ctx, "User's Profile Picture", member.user.face()).await,
+        ],
+        basic_create_embed(ctx).await,
+    )
     .await
     .reply_to(&ctx, &msg)
     .await?;
