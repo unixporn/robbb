@@ -11,21 +11,6 @@ use serenity::{
 };
 use tracing_futures::Instrument;
 
-pub async fn basic_create_embed(ctx: &client::Context) -> CreateEmbed {
-    let stare = ctx.get_random_stare().await;
-
-    let mut e = CreateEmbed::default();
-
-    e.timestamp(&Utc::now());
-    e.footer(|f| {
-        if let Some(emoji) = stare {
-            f.icon_url(emoji.url());
-        }
-        f.text("\u{200b}")
-    });
-    e
-}
-
 #[derive(Debug)]
 pub struct PaginatedEmbed {
     embeds: Vec<CreateEmbed>,
@@ -158,4 +143,19 @@ impl PaginatedEmbed {
             Ok(created_msg)
         }
     }
+}
+
+pub async fn basic_create_embed(ctx: &client::Context) -> CreateEmbed {
+    let stare = ctx.get_random_stare().await;
+
+    let mut e = CreateEmbed::default();
+
+    e.timestamp(&Utc::now());
+    e.footer(|f| {
+        if let Some(emoji) = stare {
+            f.icon_url(emoji.url());
+        }
+        f.text("\u{200b}")
+    });
+    e
 }
