@@ -18,25 +18,32 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     };
 
     let member = guild.member(&ctx, mentioned_user_id).await?;
+    let server_pfp = member.face();
+    let user_pfp = member.user.face();
+    let mut embeds = vec![];
 
-    embeds::PaginatedEmbed::create(
-        vec![
+    if user_pfp != server_pfp {
+        embeds.push(
             embeds::make_create_embed(&ctx, |e| {
                 e.title(format!("{}'s Server Profile Picture", member.user.tag()))
                     .image(member.face())
             })
             .await,
-            embeds::make_create_embed(&ctx, |e| {
-                e.title(format!("{}'s User Profile Picture", member.user.tag()))
-                    .image(member.user.face())
-            })
-            .await,
-        ],
-        make_create_embed(ctx, |e| e).await,
-    )
-    .await
-    .reply_to(&ctx, &msg)
-    .await?;
+        );
+    }
+
+    embeds.push(
+        embeds::make_create_embed(&ctx, |e| {
+            e.title(format!("{}'s User Profile Picture", member.user.tag()))
+                .image(member.user.face())
+        })
+        .await,
+    );
+
+    embeds::PaginatedEmbed::create(embeds, make_create_embed(ctx, |e| e).await)
+        .await
+        .reply_to(&ctx, &msg)
+        .await?;
     tracing::debug!("Replied with pfp");
     Ok(())
 }
