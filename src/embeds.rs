@@ -18,7 +18,6 @@ pub struct PaginatedEmbed {
 }
 
 impl PaginatedEmbed {
-    // implement a create method
     pub async fn create(
         embeds: impl IntoIterator<Item = CreateEmbed>,
         base_embed: CreateEmbed,
@@ -44,7 +43,7 @@ impl PaginatedEmbed {
             .collect_vec();
 
         PaginatedEmbed {
-            embeds: pages.into_iter().map(|f| f).collect(),
+            embeds: pages,
             base_embed,
         }
     }
