@@ -22,11 +22,13 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     embeds::PaginatedEmbed::create(
         vec![
             embeds::make_create_embed(&ctx, |e| {
-                e.title("Server's Profile Picture").image(member.face())
+                e.title(format!("{}'s Server Profile Picture", member.user.tag()))
+                    .image(member.face())
             })
             .await,
             embeds::make_create_embed(&ctx, |e| {
-                e.title("User's Profile Picture").image(member.user.face())
+                e.title(format!("{}'s User Profile Picture", member.user.tag()))
+                    .image(member.user.face())
             })
             .await,
         ],
