@@ -111,12 +111,13 @@ async fn reply_help_full(
         (name, description)
     });
 
-    let mut base_embed = embeds::basic_create_embed(ctx).await;
-    base_embed.title("Help");
-    PaginatedEmbed::create_from_fields(fields, base_embed)
-        .await
-        .reply_to(&ctx, &msg)
-        .await
+    PaginatedEmbed::create_from_fields(
+        fields,
+        embeds::make_create_embed(ctx, |e| e.title("Help")).await,
+    )
+    .await
+    .reply_to(&ctx, &msg)
+    .await
 }
 
 async fn passes_all_checks(

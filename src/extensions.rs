@@ -1,4 +1,4 @@
-use crate::{db::Db, embeds::basic_create_embed, Config, UpEmotes};
+use crate::{db::Db, embeds::make_create_embed, Config, UpEmotes};
 use anyhow::{Context, Result};
 use itertools::Itertools;
 use serenity::{
@@ -93,8 +93,11 @@ impl GuildIdExt for GuildId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let mut create_embed = basic_create_embed(&ctx).await;
-        build(&mut create_embed);
+        let create_embed = make_create_embed(&ctx, |e| {
+            build(e);
+            e
+        })
+        .await;
         Ok(channel_id
             .send_message(&ctx, |m| m.set_embed(create_embed))
             .await
@@ -157,8 +160,11 @@ impl MessageExt for Message {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let mut create_embed = basic_create_embed(&ctx).await;
-        build(&mut create_embed);
+        let create_embed = make_create_embed(&ctx, |e| {
+            build(e);
+            e
+        })
+        .await;
 
         self.channel_id
             .send_message(&ctx, move |m| {
@@ -268,8 +274,11 @@ impl ChannelIdExt for ChannelId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let mut create_embed = basic_create_embed(&ctx).await;
-        build(&mut create_embed);
+        let create_embed = make_create_embed(&ctx, |e| {
+            build(e);
+            e
+        })
+        .await;
         Ok(self
             .send_message(&ctx, |m| m.set_embed(create_embed))
             .await

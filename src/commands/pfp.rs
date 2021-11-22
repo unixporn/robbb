@@ -1,6 +1,4 @@
-use serenity::builder::CreateEmbed;
-
-use crate::embeds::basic_create_embed;
+use crate::embeds::make_create_embed;
 
 use super::*;
 
@@ -23,20 +21,20 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
 
     embeds::PaginatedEmbed::create(
         vec![
-            create_pfp_embed(&ctx, "Server's Profile Picture", member.face()).await,
-            create_pfp_embed(&ctx, "User's Profile Picture", member.user.face()).await,
+            embeds::make_create_embed(&ctx, |e| {
+                e.title("Server's Profile Picture").image(member.face())
+            })
+            .await,
+            embeds::make_create_embed(&ctx, |e| {
+                e.title("User's Profile Picture").image(member.user.face())
+            })
+            .await,
         ],
-        basic_create_embed(ctx).await,
+        make_create_embed(ctx, |e| e).await,
     )
     .await
     .reply_to(&ctx, &msg)
     .await?;
     tracing::debug!("Replied with pfp");
     Ok(())
-}
-
-async fn create_pfp_embed(ctx: &client::Context, title: &str, image_url: String) -> CreateEmbed {
-    let mut e = embeds::basic_create_embed(&ctx).await;
-    e.title(title).image(image_url);
-    e
 }

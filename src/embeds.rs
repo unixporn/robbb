@@ -145,7 +145,10 @@ impl PaginatedEmbed {
     }
 }
 
-pub async fn basic_create_embed(ctx: &client::Context) -> CreateEmbed {
+pub async fn make_create_embed(
+    ctx: &client::Context,
+    build: impl FnOnce(&mut CreateEmbed) -> &mut CreateEmbed,
+) -> CreateEmbed {
     let stare = ctx.get_random_stare().await;
 
     let mut e = CreateEmbed::default();
@@ -157,5 +160,7 @@ pub async fn basic_create_embed(ctx: &client::Context) -> CreateEmbed {
         }
         f.text("\u{200b}")
     });
+
+    build(&mut e);
     e
 }
