@@ -92,17 +92,20 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         )
     });
 
-    embeds::PaginatedFieldsEmbed::create(&ctx, fields, |e| {
-        e.title("Notes");
-        e.description(format!("Notes about {}", mentioned_user_id.mention()));
-        e.author(|a| {
-            avatar_url.map(|url| a.icon_url(url));
-            a
-        });
+    let base_embed = embeds::make_create_embed(ctx, |e| {
+        e.title("Notes")
+            .description(format!("Notes about {}", mentioned_user_id.mention()))
+            .author(|a| {
+                avatar_url.map(|url| a.icon_url(url));
+                a
+            })
     })
-    .await
-    .reply_to(&ctx, &msg)
-    .await?;
+    .await;
+
+    embeds::PaginatedEmbed::create_from_fields(fields, base_embed)
+        .await
+        .reply_to(&ctx, &msg)
+        .await?;
 
     Ok(())
 }

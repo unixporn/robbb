@@ -12,35 +12,49 @@ use serenity::{
 use tracing_futures::Instrument;
 
 #[derive(Debug)]
-pub struct PaginatedFieldsEmbed {
-    create_embed: CreateEmbed,
-    fields: Vec<(String, String)>,
+pub struct PaginatedEmbed {
+    embeds: Vec<CreateEmbed>,
+    base_embed: CreateEmbed,
 }
 
-impl PaginatedFieldsEmbed {
+impl PaginatedEmbed {
     pub async fn create(
-        ctx: &client::Context,
+        embeds: impl IntoIterator<Item = CreateEmbed>,
+        base_embed: CreateEmbed,
+    ) -> PaginatedEmbed {
+        PaginatedEmbed {
+            embeds: embeds.into_iter().collect(),
+            base_embed,
+        }
+    }
+
+    pub async fn create_from_fields(
         fields: impl IntoIterator<Item = (String, String)>,
-        build: impl FnOnce(&mut CreateEmbed),
-    ) -> PaginatedFieldsEmbed {
-        let mut embed = basic_create_embed(&ctx).await;
-        build(&mut embed);
-        PaginatedFieldsEmbed {
-            create_embed: embed,
-            fields: fields.into_iter().collect(),
+        base_embed: CreateEmbed,
+    ) -> PaginatedEmbed {
+        let pages = fields.into_iter().chunks(25);
+        let pages = pages
+            .into_iter()
+            .map(|fields| {
+                let mut e = base_embed.clone();
+                e.fields(fields.map(|(k, v)| (k, v, false)).collect_vec());
+                e
+            })
+            .collect_vec();
+
+        PaginatedEmbed {
+            embeds: pages,
+            base_embed,
         }
     }
 
     #[tracing::instrument(skip_all, fields(?self, %msg.id))]
     pub async fn reply_to(&self, ctx: &client::Context, msg: &Message) -> Result<Message> {
-        let pages = self.fields.iter().chunks(25);
+        let pages = self.embeds.iter();
         let pages = pages
-            .into_iter()
-            .map(|fields| {
+            .map(|e| {
                 let mut m = CreateMessage::default();
-                let mut e = self.create_embed.clone();
-                e.fields(fields.map(|(k, v)| (k, v, false)).collect_vec());
-                m.set_embed(e);
+                m.set_embed(e.clone());
                 m
             })
             .collect_vec();
@@ -52,7 +66,7 @@ impl PaginatedFieldsEmbed {
                     if let Some(create_message) = pages.first() {
                         m.clone_from(create_message);
                     } else {
-                        m.set_embed(self.create_embed.clone());
+                        m.set_embed(self.base_embed.clone());
                     }
                     m.reference_message(msg)
                 })
@@ -130,7 +144,10 @@ impl PaginatedFieldsEmbed {
     }
 }
 
-pub async fn basic_create_embed(ctx: &client::Context) -> CreateEmbed {
+pub async fn make_create_embed(
+    ctx: &client::Context,
+    build: impl FnOnce(&mut CreateEmbed) -> &mut CreateEmbed,
+) -> CreateEmbed {
     let stare = ctx.get_random_stare().await;
 
     let mut e = CreateEmbed::default();
@@ -142,5 +159,7 @@ pub async fn basic_create_embed(ctx: &client::Context) -> CreateEmbed {
         }
         f.text("\u{200b}")
     });
+
+    build(&mut e);
     e
 }

@@ -1,3 +1,5 @@
+use crate::embeds::make_create_embed;
+
 use super::*;
 
 /// Show the profile-picture of a user.
@@ -16,15 +18,23 @@ pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> Comman
     };
 
     let member = guild.member(&ctx, mentioned_user_id).await?;
-    let color = member.colour(&ctx);
 
-    msg.reply_embed(&ctx, |e| {
-        e.title(format!("{}'s profile picture", member.user.tag()));
-        e.color_opt(color);
-        e.image(member.user.face());
-    })
+    embeds::PaginatedEmbed::create(
+        vec![
+            embeds::make_create_embed(&ctx, |e| {
+                e.title("Server's Profile Picture").image(member.face())
+            })
+            .await,
+            embeds::make_create_embed(&ctx, |e| {
+                e.title("User's Profile Picture").image(member.user.face())
+            })
+            .await,
+        ],
+        make_create_embed(ctx, |e| e).await,
+    )
+    .await
+    .reply_to(&ctx, &msg)
     .await?;
-
     tracing::debug!("Replied with pfp");
     Ok(())
 }

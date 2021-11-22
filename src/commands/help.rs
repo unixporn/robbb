@@ -1,6 +1,6 @@
 use serenity::framework::standard::{Check, Command};
 
-use crate::embeds::PaginatedFieldsEmbed;
+use crate::embeds::PaginatedEmbed;
 
 use super::*;
 
@@ -111,9 +111,10 @@ async fn reply_help_full(
         (name, description)
     });
 
-    PaginatedFieldsEmbed::create(&ctx, fields, |e| {
-        e.title("Help");
-    })
+    PaginatedEmbed::create_from_fields(
+        fields,
+        embeds::make_create_embed(ctx, |e| e.title("Help")).await,
+    )
     .await
     .reply_to(&ctx, &msg)
     .await
