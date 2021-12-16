@@ -138,22 +138,25 @@ pub async fn disambiguate_user_mention(
     {
         Ok(Some(member.user.id))
     } else if DISCRIMINATOR.is_match(name) {
-	    let (name, discriminator) = name.split_once('#').unwrap();
-	    let discriminator: u16 = discriminator.parse().unwrap();
-	    if let Some(members) = async {guild.search_members(&ctx, name, None).await.ok()}.await {
-		    if members.len() == 1 {
-			    if members[0].user.discriminator == discriminator {
-					Ok(Some(members[0].user.id))
-			    } else {
-					Ok(None)
-			    }
-		    } else {
-			    let user = members.iter().find(|m| m.user.name == name && m.user.discriminator == discriminator).map(|m| m.user.id);
-				Ok(user)
-		    }
-	    } else {
-			Ok(None)
-	    }
+        let (name, discriminator) = name.split_once('#').unwrap();
+        let discriminator: u16 = discriminator.parse().unwrap();
+        if let Some(members) = async { guild.search_members(&ctx, name, None).await.ok() }.await {
+            if members.len() == 1 {
+                if members[0].user.discriminator == discriminator {
+                    Ok(Some(members[0].user.id))
+                } else {
+                    Ok(None)
+                }
+            } else {
+                let user = members
+                    .iter()
+                    .find(|m| m.user.name == name && m.user.discriminator == discriminator)
+                    .map(|m| m.user.id);
+                Ok(user)
+            }
+        } else {
+            Ok(None)
+        }
     } else {
         let member_options = guild
             .members_containing(name, false, true)
