@@ -5,10 +5,7 @@ use std::collections::HashSet;
 fn combine_multitrigger_regex<'a, I: IntoIterator<Item = &'a str>>(
     words: I,
 ) -> Result<regex::Regex> {
-    let joined_words = words
-        .into_iter()
-        .map(|element| regex::escape(element))
-        .join("|");
+    let joined_words = words.into_iter().map(regex::escape).join("|");
     let mut regex_builder = regex::RegexBuilder::new(&format!(r"\b(?:{})\b", joined_words));
     regex_builder
         .case_insensitive(true)
