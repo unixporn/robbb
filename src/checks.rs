@@ -64,7 +64,7 @@ async fn check_role(ctx: &client::Context, msg: &Message, role: RoleId) -> Resul
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum PermissionLevel {
     Mod,
     Helper,
