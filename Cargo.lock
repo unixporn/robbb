@@ -56,18 +56,18 @@ dependencies = [
 
 [[package]]
 name = "async-tungstenite"
-version = "0.15.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "742cc7dcb20b2f84a42f4691aa999070ec7e78f8e7e7438bf14be7017b44907e"
+checksum = "5682ea0913e5c20780fe5785abacb85a411e7437bf52a1bedb93ddb3972cb8dd"
 dependencies = [
  "futures-io",
  "futures-util",
  "log",
  "pin-project-lite 0.2.7",
  "tokio 1.14.0",
- "tokio-rustls 0.22.0",
+ "tokio-rustls 0.23.2",
  "tungstenite",
- "webpki-roots 0.21.1",
+ "webpki-roots 0.22.2",
 ]
 
 [[package]]
@@ -200,7 +200,7 @@ dependencies = [
 [[package]]
 name = "command_attr"
 version = "0.3.7"
-source = "git+https://github.com/serenity-rs/serenity/?branch=next#72d473a93219bf86d8ef76c6d1772c0ff1f1fb71"
+source = "git+https://github.com/serenity-rs/serenity/?branch=next#6e691d9a086dd898817818074ee30a1bee422b90"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -298,12 +298,13 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
-version = "4.0.2"
+version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e77a43b28d0668df09411cb0bc9a8c2adc40f9a048afe863e05fd43251e8e39c"
+checksum = "b799062aaf67eb976af3bdca031ee6f846d2f0a5710ddbb0d2efee33f3cc4760"
 dependencies = [
  "cfg-if 1.0.0",
  "num_cpus",
+ "parking_lot",
  "serde",
 ]
 
@@ -744,22 +745,20 @@ dependencies = [
  "rustls 0.18.1",
  "tokio 0.2.25",
  "tokio-rustls 0.14.1",
- "webpki",
+ "webpki 0.21.4",
 ]
 
 [[package]]
 name = "hyper-rustls"
-version = "0.22.1"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f9f7a97316d44c0af9b0301e65010573a853a9fc97046d7331d7f6bc0fd5a64"
+checksum = "d87c48c02e0dc5e3b849a2041db3029fd066650f8f717c07bf8ed78ccb895cac"
 dependencies = [
- "futures-util",
+ "http",
  "hyper 0.14.15",
- "log",
- "rustls 0.19.1",
+ "rustls 0.20.2",
  "tokio 1.14.0",
- "tokio-rustls 0.22.0",
- "webpki",
+ "tokio-rustls 0.23.2",
 ]
 
 [[package]]
@@ -1462,9 +1461,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.11.6"
+version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66d2927ca2f685faf0fc620ac4834690d29e7abb153add10f5812eef20b5e280"
+checksum = "7c4e0a76dc12a116108933f6301b95e83634e0c47b0afbed6abbaa0601e99258"
 dependencies = [
  "base64 0.13.0",
  "bytes 1.1.0",
@@ -1474,7 +1473,7 @@ dependencies = [
  "http",
  "http-body 0.4.4",
  "hyper 0.14.15",
- "hyper-rustls 0.22.1",
+ "hyper-rustls 0.23.0",
  "hyper-tls",
  "ipnet",
  "js-sys",
@@ -1485,18 +1484,20 @@ dependencies = [
  "native-tls",
  "percent-encoding",
  "pin-project-lite 0.2.7",
- "rustls 0.19.1",
+ "rustls 0.20.2",
+ "rustls-pemfile",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "tokio 1.14.0",
  "tokio-native-tls",
- "tokio-rustls 0.22.0",
+ "tokio-rustls 0.23.2",
+ "tokio-util 0.6.9",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots 0.21.1",
+ "webpki-roots 0.22.2",
  "winreg",
 ]
 
@@ -1534,7 +1535,7 @@ dependencies = [
  "pretty_env_logger",
  "rand 0.8.4",
  "regex",
- "reqwest 0.11.6",
+ "reqwest 0.11.8",
  "serde",
  "serde_json",
  "serenity",
@@ -1560,8 +1561,8 @@ dependencies = [
  "base64 0.12.3",
  "log",
  "ring",
- "sct",
- "webpki",
+ "sct 0.6.1",
+ "webpki 0.21.4",
 ]
 
 [[package]]
@@ -1573,8 +1574,29 @@ dependencies = [
  "base64 0.13.0",
  "log",
  "ring",
- "sct",
- "webpki",
+ "sct 0.6.1",
+ "webpki 0.21.4",
+]
+
+[[package]]
+name = "rustls"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d37e5e2290f3e040b594b1a9e04377c2c671f1a1cfd9bfdef82106ac1c113f84"
+dependencies = [
+ "log",
+ "ring",
+ "sct 0.7.0",
+ "webpki 0.22.0",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5eebeaeb360c87bfb72e84abdb3447159c0eaececf1bef2aecd65a8be949d1c9"
+dependencies = [
+ "base64 0.13.0",
 ]
 
 [[package]]
@@ -1610,6 +1632,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sct"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
+dependencies = [
+ "ring",
+ "untrusted",
+]
+
+[[package]]
 name = "security-framework"
 version = "2.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1634,18 +1666,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.130"
+version = "1.0.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f12d06de37cf59146fbdecab66aa99f9fe4f78722e3607577a5375d66bd0c913"
+checksum = "8b9875c23cf305cd1fd7eb77234cbb705f21ea6a72c637a5c6db5fe4b8e7f008"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.130"
+version = "1.0.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7bc1a1ab1961464eae040d96713baa5a724a8152c1222492465b54322ec508b"
+checksum = "ecc0db5cb2556c0e558887d9bbdcf6ac4471e83ff66cf696e5419024d1606276"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1679,7 +1711,7 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.10.9"
-source = "git+https://github.com/serenity-rs/serenity/?branch=next#72d473a93219bf86d8ef76c6d1772c0ff1f1fb71"
+source = "git+https://github.com/serenity-rs/serenity/?branch=next#6e691d9a086dd898817818074ee30a1bee422b90"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -1695,7 +1727,7 @@ dependencies = [
  "mime_guess",
  "parking_lot",
  "percent-encoding",
- "reqwest 0.11.6",
+ "reqwest 0.11.8",
  "serde",
  "serde_json",
  "static_assertions",
@@ -1843,7 +1875,7 @@ dependencies = [
  "thiserror",
  "tokio-stream",
  "url",
- "webpki",
+ "webpki 0.21.4",
  "webpki-roots 0.21.1",
  "whoami",
 ]
@@ -2050,7 +2082,7 @@ dependencies = [
  "futures-core",
  "rustls 0.18.1",
  "tokio 0.2.25",
- "webpki",
+ "webpki 0.21.4",
 ]
 
 [[package]]
@@ -2061,7 +2093,18 @@ checksum = "bc6844de72e57df1980054b38be3a9f4702aba4858be64dd700181a8a6d0e1b6"
 dependencies = [
  "rustls 0.19.1",
  "tokio 1.14.0",
- "webpki",
+ "webpki 0.21.4",
+]
+
+[[package]]
+name = "tokio-rustls"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a27d5f2b839802bd8267fa19b0530f5a08b9c08cd417976be2a65d130fe1c11b"
+dependencies = [
+ "rustls 0.20.2",
+ "tokio 1.14.0",
+ "webpki 0.22.0",
 ]
 
 [[package]]
@@ -2234,9 +2277,9 @@ checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 
 [[package]]
 name = "tungstenite"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "983d40747bce878d2fb67d910dcb8bd3eca2b2358540c3cc1b98c027407a3ae3"
+checksum = "6ad3713a14ae247f22a728a0456a545df14acf3867f905adff84be99e23b3ad1"
 dependencies = [
  "base64 0.13.0",
  "byteorder",
@@ -2245,12 +2288,12 @@ dependencies = [
  "httparse",
  "log",
  "rand 0.8.4",
- "rustls 0.19.1",
+ "rustls 0.20.2",
  "sha-1",
  "thiserror",
  "url",
  "utf-8",
- "webpki",
+ "webpki 0.22.0",
 ]
 
 [[package]]
@@ -2482,12 +2525,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "webpki"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
+dependencies = [
+ "ring",
+ "untrusted",
+]
+
+[[package]]
 name = "webpki-roots"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f20dea7535251981a9670857150d571846545088359b28e4951d350bdaf179f"
 dependencies = [
- "webpki",
+ "webpki 0.21.4",
 ]
 
 [[package]]
@@ -2496,7 +2549,16 @@ version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aabe153544e473b775453675851ecc86863d2a81d786d741f6b76778f2a48940"
 dependencies = [
- "webpki",
+ "webpki 0.21.4",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.22.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "552ceb903e957524388c4d3475725ff2c8b7960922063af6ce53c9a43da07449"
+dependencies = [
+ "webpki 0.22.0",
 ]
 
 [[package]]
