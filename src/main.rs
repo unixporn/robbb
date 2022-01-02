@@ -2,7 +2,6 @@
 use crate::extensions::*;
 use db::Db;
 use rand::prelude::IteratorRandom;
-use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::client::{self, Client};
 use serenity::framework::standard::DispatchError;
 use serenity::framework::standard::{macros::hook, CommandResult, Reason};

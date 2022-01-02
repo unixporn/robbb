@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use serenity::http::AttachmentType;
 
 use super::*;
 
