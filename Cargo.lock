@@ -1553,7 +1553,7 @@ dependencies = [
  "tracing-futures",
  "tracing-honeycomb",
  "tracing-log",
- "tracing-subscriber",
+ "tracing-subscriber 0.3.5",
  "unicase",
  "url",
 ]
@@ -2201,7 +2201,7 @@ dependencies = [
  "itertools 0.9.0",
  "tracing",
  "tracing-core",
- "tracing-subscriber",
+ "tracing-subscriber 0.2.25",
 ]
 
 [[package]]
@@ -2273,6 +2273,20 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-serde",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d81bfa81424cc98cb034b837c985b7a290f592e5b4322f353f94a0ab0f9f594"
+dependencies = [
+ "ansi_term",
+ "sharded-slab",
+ "smallvec",
+ "thread_local",
+ "tracing-core",
+ "tracing-log",
 ]
 
 [[package]]
