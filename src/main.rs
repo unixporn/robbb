@@ -8,7 +8,6 @@ use serenity::framework::standard::{macros::hook, CommandResult, Reason};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
-use std::io::Write;
 use std::{path::PathBuf, sync::Arc};
 use tracing::Level;
 use tracing_futures::Instrument;
@@ -141,8 +140,6 @@ impl TypeMapKey for FrameworkKey {
 
 #[tokio::main]
 async fn main() {
-    init_logger();
-
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
 
     init_tracing(honeycomb_api_key.clone());
@@ -366,42 +363,6 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
         },
         Ok(()) => {}
     }
-}
-
-// TODO: migrate to using only tracing-subscriber
-fn init_logger() {
-    let mut builder = pretty_env_logger::formatted_timed_builder();
-    builder.format(|buf, r| {
-        let ts = buf.timestamp();
-        let level = buf.default_styled_level(r.level());
-        let mut bold = buf.style();
-        bold.set_bold(true);
-
-        let module_or_file = if r.file().is_some() && r.file().unwrap().len() < 80 {
-            format!(
-                "{}:{}",
-                r.file().unwrap_or_default(),
-                r.line().unwrap_or_default()
-            )
-        } else {
-            r.module_path().unwrap_or_default().to_string()
-        };
-
-        writeln!(
-            buf,
-            "{} {} [{}] {} {}",
-            ts,
-            level,
-            module_or_file,
-            bold.value(">"),
-            r.args()
-        )
-    });
-
-    if let Ok(log_var) = std::env::var("RUST_LOG") {
-        builder.parse_filters(&log_var);
-    }
-    builder.init();
 }
 
 async fn send_honeycomb_deploy_marker(api_key: &str) {
