@@ -131,7 +131,7 @@ impl PaginatedEmbed {
                     )
                     .await;
                     if let Err(err) = res {
-                        log::error!("{}", err);
+                        tracing::error!("{}", err);
                     }
                 }
                 .instrument(

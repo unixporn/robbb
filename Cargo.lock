@@ -1530,7 +1530,6 @@ dependencies = [
  "itertools 0.10.1",
  "lazy_static",
  "libhoney-rust",
- "log",
  "maplit",
  "pretty_env_logger",
  "rand 0.8.4",

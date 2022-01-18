@@ -197,7 +197,7 @@ async fn main() {
     };
 
     if let Err(why) = client.start().await {
-        log::error!("An error occurred while running the client: {:?}", why);
+        tracing::error!("An error occurred while running the client: {:?}", why);
     }
 }
 
@@ -214,7 +214,7 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
         .with(tracing_subscriber::fmt::Layer::default());
 
     if let Some(api_key) = honeycomb_api_key {
-        log::info!("honeycomb api key is set, initializing honeycomb layer");
+        tracing::error!("honeycomb api key is set, initializing honeycomb layer");
         let config = libhoney::Config {
             options: libhoney::client::Options {
                 api_key,
@@ -226,7 +226,7 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
         let sub = sub.with(tracing_honeycomb::Builder::new_libhoney("robbb", config).build());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     } else {
-        log::info!("no honeycomb api key is set");
+        tracing::info!("no honeycomb api key is set");
         let sub = sub.with(tracing_honeycomb::new_blackhole_telemetry_layer());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     };
@@ -259,7 +259,7 @@ async fn dispatch_error_hook(
     match &error {
         DispatchError::CheckFailed(required, Reason::Log(log))
         | DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
-            log::warn!("Check for {} failed with: {}", required, log);
+            tracing::warn!("Check for {} failed with: {}", required, log);
         }
         _ => {}
     };
@@ -299,7 +299,7 @@ fn display_dispatch_error(err: DispatchError) -> String {
             given, max
         ),
         _ => {
-            log::warn!("Unhandled dispatch error: {:?}", err);
+            tracing::error!("Unhandled dispatch error: {:?}", err);
             "Failed to run command".to_string()
         }
     }
@@ -371,34 +371,32 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
 // TODO: migrate to using only tracing-subscriber
 fn init_logger() {
     let mut builder = pretty_env_logger::formatted_timed_builder();
-    builder
-        .format(|buf, r| {
-            let ts = buf.timestamp();
-            let level = buf.default_styled_level(r.level());
-            let mut bold = buf.style();
-            bold.set_bold(true);
+    builder.format(|buf, r| {
+        let ts = buf.timestamp();
+        let level = buf.default_styled_level(r.level());
+        let mut bold = buf.style();
+        bold.set_bold(true);
 
-            let module_or_file = if r.file().is_some() && r.file().unwrap().len() < 80 {
-                format!(
-                    "{}:{}",
-                    r.file().unwrap_or_default(),
-                    r.line().unwrap_or_default()
-                )
-            } else {
-                r.module_path().unwrap_or_default().to_string()
-            };
-
-            writeln!(
-                buf,
-                "{} {} [{}] {} {}",
-                ts,
-                level,
-                module_or_file,
-                bold.value(">"),
-                r.args()
+        let module_or_file = if r.file().is_some() && r.file().unwrap().len() < 80 {
+            format!(
+                "{}:{}",
+                r.file().unwrap_or_default(),
+                r.line().unwrap_or_default()
             )
-        })
-        .filter_module("robbb", log::LevelFilter::Info); // This gets overridden later in init_tracing()
+        } else {
+            r.module_path().unwrap_or_default().to_string()
+        };
+
+        writeln!(
+            buf,
+            "{} {} [{}] {} {}",
+            ts,
+            level,
+            module_or_file,
+            bold.value(">"),
+            r.args()
+        )
+    });
 
     if let Ok(log_var) = std::env::var("RUST_LOG") {
         builder.parse_filters(&log_var);
