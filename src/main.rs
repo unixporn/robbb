@@ -203,10 +203,10 @@ async fn main() {
 
 fn init_tracing(honeycomb_api_key: Option<String>) {
     let log_filter = EnvFilter::try_from_default_env()
-        .unwrap_or(
+        .unwrap_or_else(|_| {
             EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off")
-                .unwrap(),
-        )
+                .unwrap()
+        })
         .add_directive("robbb=trace".parse().unwrap());
 
     let sub = tracing_subscriber::registry()
