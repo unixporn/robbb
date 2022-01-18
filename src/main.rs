@@ -13,6 +13,7 @@ use std::{path::PathBuf, sync::Arc};
 use tracing::Level;
 use tracing_futures::Instrument;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::EnvFilter;
 
 use crate::util::*;
 use anyhow::Result;
@@ -201,16 +202,15 @@ async fn main() {
 }
 
 fn init_tracing(honeycomb_api_key: Option<String>) {
-    let filter = tracing_subscriber::filter::Targets::new()
-        .with_target("serenity", Level::DEBUG)
-        .with_target(
-            "serenity::http::ratelimiting",
-            tracing::metadata::LevelFilter::OFF,
+    let log_filter = EnvFilter::try_from_default_env()
+        .unwrap_or(
+            EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off")
+                .unwrap(),
         )
-        .with_target("robbb", Level::TRACE);
+        .add_directive("robbb=trace".parse().unwrap());
 
     let sub = tracing_subscriber::registry()
-        .with(filter)
+        .with(log_filter)
         .with(tracing_subscriber::fmt::Layer::default());
 
     if let Some(api_key) = honeycomb_api_key {
@@ -368,6 +368,7 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
     }
 }
 
+// TODO: migrate to using only tracing-subscriber
 fn init_logger() {
     let mut builder = pretty_env_logger::formatted_timed_builder();
     builder
@@ -397,7 +398,7 @@ fn init_logger() {
                 r.args()
             )
         })
-        .filter_module("robbb", log::LevelFilter::Info);
+        .filter_module("robbb", log::LevelFilter::Info); // This gets overridden later in init_tracing()
 
     if let Ok(log_var) = std::env::var("RUST_LOG") {
         builder.parse_filters(&log_var);
