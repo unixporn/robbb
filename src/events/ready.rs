@@ -4,7 +4,7 @@ use super::*;
 
 pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
     let bot_version = util::bot_version();
-    log::info!("Robbb is ready! Running version {}", &bot_version);
+    tracing::info!("Robbb is ready! Running version {}", &bot_version);
 
     let config = ctx.get_config().await;
 
@@ -13,7 +13,7 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
             ctx.data.write().await.insert::<UpEmotes>(Arc::new(emotes));
         }
         Err(err) => {
-            log::warn!("Error loading emotes: {}", err);
+            tracing::warn!("Error loading emotes: {}", err);
         }
     }
 

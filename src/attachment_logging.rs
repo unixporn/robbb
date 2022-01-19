@@ -109,7 +109,7 @@ pub async fn cleanup(config: &Config) -> Result<()> {
 
     while total_size_bytes > config.attachment_cache_max_size && !files.is_empty() {
         let (file, meta) = files.remove(0);
-        log::debug!("deleting {}", file.path().display());
+        tracing::debug!("deleting {}", file.path().display());
         tokio::fs::remove_file(file.path()).await?;
         total_size_bytes -= meta.size() as usize;
     }

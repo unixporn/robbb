@@ -8,11 +8,11 @@ use serenity::framework::standard::{macros::hook, CommandResult, Reason};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
-use std::io::Write;
 use std::{path::PathBuf, sync::Arc};
 use tracing::Level;
 use tracing_futures::Instrument;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::EnvFilter;
 
 use crate::util::*;
 use anyhow::Result;
@@ -140,8 +140,6 @@ impl TypeMapKey for FrameworkKey {
 
 #[tokio::main]
 async fn main() {
-    init_logger();
-
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
 
     init_tracing(honeycomb_api_key.clone());
@@ -196,25 +194,24 @@ async fn main() {
     };
 
     if let Err(why) = client.start().await {
-        log::error!("An error occurred while running the client: {:?}", why);
+        tracing::error!("An error occurred while running the client: {:?}", why);
     }
 }
 
 fn init_tracing(honeycomb_api_key: Option<String>) {
-    let filter = tracing_subscriber::filter::Targets::new()
-        .with_target("serenity", Level::DEBUG)
-        .with_target(
-            "serenity::http::ratelimiting",
-            tracing::metadata::LevelFilter::OFF,
-        )
-        .with_target("robbb", Level::TRACE);
+    let log_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| {
+            EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off")
+                .unwrap()
+        })
+        .add_directive("robbb=trace".parse().unwrap());
 
     let sub = tracing_subscriber::registry()
-        .with(filter)
+        .with(log_filter)
         .with(tracing_subscriber::fmt::Layer::default());
 
     if let Some(api_key) = honeycomb_api_key {
-        log::info!("honeycomb api key is set, initializing honeycomb layer");
+        tracing::error!("honeycomb api key is set, initializing honeycomb layer");
         let config = libhoney::Config {
             options: libhoney::client::Options {
                 api_key,
@@ -226,7 +223,7 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
         let sub = sub.with(tracing_honeycomb::Builder::new_libhoney("robbb", config).build());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     } else {
-        log::info!("no honeycomb api key is set");
+        tracing::info!("no honeycomb api key is set");
         let sub = sub.with(tracing_honeycomb::new_blackhole_telemetry_layer());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     };
@@ -259,7 +256,7 @@ async fn dispatch_error_hook(
     match &error {
         DispatchError::CheckFailed(required, Reason::Log(log))
         | DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
-            log::warn!("Check for {} failed with: {}", required, log);
+            tracing::warn!("Check for {} failed with: {}", required, log);
         }
         _ => {}
     };
@@ -299,7 +296,7 @@ fn display_dispatch_error(err: DispatchError) -> String {
             given, max
         ),
         _ => {
-            log::warn!("Unhandled dispatch error: {:?}", err);
+            tracing::error!("Unhandled dispatch error: {:?}", err);
             "Failed to run command".to_string()
         }
     }
@@ -366,43 +363,6 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
         },
         Ok(()) => {}
     }
-}
-
-fn init_logger() {
-    let mut builder = pretty_env_logger::formatted_timed_builder();
-    builder
-        .format(|buf, r| {
-            let ts = buf.timestamp();
-            let level = buf.default_styled_level(r.level());
-            let mut bold = buf.style();
-            bold.set_bold(true);
-
-            let module_or_file = if r.file().is_some() && r.file().unwrap().len() < 80 {
-                format!(
-                    "{}:{}",
-                    r.file().unwrap_or_default(),
-                    r.line().unwrap_or_default()
-                )
-            } else {
-                r.module_path().unwrap_or_default().to_string()
-            };
-
-            writeln!(
-                buf,
-                "{} {} [{}] {} {}",
-                ts,
-                level,
-                module_or_file,
-                bold.value(">"),
-                r.args()
-            )
-        })
-        .filter_module("robbb", log::LevelFilter::Info);
-
-    if let Ok(log_var) = std::env::var("RUST_LOG") {
-        builder.parse_filters(&log_var);
-    }
-    builder.init();
 }
 
 async fn send_honeycomb_deploy_marker(api_key: &str) {

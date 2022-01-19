@@ -74,7 +74,7 @@ async fn do_ban(
                 not_found_users.push(user);
             }
             std::result::Result::Err(BanFailedReason::Other(err)) => {
-                log::error!("{}", err);
+                tracing::error!("{}", err);
                 let _ = msg
                     .reply_error(
                         &ctx,
