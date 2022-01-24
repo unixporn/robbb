@@ -1,4 +1,6 @@
+use futures::{stream, StreamExt};
 use itertools::Itertools;
+use serenity::http::AttachmentType;
 
 use super::*;
 
@@ -20,7 +22,7 @@ pub async fn message_delete(
     )
     .await?;
 
-    let msg = ctx.cache.message(channel_id, deleted_message_id);
+    let msg = ctx.cache.message(channel_id, deleted_message_id).await;
     // if the message can't be loaded, there's no need to try anything more,
     // so let's just give up. No need to error.
     let msg = match msg {
@@ -107,10 +109,10 @@ pub async fn message_delete_bulk(
         return Ok(());
     }
 
-    let msgs: Vec<Message> = deleted_message_ids
-        .iter()
+    let msgs: Vec<Message> = stream::iter(deleted_message_ids)
         .filter_map(|id| ctx.cache.message(channel_id, id))
-        .collect();
+        .collect()
+        .await;
 
     let channel_name = channel_id
         .name(&ctx)

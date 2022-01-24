@@ -34,7 +34,8 @@ pub async fn ask(ctx: &client::Context, msg: &Message) -> CommandResult {
     };
 
     msg.channel(&ctx)
-        .await?
+        .await
+        .context("Failed to request message channel")?
         .guild()
         .context("Failed to request guild channel")?
         .create_public_thread(&ctx, msg, |e| e.name(title))

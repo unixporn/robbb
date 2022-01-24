@@ -56,18 +56,18 @@ dependencies = [
 
 [[package]]
 name = "async-tungstenite"
-version = "0.16.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5682ea0913e5c20780fe5785abacb85a411e7437bf52a1bedb93ddb3972cb8dd"
+checksum = "f7cc5408453d37e2b1c6f01d8078af1da58b6cfa6a80fa2ede3bd2b9a6ada9c4"
 dependencies = [
  "futures-io",
  "futures-util",
  "log",
- "pin-project-lite 0.2.7",
+ "pin-project",
  "tokio 1.14.0",
- "tokio-rustls 0.23.2",
+ "tokio-rustls 0.22.0",
  "tungstenite",
- "webpki-roots 0.22.2",
+ "webpki-roots 0.20.0",
 ]
 
 [[package]]
@@ -188,8 +188,9 @@ dependencies = [
 
 [[package]]
 name = "command_attr"
-version = "0.3.7"
-source = "git+https://github.com/serenity-rs/serenity/?branch=next#3b05774033170967404c1c9e5edb2853bd735a41"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e74a021f9d0b577821bf9f5b1a2be88677e95ee05713e5d44fb4236cfa1744c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -283,18 +284,6 @@ checksum = "d82cfc11ce7f2c3faef78d8a684447b40d503d9681acebed6cb728d45940c4db"
 dependencies = [
  "cfg-if 1.0.0",
  "lazy_static",
-]
-
-[[package]]
-name = "dashmap"
-version = "5.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b799062aaf67eb976af3bdca031ee6f846d2f0a5710ddbb0d2efee33f3cc4760"
-dependencies = [
- "cfg-if 1.0.0",
- "num_cpus",
- "parking_lot",
- "serde",
 ]
 
 [[package]]
@@ -397,6 +386,7 @@ checksum = "a12aa0eb539080d55c3f2d45a67c3b58b6b0773c1a3ca2dfec66d58c97fd66ca"
 dependencies = [
  "futures-channel",
  "futures-core",
+ "futures-executor",
  "futures-io",
  "futures-sink",
  "futures-task",
@@ -418,6 +408,17 @@ name = "futures-core"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88d1c26957f23603395cd326b0ffe64124b818f4449552f960d815cfba83a53d"
+
+[[package]]
+name = "futures-executor"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45025be030969d763025784f7f355043dc6bc74093e4ecc5000ca4dc50d8745c"
+dependencies = [
+ "futures-core",
+ "futures-task",
+ "futures-util",
+]
 
 [[package]]
 name = "futures-intrusive"
@@ -769,6 +770,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5a75aeaaef0ce18b58056d306c27b07436fbb34b8816c53094b76dd81803136"
 dependencies = [
  "unindent",
+]
+
+[[package]]
+name = "input_buffer"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19a8a95243d5a0398cae618ec29477c6e3cb631152be5c19481f80bc71559754"
+dependencies = [
+ "bytes 0.5.6",
 ]
 
 [[package]]
@@ -1476,6 +1486,7 @@ dependencies = [
  "chrono",
  "chrono-humanize",
  "cpu-monitor",
+ "futures",
  "humantime",
  "indoc",
  "itertools 0.10.1",
@@ -1659,8 +1670,9 @@ dependencies = [
 
 [[package]]
 name = "serenity"
-version = "0.10.9"
-source = "git+https://github.com/serenity-rs/serenity/?branch=next#3b05774033170967404c1c9e5edb2853bd735a41"
+version = "0.10.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dde86919535c6047e055d512641c5241320c01cb8fee54f1e5ba77c939a0ec23"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -1669,12 +1681,8 @@ dependencies = [
  "bytes 1.1.0",
  "chrono",
  "command_attr",
- "dashmap",
  "flate2",
  "futures",
- "mime",
- "mime_guess",
- "parking_lot",
  "percent-encoding",
  "reqwest 0.11.8",
  "serde",
@@ -2217,23 +2225,21 @@ checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 
 [[package]]
 name = "tungstenite"
-version = "0.16.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ad3713a14ae247f22a728a0456a545df14acf3867f905adff84be99e23b3ad1"
+checksum = "f0308d80d86700c5878b9ef6321f020f29b1bb9d5ff3cab25e75e23f3a492a23"
 dependencies = [
- "base64 0.13.0",
+ "base64 0.12.3",
  "byteorder",
- "bytes 1.1.0",
+ "bytes 0.5.6",
  "http",
  "httparse",
+ "input_buffer",
  "log",
- "rand 0.8.4",
- "rustls 0.20.2",
+ "rand 0.7.3",
  "sha-1",
- "thiserror",
  "url",
  "utf-8",
- "webpki 0.22.0",
 ]
 
 [[package]]
@@ -2312,7 +2318,6 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
- "serde",
 ]
 
 [[package]]

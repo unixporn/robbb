@@ -10,7 +10,7 @@ use super::*;
 pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let (config, db) = ctx.get_config_and_db().await;
 
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
     let mentioned_user_id = {
         let user_mention = args
@@ -54,7 +54,7 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;
 
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
     let mentioned_user_id = {
         let user_mention = args
@@ -114,7 +114,7 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 #[command("undo")]
 #[usage("note undo <user>")]
 pub async fn undo_note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let mentioned_user = &args
         .single_quoted::<String>()
         .invalid_usage(&WARN_COMMAND_OPTIONS)?;

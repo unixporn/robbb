@@ -120,7 +120,12 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(member.tag = %new_member.user.tag()))]
-    async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
+    async fn guild_member_addition(
+        &self,
+        ctx: client::Context,
+        _guid_id: GuildId,
+        new_member: Member,
+    ) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(

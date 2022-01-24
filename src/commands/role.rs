@@ -9,7 +9,7 @@ pub async fn role(ctx: &client::Context, msg: &Message, args: Args) -> CommandRe
     let config = ctx.get_config().await;
 
     if let Some(chosen_role_name) = args.remains() {
-        let guild = msg.guild(&ctx).context("Failed to load guild")?;
+        let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
         let chosen_role = config
             .roles_color
             .iter()
