@@ -246,7 +246,7 @@ async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
 }
 
 #[hook]
-#[tracing::instrument(skip_all, fields(%msg.content, %msg.channel_id, error.command_name = %_command_name, %error))]
+#[tracing::instrument(skip_all, fields(%msg.content, %msg.channel_id, %error))]
 async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError) {
     // Log dispatch errors that should be logged
     match &error {

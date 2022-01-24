@@ -155,7 +155,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         .guild()
         .context("Couldn't get a guild-channel from the channel")?;
     if channel.thread_metadata.is_some()
-        || config.category_mod_private == channel.category_id.context("Couldn't get parent_id")?
+        || config.category_mod_private == channel.category_id.context("Couldn't get category_id")?
     {
         return Ok(0);
     }
