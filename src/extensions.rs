@@ -55,7 +55,7 @@ impl ClientContextExt for client::Context {
     }
 
     async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>> {
-        Some(self.cache.guild(id)?.emojis)
+        Some(self.cache.guild(id).await?.emojis)
     }
 }
 
@@ -232,7 +232,8 @@ impl MessageExt for Message {
         title: impl Display + Send + Sync + 'static,
     ) -> Result<GuildChannel> {
         self.channel(&ctx)
-            .await?
+            .await
+            .context("Failed to fetch message channel")?
             .guild()
             .context("Failed to request guild channel")?
             .create_public_thread(&ctx, self, |e| e.name(title))

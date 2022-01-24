@@ -8,7 +8,7 @@ use super::*;
 pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let (config, db) = ctx.get_config_and_db().await;
 
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let mentioned_user = &args
         .single_quoted::<String>()
         .invalid_usage(&WARN_COMMAND_OPTIONS)?;
@@ -67,7 +67,7 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 #[command("undo")]
 #[usage("warn undo <user>")]
 pub async fn undo_warn(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let mentioned_user = &args
         .single_quoted::<String>()
         .invalid_usage(&WARN_COMMAND_OPTIONS)?;

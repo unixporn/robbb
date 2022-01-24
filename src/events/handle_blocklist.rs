@@ -59,7 +59,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
             .instrument(tracing::debug_span!("blocklist-automod-entry"));
 
         let note_future = async {
-            let bot_id = ctx.cache.current_user_id();
+            let bot_id = ctx.cache.current_user_id().await;
             let note_content = format!("Message deleted because of word `{}`", word);
             let _ = db
                 .add_note(

@@ -4,7 +4,7 @@ use super::*;
 #[only_in(guilds)]
 #[usage("info [user]")]
 pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
     let mentioned_user_id = if let Ok(mentioned_user) = args.single_quoted::<String>() {
         disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
@@ -20,7 +20,7 @@ pub async fn info(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let created_at = mentioned_user_id.created_at();
 
-    let color = member.colour(&ctx);
+    let color = member.colour(&ctx).await;
 
     msg.reply_embed(&ctx, |e| {
         e.title(member.user.tag());

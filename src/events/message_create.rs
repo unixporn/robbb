@@ -155,7 +155,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         .guild()
         .context("Couldn't get a guild-channel from the channel")?;
     if channel.thread_metadata.is_some()
-        || config.category_mod_private == channel.parent_id.context("Couldn't get parent_id")?
+        || config.category_mod_private == channel.category_id.context("Couldn't get category_id")?
     {
         return Ok(0);
     }
@@ -194,7 +194,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 // check if the user has already been notified of another word in this message
                 || handled_users.contains(&user_id)
                 // check if the user can read that channel
-                || !channel.permissions_for_user(&ctx, user_id)?.read_messages()
+                || !channel.permissions_for_user(&ctx, user_id).await?.read_messages()
             {
                 continue;
             }
@@ -314,7 +314,8 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .context("Message not in a guild-channel")?;
 
     let user_can_see_channel = channel
-        .permissions_for_user(&ctx, msg.author.id)?
+        .permissions_for_user(&ctx, msg.author.id)
+        .await?
         .read_messages();
 
     debug!("checked if user can see the channel");
@@ -400,9 +401,9 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     if is_spam || is_ping_spam {
         let config = ctx.get_config().await;
 
-        let guild = msg.guild(&ctx).context("Failed to load guild")?;
+        let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
         let member = guild.member(&ctx, msg.author.id).await?;
-        let bot_id = ctx.cache.current_user_id();
+        let bot_id = ctx.cache.current_user_id().await;
 
         let duration = std::time::Duration::from_secs(60 * 30);
 
