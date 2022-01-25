@@ -35,7 +35,7 @@ tracing = "0.1.29"
 tracing-log = "0.1.2"
 tracing-futures = "0.2.5"
 tracing-subscriber = "0.2.25"
-tracing-honeycomb = "0.4.2"
+tracing-honeycomb = "0.4.3"
 libhoney-rust = "0.1.6"
 cpu-monitor = "0.1.1"
 
