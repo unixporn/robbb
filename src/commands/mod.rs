@@ -141,19 +141,13 @@ pub async fn disambiguate_user_mention(
         let (name, discriminator) = name.split_once('#').unwrap();
         let discriminator: u16 = discriminator.parse().unwrap();
         if let Some(members) = async { guild.search_members(&ctx, name, None).await.ok() }.await {
-            if members.len() == 1 {
-                if members[0].user.discriminator == discriminator {
-                    Ok(Some(members[0].user.id))
-                } else {
-                    Ok(None)
-                }
-            } else {
-                let user = members
-                    .iter()
-                    .find(|m| m.user.name == name && m.user.discriminator == discriminator)
-                    .map(|m| m.user.id);
-                Ok(user)
-            }
+            Ok(members
+                .iter()
+                .find(|m| {
+                    m.user.name.to_lowercase() == name.to_lowercase()
+                        && m.user.discriminator == discriminator
+                })
+                .map(|m| m.user.id))
         } else {
             Ok(None)
         }
