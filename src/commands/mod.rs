@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use itertools::Itertools;
 use reaction_collector::ReactionAction;
+use regex::Regex;
 use serenity::{
     client,
     collector::reaction_collector,
@@ -123,6 +124,9 @@ pub async fn disambiguate_user_mention(
     msg: &Message,
     name: &str,
 ) -> Result<Option<UserId>> {
+    lazy_static::lazy_static! {
+        static ref DISCRIMINATOR: Regex = Regex::new(r"#\d{4}$").unwrap();
+    }
     if let Some(user_id) = name
         .parse::<UserId>()
         .ok()
@@ -133,6 +137,20 @@ pub async fn disambiguate_user_mention(
         async { guild.member(&ctx, name.parse::<u64>().ok()?).await.ok() }.await
     {
         Ok(Some(member.user.id))
+    } else if DISCRIMINATOR.is_match(name) {
+        let (name, discriminator) = name.split_once('#').unwrap();
+        let discriminator: u16 = discriminator.parse().unwrap();
+        if let Some(members) = async { guild.search_members(&ctx, name, None).await.ok() }.await {
+            Ok(members
+                .iter()
+                .find(|m| {
+                    m.user.name.to_lowercase() == name.to_lowercase()
+                        && m.user.discriminator == discriminator
+                })
+                .map(|m| m.user.id))
+        } else {
+            Ok(None)
+        }
     } else {
         let member_options = guild
             .members_containing(name, false, true)
