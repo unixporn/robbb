@@ -17,6 +17,8 @@ pub struct Mute {
 }
 
 impl Db {
+    // I did not sign up for this @elkowar, you fix
+    #[allow(clippy::too_many_arguments)]
     pub async fn add_mute(
         &self,
         guild_id: GuildId,
