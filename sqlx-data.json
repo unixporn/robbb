@@ -43,6 +43,11 @@
           "name": "active",
           "ordinal": 7,
           "type_info": "Bool"
+        },
+        {
+          "name": "context",
+          "ordinal": 8,
+          "type_info": "Text"
         }
       ],
       "parameters": {
@@ -56,7 +61,8 @@
         false,
         false,
         true,
-        false
+        false,
+        true
       ]
     }
   },
@@ -109,48 +115,6 @@
         false,
         false,
         false
-      ]
-    }
-  },
-  "1c405e112c2d3214854e7a9d581a1cfde3c6e026a829155993831ac980d48217": {
-    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\" from warn where usr=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "reason!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "create_date!",
-          "ordinal": 4,
-          "type_info": "Datetime"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        true
       ]
     }
   },
@@ -224,6 +188,16 @@
       ]
     }
   },
+  "2a873876b633d414c811cbc0b5352d17c2c948a753b4d3e655d0b3cca9c2dc41": {
+    "query": "insert into mute (guildid, moderator, usr, reason, start_time, end_time, active, context) values(?, ?, ?, ?, ?, ?, true, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 7
+      },
+      "nullable": []
+    }
+  },
   "2bdeb084c05e060d999359fc517d8d0adfee9fdebeeb9ffba3862a1f7544a318": {
     "query": "delete from highlights where usr=?",
     "describe": {
@@ -286,16 +260,6 @@
       "columns": [],
       "parameters": {
         "Right": 2
-      },
-      "nullable": []
-    }
-  },
-  "37a6b73df856c851aa9c14104d100d70266cc6647df89b14214547e1cbcf86ee": {
-    "query": "insert into warn (moderator, usr, reason, create_date) values(?, ?, ?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 4
       },
       "nullable": []
     }
@@ -394,6 +358,16 @@
       "nullable": []
     }
   },
+  "618923be18d0dfd599b1ee4942561c7535ff8faf52749670db0c7d7cd52869cf": {
+    "query": "insert into warn (moderator, usr, reason, create_date, context) values(?, ?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 5
+      },
+      "nullable": []
+    }
+  },
   "65c4d052bc870845c896116e536dca622423fe384f2c59f4368f2e804b788701": {
     "query": "insert into profile (usr, git, dotfiles, description) values (?1, ?2, NULL, NULL)\n                on conflict(usr) do update set git=?2",
     "describe": {
@@ -437,6 +411,11 @@
           "name": "create_date",
           "ordinal": 5,
           "type_info": "Datetime"
+        },
+        {
+          "name": "context",
+          "ordinal": 6,
+          "type_info": "Text"
         }
       ],
       "parameters": {
@@ -448,7 +427,56 @@
         false,
         false,
         false,
-        false
+        false,
+        true
+      ]
+    }
+  },
+  "6fa790784fbae2357b0a84047b813bb3e3d61b5c04ed5e70a384ed05746d7ecb": {
+    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\", context from warn where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "create_date!",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "context",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
       ]
     }
   },
@@ -602,16 +630,6 @@
       "nullable": []
     }
   },
-  "d82c132238221a207fe200e0b55d5982af95bb4c65f2e4f1b5b0b35d7067eb8d": {
-    "query": "insert into note (moderator, usr, content, create_date, note_type) values(?, ?, ?, ?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 5
-      },
-      "nullable": []
-    }
-  },
   "dbe7847eb59535d213b80e8d322bd36203174963556e806b34a1e787d4814cbc": {
     "query": "insert into blocked_regexes(pattern, added_by) values (?, ?)",
     "describe": {
@@ -656,8 +674,8 @@
       "nullable": []
     }
   },
-  "e280cbd13dd17e67ee50e8e01f0a7a7a3b3d0c6067553e74556a1c8c8216bd88": {
-    "query": "insert into mute (guildid, moderator, usr, reason, start_time, end_time, active) values(?, ?, ?, ?, ?, ?, true)",
+  "e3321a960c1ad7e547a65eb897ae477fcc8914a82549c9f8911cc5d2a7538347": {
+    "query": "insert into note (moderator, usr, content, create_date, note_type, context) values(?, ?, ?, ?, ?, ?)",
     "describe": {
       "columns": [],
       "parameters": {
@@ -709,6 +727,11 @@
           "name": "active",
           "ordinal": 7,
           "type_info": "Bool"
+        },
+        {
+          "name": "context",
+          "ordinal": 8,
+          "type_info": "Text"
         }
       ],
       "parameters": {
@@ -722,7 +745,8 @@
         false,
         false,
         true,
-        false
+        false,
+        true
       ]
     }
   },

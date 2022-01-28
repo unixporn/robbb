@@ -25,7 +25,16 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
     let member = guild.member(&ctx, mentioned_user_id).await?;
 
-    do_mute(&ctx, guild, msg.author.id, member, *duration, reason).await?;
+    do_mute(
+        &ctx,
+        guild,
+        msg.author.id,
+        member,
+        *duration,
+        reason,
+        Some(msg.link()),
+    )
+    .await?;
 
     msg.reply_success_mod_action(
         &ctx,
@@ -61,6 +70,7 @@ pub async fn do_mute(
     mut member: Member,
     duration: std::time::Duration,
     reason: Option<&str>,
+    context: Option<String>,
 ) -> Result<()> {
     let (config, db) = ctx.get_config_and_db().await;
 
@@ -77,6 +87,7 @@ pub async fn do_mute(
         reason.unwrap_or("no reason").to_string(),
         start_time,
         end_time,
+        context,
     )
     .await?;
 
