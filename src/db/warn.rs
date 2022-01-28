@@ -11,6 +11,7 @@ pub struct Warn {
     pub user: UserId,
     pub reason: String,
     pub create_date: DateTime<Utc>,
+    pub context: Option<String>,
 }
 
 impl Db {
@@ -20,6 +21,7 @@ impl Db {
         user: UserId,
         reason: String,
         create_date: DateTime<Utc>,
+        context: Option<String>,
     ) -> Result<Warn> {
         let mut conn = self.pool.acquire().await?;
 
@@ -27,11 +29,12 @@ impl Db {
             let moderator = moderator.0 as i64;
             let user = user.0 as i64;
             sqlx::query!(
-                "insert into warn (moderator, usr, reason, create_date) values(?, ?, ?, ?)",
+                "insert into warn (moderator, usr, reason, create_date, context) values(?, ?, ?, ?, ?)",
                 moderator,
                 user,
                 reason,
                 create_date,
+                context,
             )
             .execute(&mut conn)
             .await?
@@ -44,6 +47,7 @@ impl Db {
             user,
             reason,
             create_date,
+            context,
         })
     }
 
@@ -61,7 +65,7 @@ impl Db {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
         Ok(sqlx::query!(
-            r#"select id, moderator, usr, reason as "reason!", create_date as "create_date!" from warn where usr=?"#,
+            r#"select id, moderator, usr, reason as "reason!", create_date as "create_date!", context from warn where usr=?"#,
             id
         )
         .fetch_all(&mut conn)
@@ -73,6 +77,7 @@ impl Db {
             user: UserId(x.usr as u64),
             reason: x.reason,
             create_date: chrono::DateTime::from_utc(x.create_date, Utc),
+            context: x.context,
         }).collect())
     }
 

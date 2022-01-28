@@ -68,6 +68,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
                     note_content,
                     Utc::now(),
                     NoteType::BlocklistViolation,
+                    Some(msg.link()),
                 )
                 .await;
         }

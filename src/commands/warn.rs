@@ -23,6 +23,7 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         mentioned_user_id,
         reason.to_string(),
         Utc::now(),
+        Some(msg.link()),
     )
     .await?;
 

@@ -29,6 +29,7 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         note_content.to_string(),
         Utc::now(),
         NoteType::ManualNote,
+        Some(msg.link()),
     )
     .await?;
 
@@ -86,9 +87,15 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let notes = fetch_note_values(&db, mentioned_user_id, note_filter).await?;
 
     let fields = notes.iter().map(|note| {
+        let context = note.context.clone().unwrap_or(String::new());
         (
-            format!("{} - {}", note.note_type, util::format_date_ago(note.date)),
-            format!("{} - {}", note.description, note.moderator.mention(),),
+            format!("{} - {} ", note.note_type, util::format_date_ago(note.date),),
+            format!(
+                "{} - {} - {}",
+                note.description,
+                note.moderator.mention(),
+                format!("[(context)]({})", context)
+            ),
         )
     });
 
@@ -136,6 +143,7 @@ struct NotesEntry {
     description: String,
     date: chrono::DateTime<Utc>,
     moderator: UserId,
+    context: Option<String>,
 }
 
 async fn fetch_note_values(
@@ -158,6 +166,7 @@ async fn fetch_note_values(
                 description: x.content,
                 moderator: x.moderator,
                 date: x.create_date,
+                context: x.context,
             });
         entries.extend(notes);
     }
@@ -177,6 +186,7 @@ async fn fetch_note_values(
                 ),
                 date: x.start_time,
                 moderator: x.moderator,
+                context: x.context,
             });
         entries.extend(mutes);
     }
@@ -190,6 +200,7 @@ async fn fetch_note_values(
                 description: x.reason,
                 date: x.create_date,
                 moderator: x.moderator,
+                context: x.context,
             });
         entries.extend(warns);
     }

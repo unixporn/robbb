@@ -51,6 +51,7 @@ pub struct Note {
     pub content: String,
     pub create_date: DateTime<Utc>,
     pub note_type: NoteType,
+    pub context: Option<String>,
 }
 
 impl Db {
@@ -61,6 +62,7 @@ impl Db {
         content: String,
         create_date: DateTime<Utc>,
         note_type: NoteType,
+        context: Option<String>,
     ) -> Result<Note> {
         let mut conn = self.pool.acquire().await?;
         let id = {
@@ -68,12 +70,13 @@ impl Db {
             let user = user.0 as i64;
             let note_type = note_type.as_i32();
             sqlx::query!(
-                "insert into note (moderator, usr, content, create_date, note_type) values(?, ?, ?, ?, ?)",
+                "insert into note (moderator, usr, content, create_date, note_type, context) values(?, ?, ?, ?, ?, ?)",
                 moderator,
                 user,
                 content,
                 create_date,
                 note_type,
+                context,
             )
             .execute(&mut conn)
             .await?
@@ -87,6 +90,7 @@ impl Db {
             content,
             create_date,
             note_type,
+            context,
         })
     }
 
@@ -124,6 +128,7 @@ impl Db {
                 content: x.content,
                 create_date: chrono::DateTime::from_utc(x.create_date, Utc),
                 note_type: NoteType::from_i32(x.note_type as i32)?,
+                context: x.context,
             })
         })
         .collect::<Result<_>>()

@@ -13,6 +13,7 @@ pub struct Mute {
     pub reason: String,
     pub start_time: DateTime<Utc>,
     pub end_time: DateTime<Utc>,
+    pub context: Option<String>,
 }
 
 impl Db {
@@ -24,6 +25,7 @@ impl Db {
         reason: String,
         start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
+        context: Option<String>,
     ) -> Result<Mute> {
         let mut conn = self.pool.acquire().await?;
 
@@ -32,13 +34,14 @@ impl Db {
             let moderator = moderator.0 as i64;
             let user = user.0 as i64;
             sqlx::query!(
-                "insert into mute (guildid, moderator, usr, reason, start_time, end_time, active) values(?, ?, ?, ?, ?, ?, true)",
+                "insert into mute (guildid, moderator, usr, reason, start_time, end_time, active, context) values(?, ?, ?, ?, ?, ?, true, ?)",
                 guild_id,
                 moderator,
                 user,
                 reason,
                 start_time,
                 end_time,
+                context,
             )
             .execute(&mut conn)
             .await?
@@ -53,6 +56,7 @@ impl Db {
             reason,
             start_time,
             end_time,
+            context,
         })
     }
 
@@ -73,6 +77,7 @@ impl Db {
             reason: x.reason.unwrap_or_default(),
             start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
             end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
+            context: x.context,
         }})
         .collect())
     }
@@ -92,6 +97,7 @@ impl Db {
                 reason: x.reason.unwrap_or_default(),
                 start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
                 end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
+                context: x.context,
             })
             .collect())
     }
