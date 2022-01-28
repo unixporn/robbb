@@ -87,14 +87,18 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let notes = fetch_note_values(&db, mentioned_user_id, note_filter).await?;
 
     let fields = notes.iter().map(|note| {
-        let context = note.context.clone().unwrap_or_else(String::new);
+        let context_link = note
+            .context
+            .clone()
+            .map(|link| format!(" - [(context)]({})", link))
+            .unwrap_or_else(String::new);
         (
-            format!("{} - {} ", note.note_type, util::format_date_ago(note.date),),
+            format!("{} - {} ", note.note_type, util::format_date_ago(note.date)),
             format!(
-                "{} - {} - [(context)]({})",
+                "{} - {}{}",
                 note.description,
                 note.moderator.mention(),
-                context
+                context_link
             ),
         )
     });
