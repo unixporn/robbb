@@ -58,10 +58,9 @@ impl Db {
         .fetch_optional(&mut conn)
         .await?
         .map(|x| {
-            let create_date = match x.create_date {
-                Some(date) => Some(chrono::DateTime::from_utc(date, chrono::Utc)),
-                None => None,
-            };
+            let create_date = x
+                .create_date
+                .map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
             Tag {
             name: x.name,
             moderator: UserId(x.moderator as u64),

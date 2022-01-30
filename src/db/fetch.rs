@@ -65,10 +65,9 @@ impl Db {
             .fetch_optional(&mut conn)
             .await?;
         if let Some(x) = value {
-            let create_date = match x.create_date {
-                Some(date) => Some(chrono::DateTime::from_utc(date, chrono::Utc)),
-                None => None,
-            };
+            let create_date = x
+                .create_date
+                .map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
             Ok(Some(Fetch {
                 user: UserId(x.usr as u64),
                 info: serde_json::from_str(&x.info).context("Failed to deserialize fetch data")?,
@@ -104,10 +103,9 @@ impl Db {
             .await?
             .into_iter()
             .map(|x| {
-                let create_date = match x.create_date {
-                    Some(date) => Some(chrono::DateTime::from_utc(date, chrono::Utc)),
-                    None => None,
-                };
+                let create_date = x
+                    .create_date
+                    .map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
                 Ok(Fetch {
                     user: UserId(x.usr as u64),
                     info: serde_json::from_str(&x.info)
