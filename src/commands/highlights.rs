@@ -19,7 +19,7 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
     if trigger.is_empty() {
         abort_with!(UserErr::invalid_usage(&HIGHLIGHTS_COMMAND_OPTIONS));
     } else if trigger.len() < 3 {
-        abort_with!("highlight has to be longer than 2 characters");
+        abort_with!("Highlight has to be longer than 2 characters");
     }
 
     let db: Arc<Db> = ctx.get_db().await;
@@ -57,7 +57,9 @@ pub async fn highlights_add(ctx: &client::Context, msg: &Message, args: Args) ->
 
     db.set_highlight(msg.author.id, trigger.clone())
         .await
-        .user_error("Couldn't add highlight, something went wrong")?;
+        .user_error(
+            "Couldn't add highlight, something went wrong (highlight might already be present)",
+        )?;
 
     msg.reply_success(
         &ctx,
