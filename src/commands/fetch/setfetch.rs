@@ -33,7 +33,8 @@ pub async fn set_fetch_update(ctx: &client::Context, msg: &Message, args: Args) 
 #[usage("setfetch clear")]
 pub async fn set_fetch_clear(ctx: &client::Context, msg: &Message) -> CommandResult {
     let db = ctx.get_db().await;
-    db.set_fetch(msg.author.id, HashMap::new()).await?;
+    db.set_fetch(msg.author.id, HashMap::new(), Some(Utc::now()))
+        .await?;
     msg.reply_success(&ctx, "Successfully cleared your fetch data!")
         .await?;
     Ok(())
@@ -70,7 +71,7 @@ async fn do_set_fetch(
         msg.reply_success(&ctx, "Successfully updated your fetch data!")
             .await?;
     } else {
-        db.set_fetch(msg.author.id, info).await?;
+        db.set_fetch(msg.author.id, info, Some(Utc::now())).await?;
         msg.reply_success(&ctx, "Successfully set your fetch data!")
             .await?;
     }

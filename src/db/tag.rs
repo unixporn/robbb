@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serenity::model::id::UserId;
 
 use super::Db;
@@ -9,6 +10,7 @@ pub struct Tag {
     pub moderator: UserId,
     pub content: String,
     pub official: bool,
+    pub create_date: Option<DateTime<Utc>>,
 }
 
 impl Db {
@@ -18,19 +20,22 @@ impl Db {
         name: String,
         content: String,
         official: bool,
+        create_date: Option<DateTime<Utc>>,
     ) -> Result<Tag> {
         let mut conn = self.pool.acquire().await?;
 
         let moderator_id = moderator.0 as i64;
         sqlx::query!(
-            "insert into tag (name, moderator, content, official) values (?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?",
+            "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
             name,
             moderator_id,
             content,
             official,
+            create_date,
             moderator_id,
             content,
-            official
+            official,
+            create_date,
         )
             .execute(&mut conn)
             .await?;
@@ -40,23 +45,30 @@ impl Db {
             moderator,
             content,
             official,
+            create_date,
         })
     }
 
     pub async fn get_tag(&self, name: &str) -> Result<Option<Tag>> {
         let mut conn = self.pool.acquire().await?;
         Ok(sqlx::query!(
-            r#"select name as "name!", moderator, content, official from tag where name=? COLLATE NOCASE"#,
+            r#"select name as "name!", moderator, content, official, create_date from tag where name=? COLLATE NOCASE"#,
             name
         )
         .fetch_optional(&mut conn)
         .await?
-        .map(|x| Tag {
+        .map(|x| {
+            let create_date = match x.create_date {
+                Some(date) => Some(chrono::DateTime::from_utc(date, chrono::Utc)),
+                None => None,
+            };
+            Tag {
             name: x.name,
             moderator: UserId(x.moderator as u64),
             content: x.content,
             official: x.official,
-        }))
+            create_date,
+        }}))
     }
 
     pub async fn delete_tag(&self, name: String) -> Result<()> {
