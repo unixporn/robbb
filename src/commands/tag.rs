@@ -23,6 +23,9 @@ pub async fn tag(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
             e.title(&tag.name);
             e.description(&tag.content);
             e.footer(|f| f.text(format!("Written by {}", moderator.tag())));
+            if let Some(date) = tag.create_date {
+                e.timestamp(date);
+            }
         })
         .await?;
     }
@@ -58,8 +61,14 @@ pub async fn set_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> Co
 
     let content = args.remains().invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
 
-    db.set_tag(msg.author.id, tag_name, content.to_string(), true)
-        .await?;
+    db.set_tag(
+        msg.author.id,
+        tag_name,
+        content.to_string(),
+        true,
+        Some(Utc::now()),
+    )
+    .await?;
     msg.reply_success(&ctx, "Succesfully set!").await?;
     Ok(())
 }

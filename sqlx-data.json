@@ -208,52 +208,6 @@
       "nullable": []
     }
   },
-  "2c91f63b9bbfe3be8aa84fd2f2920ec744fcc315aec8995ab80c5b6abf0f21aa": {
-    "query": "select name as \"name!\", moderator, content, official from tag where name=? COLLATE NOCASE",
-    "describe": {
-      "columns": [
-        {
-          "name": "name!",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "content",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "official",
-          "ordinal": 3,
-          "type_info": "Bool"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        true,
-        false,
-        false,
-        false
-      ]
-    }
-  },
-  "30d7db9f6e9e49c8612cc86d72a1075f22009de00d062e71a1758ce2edddbf66": {
-    "query": "insert into fetch (usr, info) values (?1, ?2) on conflict(usr) do update set info=?2",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
   "33e5cf5d7b9b2a5d6c017ae6e1bf25d1c61017193abcc1269e5790983199479a": {
     "query": "insert into profile (usr, git, dotfiles, description) values (?1, NULL, ?2, NULl)\n                on conflict(usr) do update set dotfiles=?2",
     "describe": {
@@ -493,6 +447,11 @@
           "name": "info",
           "ordinal": 1,
           "type_info": "Text"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 2,
+          "type_info": "Datetime"
         }
       ],
       "parameters": {
@@ -500,7 +459,8 @@
       },
       "nullable": [
         false,
-        false
+        false,
+        true
       ]
     }
   },
@@ -522,6 +482,48 @@
       ]
     }
   },
+  "8cf2ddb35e421b79c2211b6b3a9feeef833e44471e11f4582d5a23432ed4743f": {
+    "query": "select name as \"name!\", moderator, content, official, create_date from tag where name=? COLLATE NOCASE",
+    "describe": {
+      "columns": [
+        {
+          "name": "name!",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "content",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "official",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        true,
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  },
   "90bd03f2eb3931509feb58ef5fbf6b54075dc465976cad31cc612849d712ab65": {
     "query": "insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set in_text_usage=max(0, in_text_usage + ?3)",
     "describe": {
@@ -538,6 +540,16 @@
       "columns": [],
       "parameters": {
         "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "a4d40280b4cf456aa868a117a34369b17d032a2ad0b908391c7649c9e0c70d11": {
+    "query": "insert into fetch (usr, info, create_date) values (?1, ?2, ?3) on conflict(usr) do update set info=?2, create_date=?3",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
       },
       "nullable": []
     }
@@ -610,6 +622,16 @@
       ]
     }
   },
+  "bd91d4b1114d9b42aea12fd007ae2fe9ad6d93245dc58a7b6d2960edd9a4f8ec": {
+    "query": "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 9
+      },
+      "nullable": []
+    }
+  },
   "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {
     "query": "delete from blocked_regexes where pattern=?",
     "describe": {
@@ -662,16 +684,6 @@
         false,
         false
       ]
-    }
-  },
-  "e0164c571bf9ef15af0408e7c941e1f997a55408123fd7c5ac9288f06a3c9ec7": {
-    "query": "insert into tag (name, moderator, content, official) values (?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 7
-      },
-      "nullable": []
     }
   },
   "e3321a960c1ad7e547a65eb897ae477fcc8914a82549c9f8911cc5d2a7538347": {
@@ -763,6 +775,11 @@
           "name": "info",
           "ordinal": 1,
           "type_info": "Text"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 2,
+          "type_info": "Datetime"
         }
       ],
       "parameters": {
@@ -770,7 +787,8 @@
       },
       "nullable": [
         false,
-        false
+        false,
+        true
       ]
     }
   },

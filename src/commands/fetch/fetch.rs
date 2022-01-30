@@ -33,10 +33,14 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         Err(_) => (args.single_quoted().ok(), msg.author.id),
     };
 
-    let fetch_data = get_fetch_of(&db, mentioned_user_id)
+    // Query the database
+    let fetch_info = db
+        .get_fetch(mentioned_user_id)
         .await?
         .user_error("This user has not set their fetch.")?;
 
+    let create_date = fetch_info.create_date;
+    let fetch_data: Vec<(FetchField, String)> = fetch_info.get_values_ordered();
     let member = guild.member(&ctx, mentioned_user_id).await?;
     let color = member.colour(&ctx).await;
 
@@ -51,6 +55,9 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
                 e.title(format!("{}'s {}", member.user.name, field_name));
                 e.color_opt(color);
+                if let Some(date) = create_date {
+                    e.timestamp(date);
+                }
                 if desired_field == FetchField::Image {
                     e.image(value);
                 } else if let Some(value) = format_fetch_field_value(&field_name, value) {
@@ -69,6 +76,9 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
                 e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
                 e.title(format!("Fetch {}", member.user.tag()));
                 e.color_opt(color);
+                if let Some(date) = create_date {
+                    e.timestamp(date);
+                }
 
                 for (key, value) in fetch_data {
                     if key == FetchField::Image {
@@ -111,18 +121,4 @@ async fn get_profile_data_of(
 ) -> Result<Option<crate::db::profile::Profile>> {
     let profile = db.get_profile(user_id).await?;
     Ok(profile)
-}
-
-/// load fetch values from the database
-/// Returns `None` if no fetch is set
-async fn get_fetch_of(db: &Db, user_id: UserId) -> Result<Option<Vec<(FetchField, String)>>> {
-    let fetch_info = db.get_fetch(user_id).await?;
-    let all_data: Vec<(FetchField, String)> = fetch_info
-        .map(|x| x.get_values_ordered())
-        .unwrap_or_default();
-    if all_data.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(all_data))
-    }
 }
