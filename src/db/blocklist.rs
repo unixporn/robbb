@@ -1,4 +1,4 @@
-use anyhow::*;
+use anyhow::Result;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder};
 use serenity::model::id::UserId;

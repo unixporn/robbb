@@ -1,4 +1,4 @@
-use anyhow::*;
+use anyhow::{Context, Result};
 use std::{
     os::unix::prelude::MetadataExt,
     path::{Path, PathBuf},

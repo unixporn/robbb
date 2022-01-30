@@ -1,6 +1,6 @@
 use crate::extensions::*;
 
-use anyhow::*;
+use anyhow::Result;
 use chrono::Utc;
 use itertools::Itertools;
 use serenity::{

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::*;
+use anyhow::{Context, Result};
 
 use serenity::model::id::UserId;
 

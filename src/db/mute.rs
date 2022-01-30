@@ -1,4 +1,4 @@
-use anyhow::*;
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serenity::model::id::{GuildId, UserId};
 
