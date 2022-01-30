@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::*;
+use anyhow::{bail, Context, Result};
 
 use serenity::model::id::UserId;
 use serenity::prelude::RwLock;

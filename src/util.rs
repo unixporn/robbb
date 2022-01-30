@@ -1,4 +1,4 @@
-use anyhow::*;
+use anyhow::{anyhow, Context, Result};
 use serenity::{
     client,
     model::{id::ChannelId, misc::EmojiIdentifier},

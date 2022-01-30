@@ -1,5 +1,5 @@
 use crate::extensions::ClientContextExt;
-use anyhow::*;
+use anyhow::Result;
 use serenity::client;
 use serenity::framework::standard::macros::check;
 use serenity::framework::standard::Reason;
