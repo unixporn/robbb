@@ -20,7 +20,7 @@ pub async fn blocklist_add(ctx: &client::Context, msg: &Message, args: Args) -> 
     let pattern = args
         .remains()
         .filter(|x| x.starts_with('`') && x.ends_with('`'))
-        .invalid_usage(&BLOCKLIST_COMMAND_OPTIONS)?;
+        .user_error("Invalid argument. The word should be surrounded by \"`\"")?;
 
     // verified previously
     let pattern = pattern
@@ -47,7 +47,7 @@ pub async fn blocklist_remove(ctx: &client::Context, msg: &Message, args: Args) 
     let pattern = args
         .remains()
         .filter(|x| x.starts_with('`') && x.ends_with('`'))
-        .invalid_usage(&BLOCKLIST_COMMAND_OPTIONS)?;
+        .user_error("Invalid argument. The word should be surrounded by \"`\"")?;
 
     // verified previously
     let pattern = pattern
