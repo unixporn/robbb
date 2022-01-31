@@ -123,8 +123,8 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
 
 #[tracing::instrument(skip_all, fields(highlights.notified_user_cnt))]
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
-    // don't trigger on bot commands
-    if msg.content.starts_with('!') {
+    // don't trigger on bot commands (except !ask)
+    if msg.content.starts_with('!') && !msg.content.starts_with("!ask") {
         tracing::Span::current().record("highlights.notified_user_cnt", &0);
         return Ok(0);
     }
