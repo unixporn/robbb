@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a bug you have encountered
+title: "[BUG] "
+labels: bug
+body:
+  - type: checkboxes
+    attributes:
+      label: Checklist before submitting an issue
+      options:
+        - label: I have searched through the existing [closed and open issues](https://github.com/unixporn/robbb/issues?q=is%3Aissue) and made sure that this is not a duplicate
+          required: true
+  - type: textarea
+    attributes:
+      label: "Expected behaviour"
+      description: "Describe what should happen if it just worked:tm:"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Current Behaviour"
+      description: "Describe what currently happens"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Other info"
+      description: "Other information that might be relevant"
+    validations:
+      required: false

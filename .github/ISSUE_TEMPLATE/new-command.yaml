@@ -1,0 +1,37 @@
+
+name: New command 
+description: Suggest adding a new command to the bot
+title: "[COMMAND] "
+labels: enhancement
+body:
+  - type: checkboxes
+    attributes:
+      label: Checklist before submitting an issue
+      options:
+        - label: I have searched through the existing [closed and open issues](https://github.com/unixporn/robbb/issues?q=is%3Aissue) and made sure that this is not a duplicate
+          required: true
+  - type: input
+    attributes:
+      label: "Command"
+      description: "Propose a name for the command"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Description"
+      description: "What do you want this command to do?"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Use-case"
+      description: "Why do you want this command? Give examples as to how/when it could be useful to the community!"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Proposed syntax"
+      description: "If possible, provide examples for how the exact command syntax could look, what arguments it should take, etc."
+      placeholder: "!ban elk"
+    validations:
+      required: false

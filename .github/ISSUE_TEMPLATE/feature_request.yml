@@ -1,0 +1,29 @@
+name: Feature Request
+description: Suggest an idea for this project
+title: "[FEATURE] "
+labels: enhancement
+body:
+  - type: checkboxes
+    attributes:
+      label: Checklist before submitting an issue
+      options:
+        - label: I have searched through the existing [closed and open issues](https://github.com/unixporn/robbb/issues?q=is%3Aissue) and made sure that this is not a duplicate
+          required: true
+  - type: textarea
+    attributes:
+      label: "Is your feature request related to a problem? Please describe."
+      description: "Please provide a clear description of what problem this feature would solve for you."
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Proposed feature"
+      description: "Describe how you would propose said problem to be solved. How should this feature look?"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Additional context"
+      description: "Anything else that's relevant goes here!"
+    validations:
+      required: false
