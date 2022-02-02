@@ -75,6 +75,8 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         "blocklist" => Some(NoteType::BlocklistViolation),
         "warn" => Some(NoteType::Warn),
         "mute" => Some(NoteType::Mute),
+        "ban" => Some(NoteType::Ban),
+        "kick" => Some(NoteType::Kick),
         _ => abort_with!(UserErr::invalid_usage(&NOTE_COMMAND_OPTIONS)),
     };
 
@@ -208,7 +210,30 @@ async fn fetch_note_values(
             });
         entries.extend(warns);
     }
-
+    if filter.is_none() || filter == Some(NoteType::Ban) {
+        let bans = db.get_bans(user_id).await?.into_iter().map(|x| NotesEntry {
+            note_type: NoteType::Ban,
+            description: x.reason,
+            date: x.create_date,
+            moderator: x.moderator,
+            context: x.context,
+        });
+        entries.extend(bans);
+    }
+    if filter.is_none() || filter == Some(NoteType::Kick) {
+        let kicks = db
+            .get_kicks(user_id)
+            .await?
+            .into_iter()
+            .map(|x| NotesEntry {
+                note_type: NoteType::Kick,
+                description: x.reason,
+                date: x.create_date,
+                moderator: x.moderator,
+                context: x.context,
+            });
+        entries.extend(kicks);
+    }
     entries.sort_by_key(|x| x.date);
     Ok(entries)
 }

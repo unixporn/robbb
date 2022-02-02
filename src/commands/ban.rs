@@ -63,7 +63,17 @@ async fn do_ban(
     let permission_level = checks::get_permission_level(&ctx, &msg).await;
 
     for user in mentioned_users {
-        match handle_single_ban(&ctx, &guild, permission_level, *user, reason, delete_days).await {
+        match handle_single_ban(
+            &ctx,
+            &guild,
+            msg,
+            permission_level,
+            *user,
+            reason,
+            delete_days,
+        )
+        .await
+        {
             std::result::Result::Ok(user) => {
                 successful_bans.push(user);
             }
@@ -157,6 +167,7 @@ impl From<anyhow::Error> for BanFailedReason {
 async fn handle_single_ban(
     ctx: &client::Context,
     guild: &Guild,
+    msg: &Message,
     permission_level: PermissionLevel,
     user: UserId,
     reason: &str,
@@ -205,10 +216,22 @@ async fn handle_single_ban(
             })
             .await;
     }
+
+    let db = ctx.get_db().await;
     guild
         .ban_with_reason(&ctx, &user, delete_days, reason)
         .await
         .context("Ban failed")?;
+
+    // Log the ban as a Note in the database
+    db.add_ban(
+        msg.author.id,
+        user.id,
+        reason.to_string(),
+        Utc::now(),
+        Some(msg.link()),
+    )
+    .await?;
 
     Ok(user)
 }
