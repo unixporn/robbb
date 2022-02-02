@@ -10,6 +10,8 @@ pub enum NoteType {
     BlocklistViolation,
     Warn,
     Mute,
+    Ban,
+    Kick,
 }
 impl NoteType {
     fn from_i32(n: i32) -> Result<Self> {
@@ -18,6 +20,8 @@ impl NoteType {
             1 => Ok(NoteType::BlocklistViolation),
             2 => Ok(NoteType::Warn),
             3 => Ok(NoteType::Mute),
+            4 => Ok(NoteType::Ban),
+            5 => Ok(NoteType::Kick),
             _ => Err(anyhow!("Invalid note type: {}", n)),
         }
     }
@@ -28,6 +32,8 @@ impl NoteType {
             NoteType::BlocklistViolation => 1,
             NoteType::Warn => 2,
             NoteType::Mute => 3,
+            NoteType::Ban => 4,
+            NoteType::Kick => 5,
         }
     }
 }
@@ -39,6 +45,8 @@ impl std::fmt::Display for NoteType {
             NoteType::BlocklistViolation => write!(f, "[AUTO] - Blocklist Violation"),
             NoteType::Warn => write!(f, "Warning"),
             NoteType::Mute => write!(f, "Mute"),
+            NoteType::Ban => write!(f, "Ban"),
+            NoteType::Kick => write!(f, "Kick"),
         }
     }
 }

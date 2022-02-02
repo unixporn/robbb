@@ -5,7 +5,7 @@ use super::*;
 #[only_in(guilds)]
 #[usage("kick <user> <reason>")]
 pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let config = ctx.get_config().await;
+    let (config, db) = ctx.get_config_and_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
@@ -16,6 +16,15 @@ pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let reason = args.remains().unwrap_or("no reason");
 
     do_kick(&ctx, guild, mentioned_user_id, reason).await?;
+
+    db.add_kick(
+        msg.author.id,
+        *mentioned_user_id,
+        reason.to_string(),
+        Utc::now(),
+        Some(msg.link()),
+    )
+    .await?;
 
     msg.reply_success_mod_action(
         &ctx,

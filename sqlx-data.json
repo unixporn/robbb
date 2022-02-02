@@ -1,5 +1,15 @@
 {
   "db": "SQLite",
+  "036e0ecc24cbee8131c2ff77a96ddc42e6435e7cc072fba9e168f0b217a56025": {
+    "query": "insert into kick (moderator, usr, reason, create_date, context) values(?, ?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 5
+      },
+      "nullable": []
+    }
+  },
   "0442fa7e4127ab16e3f2320c8ea184c54d1d5f56efad059e8c2eb6e0fa77aa8f": {
     "query": "select * from mute where usr=?",
     "describe": {
@@ -66,6 +76,54 @@
       ]
     }
   },
+  "0550da53d63dd07c09d2fdeb038b287594c20481abd78efedfa3660ee3f415d4": {
+    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\", context from kick where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "create_date!",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "context",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
+      ]
+    }
+  },
   "0c88576dce38c07fa9d77263ab5e3e02b5fd72effb664ff96af236e7fe973374": {
     "query": "insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage + ?3)",
     "describe": {
@@ -115,6 +173,54 @@
         false,
         false,
         false
+      ]
+    }
+  },
+  "196adebd50fde26d42c48d454ace166c815e563100e2baa182eba218935485a5": {
+    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\", context from ban where usr=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "create_date!",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "context",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
       ]
     }
   },
@@ -300,6 +406,16 @@
         false,
         null
       ]
+    }
+  },
+  "5742bd846e5f0f927fefb88ee5e1dc76beb82f85d86067dd9500a03bf5c82a16": {
+    "query": "insert into ban (moderator, usr, reason, create_date, context) values(?, ?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 5
+      },
+      "nullable": []
     }
   },
   "600a256c4edc6bbeaf4c9f383a7c28e4cec3bad498d4e3f88e01481b188325e3": {
