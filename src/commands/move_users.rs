@@ -23,7 +23,47 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
         .filter_map(|x| Some(x.ok()?.mention()))
         .join(" ");
 
-    let create_embed = make_create_embed(&ctx, |e| {
+    if channel == config.channel_tech_support {
+        Ok(send_ask_in_tech_support(ctx, channel, mentions, msg).await?)
+    } else {
+        Ok(send_move(ctx, channel, mentions, msg).await?)
+    }
+}
+
+async fn send_ask_in_tech_support(
+    ctx: &client::Context,
+    channel: ChannelId,
+    mentions: String,
+    msg: &Message,
+) -> CommandResult {
+    let police_emote = ctx
+        .get_up_emotes()
+        .await
+        .map(|emotes| emotes.police.to_string())
+        .unwrap_or_default();
+
+    msg.channel_id
+        .send_embed(&ctx, |e| {
+            e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
+            e.description(indoc::formatdoc!(
+                "{police}{police}**Please {} use `!ask <question>` to ask your question in {}**{police}{police}",
+                mentions,
+                channel.mention(),
+                police = police_emote,
+            ));
+        })
+        .await?;
+    msg.delete(&ctx).await?;
+    Ok(())
+}
+
+async fn send_move(
+    ctx: &client::Context,
+    channel: ChannelId,
+    mentions: String,
+    msg: &Message,
+) -> CommandResult {
+    let continuation_embed = make_create_embed(&ctx, |e| {
         e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
         e.description(indoc::formatdoc!(
             "Continuation from {}
@@ -33,24 +73,17 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
         ))
     })
     .await;
-
     let mut continuation_msg = channel
-        .send_message(&ctx, |m| m.content(mentions).set_embed(create_embed))
+        .send_message(&ctx, |m| m.content(mentions).set_embed(continuation_embed))
         .await?;
-
-    // WORKAROUND
-    // Currently, Discords API seems to not set the guild_id field for message objects returned from send_message invocations.
-    // tracking issue: https://github.com/serenity-rs/serenity/issues/832
     continuation_msg.guild_id = msg.guild_id;
-
     let police_emote = ctx
         .get_up_emotes()
         .await
         .map(|emotes| emotes.police.to_string())
         .unwrap_or_default();
 
-    let _ = msg
-        .channel_id
+    msg.channel_id
         .send_embed(&ctx, |e| {
             e.author(|a| a.name(format!("Moved by {}", msg.author.tag())));
             e.description(indoc::formatdoc!(
@@ -63,7 +96,6 @@ pub async fn move_users(ctx: &client::Context, msg: &Message, mut args: Args) ->
             ));
         })
         .await?;
-
     msg.delete(&ctx).await?;
     Ok(())
 }
