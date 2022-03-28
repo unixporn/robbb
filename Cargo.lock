@@ -1500,7 +1500,7 @@ dependencies = [
  "sqlx",
  "thiserror",
  "tokio 1.16.1",
- "tokio-util 0.7.0",
+ "tokio-util 0.7.1",
  "tracing",
  "tracing-futures",
  "tracing-honeycomb",
@@ -2100,15 +2100,14 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64910e1b9c1901aaf5375561e35b9c057d95ff41a44ede043a03e09279eabaf1"
+checksum = "0edfdeb067411dba2044da6d1cb2df793dd35add7888d73c16e3381ded401764"
 dependencies = [
  "bytes 1.1.0",
  "futures-core",
  "futures-io",
  "futures-sink",
- "log",
  "pin-project-lite 0.2.7",
  "tokio 1.16.1",
 ]
