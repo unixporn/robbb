@@ -300,64 +300,73 @@ fn display_dispatch_error(err: DispatchError) -> String {
 
 #[hook]
 async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result: CommandResult) {
-    match result {
-        Err(err) => match err.downcast_ref::<UserErr>() {
-            Some(err) => match err {
-                UserErr::MentionedUserNotFound => {
-                    let _ = msg.reply_error(&ctx, "No user found with that name").await;
+    let err = if let Err(err) = result { err } else { return };
+    // handle UserErr
+    if let Some(err) = err.downcast_ref::<UserErr>() {
+        match err {
+            UserErr::MentionedUserNotFound => {
+                msg.reply_error(&ctx, "No user found with that name")
+                    .await
+                    .ok();
+            }
+            UserErr::InvalidUsage(usage) => {
+                msg.reply_error(&ctx, format!("Usage: {}", usage))
+                    .await
+                    .ok();
+            }
+            UserErr::Other(issue) => {
+                msg.reply_error(&ctx, format!("Error: {}", issue))
+                    .await
+                    .ok();
+            }
+        }
+        return;
+    }
+
+    // handle Serenity::Error
+    let serenity_err = match err.downcast::<serenity::Error>() {
+        Ok(err) => {
+            tracing::warn!(
+                error.command_name = %command_name,
+                error.message = %err,
+                "Serenity error [handling {}]: {} ({:?})",
+                command_name,
+                err,
+                err
+            );
+            *err
+        }
+        Err(err) => {
+            msg.reply_error(&ctx, "Something went wrong").await.ok();
+            tracing::warn!(
+                error.command_name = %command_name,
+                error.message = %err,
+                "Internal error [handling {}]: {} ({:#?})",
+                command_name,
+                &err,
+                &err
+            );
+            return;
+        }
+    };
+    match serenity_err {
+        serenity::Error::Http(err) => {
+            if let serenity::http::error::Error::UnsuccessfulRequest(res) = *err {
+                if res.status_code == serenity::http::StatusCode::NOT_FOUND
+                    && res.error.message.to_lowercase().contains("unknown user")
+                {
+                    msg.reply_error(&ctx, "User not found").await.ok();
+                } else {
+                    msg.reply_error(&ctx, "Something went wrong").await.ok();
                 }
-                UserErr::InvalidUsage(usage) => {
-                    let _ = msg.reply_error(&ctx, format!("Usage: {}", usage)).await;
-                }
-                UserErr::Other(issue) => {
-                    let _ = msg.reply_error(&ctx, format!("Error: {}", issue)).await;
-                }
-            },
-            None => match err.downcast::<serenity::Error>() {
-                Ok(err) => {
-                    let err = *err;
-                    tracing::warn!(
-                        error.command_name = %command_name,
-                        error.message = %err,
-                        "Serenity error [handling {}]: {} ({:?})",
-                        command_name,
-                        &err,
-                        &err
-                    );
-                    match err {
-                        serenity::Error::Http(err) => {
-                            if let serenity::http::error::Error::UnsuccessfulRequest(res) = *err {
-                                if res.status_code == serenity::http::StatusCode::NOT_FOUND
-                                    && res.error.message.to_lowercase().contains("unknown user")
-                                {
-                                    let _ = msg.reply_error(&ctx, "User not found").await;
-                                } else {
-                                    let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                                }
-                            }
-                        }
-                        serenity::Error::Model(err) => {
-                            let _ = msg.reply_error(&ctx, err).await;
-                        }
-                        _ => {
-                            let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                        }
-                    }
-                }
-                Err(err) => {
-                    let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                    tracing::warn!(
-                        error.command_name = %command_name,
-                        error.message = %err,
-                        "Internal error [handling {}]: {} ({:#?})",
-                        command_name,
-                        &err,
-                        &err
-                    );
-                }
-            },
-        },
-        Ok(()) => {}
+            }
+        }
+        serenity::Error::Model(err) => {
+            msg.reply_error(&ctx, err).await.ok();
+        }
+        _ => {
+            msg.reply_error(&ctx, "Something went wrong").await.ok();
+        }
     }
 }
 
