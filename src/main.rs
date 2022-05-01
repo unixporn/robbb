@@ -313,8 +313,8 @@ fn display_dispatch_error(err: DispatchError) -> String {
 
 #[hook]
 async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result: CommandResult) {
-    match result {
-        Err(err) => match err.downcast_ref::<UserErr>() {
+    if let Err(err) = result {
+        match err.downcast_ref::<UserErr>() {
             Some(err) => match err {
                 UserErr::MentionedUserNotFound => {
                     let _ = msg.reply_error(&ctx, "No user found with that name").await;
@@ -369,8 +369,7 @@ async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result:
                     );
                 }
             },
-        },
-        Ok(()) => {}
+        }
     }
 }
 

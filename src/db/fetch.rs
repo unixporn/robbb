@@ -93,12 +93,12 @@ impl Db {
             fetch.insert(key, value);
         }
 
-        Ok(self.set_fetch(user, fetch, Some(Utc::now())).await?)
+        self.set_fetch(user, fetch, Some(Utc::now())).await
     }
 
     pub async fn get_all_fetches(&self) -> Result<Vec<Fetch>> {
         let mut conn = self.pool.acquire().await?;
-        Ok(sqlx::query!("select * from fetch")
+        sqlx::query!("select * from fetch")
             .fetch_all(&mut conn)
             .await?
             .into_iter()
@@ -113,6 +113,6 @@ impl Db {
                     create_date,
                 })
             })
-            .collect::<Result<_>>()?)
+            .collect::<Result<_>>()
     }
 }
