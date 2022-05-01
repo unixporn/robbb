@@ -34,7 +34,7 @@ unicase = "2.6.0"
 tracing = "0.1.31"
 tracing-log = "0.1.2"
 tracing-futures = "0.2.5"
-tracing-subscriber = { version = "0.2.25" }
+tracing-subscriber = { version = "0.3.11" }
 tracing-honeycomb = "0.4.3"
 libhoney-rust = "0.1.6"
 cpu-monitor = "0.1.1"
