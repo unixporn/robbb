@@ -1,6 +1,7 @@
 #![allow(clippy::needless_borrow)]
 use crate::extensions::*;
 use db::Db;
+use poise::serenity_prelude::GatewayIntents;
 use rand::prelude::IteratorRandom;
 use serenity::client::{self, Client};
 use serenity::framework::standard::DispatchError;
@@ -48,6 +49,7 @@ impl TypeMapKey for UpEmotes {
     type Value = Arc<UpEmotes>;
 }
 
+#[derive(Debug)]
 pub struct Config {
     pub discord_token: String,
 
@@ -140,6 +142,12 @@ impl TypeMapKey for FrameworkKey {
     type Value = Arc<StandardFramework>;
 }
 
+#[derive(Debug)]
+pub struct UserData {
+    config: Config,
+    db: Db,
+}
+
 #[tokio::main]
 async fn main() {
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
@@ -162,42 +170,37 @@ async fn main() {
     db.run_migrations().await.unwrap();
     db.remove_forbidden_highlights().await.unwrap();
 
-    // we're manually calling the framework, to only run commands if none of our
-    // message_create event handler filters say no.
-    // currently, serenity still _requires_ a framework to be configured as long as the feature is enabled,
-    // thus this stub framework is necessary for now.
-    // Soon, with a rework of the command framework, this will be solved.
-    let stub_framework = StandardFramework::new();
-
-    let mut client = Client::builder(&config.discord_token, GatewayIntents::all())
-        .event_handler(events::Handler)
-        .framework(stub_framework)
-        .intents(GatewayIntents::all())
+    poise::Framework::build()
+        .token(config.discord_token.to_string())
+        .user_data_setup(|ctx, ready, framework| {
+            Box::pin(async move { Ok(UserData { config, db }) })
+        })
+        .intents(GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT)
+        .options(poise::FrameworkOptions {
+            commands: vec![commands::info::register(), commands::info::poise_info()],
+            //on_error: |err| Box::pin(eprintln!("{:?}", err)),
+            //pre_command: todo!(),
+            //post_command: todo!(),
+            //command_check: todo!(),
+            //allowed_mentions: todo!(),
+            //listener: todo!(),
+            prefix_options: poise::PrefixFrameworkOptions {
+                prefix: Some("!".into()),
+                edit_tracker: Some(poise::EditTracker::for_timespan(
+                    std::time::Duration::from_secs(10),
+                )),
+                execute_untracked_edits: true,
+                execute_self_messages: false,
+                case_insensitive_commands: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .run()
         .await
-        .expect("Error creating client");
+        .unwrap();
 
-    let framework = StandardFramework::new()
-        .configure(|c| c.prefix("!").delimiters(vec![" ", "\n"]))
-        .on_dispatch_error(dispatch_error_hook)
-        .before(before)
-        .after(after)
-        .group(&MODERATOR_GROUP)
-        .group(&HELPERORMOD_GROUP)
-        .group(&GENERAL_GROUP)
-        .help(&help::MY_HELP);
-
-    client.cache_and_http.cache.set_max_messages(500);
-
-    {
-        let mut data = client.data.write().await;
-        data.insert::<Config>(Arc::new(config));
-        data.insert::<Db>(Arc::new(db));
-        data.insert::<FrameworkKey>(Arc::new(framework));
-    };
-
-    if let Err(why) = client.start().await {
-        tracing::error!("An error occurred while running the client: {:?}", why);
-    }
+    //client.cache_and_http.cache.set_max_messages(500).await;
 }
 
 fn init_tracing(honeycomb_api_key: Option<String>) {

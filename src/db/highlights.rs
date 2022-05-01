@@ -13,7 +13,7 @@ fn combine_multitrigger_regex<'a, I: IntoIterator<Item = &'a str>>(
         .context("Failed to compile highlight trigger regex")
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct HighlightsData {
     pub entries: HashMap<String, Vec<UserId>>,
     combined_regex: regex::Regex,
