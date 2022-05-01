@@ -12,6 +12,7 @@ use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
 use std::{path::PathBuf, sync::Arc};
 use tracing::Level;
 use tracing_futures::Instrument;
+use tracing_subscriber::filter::FilterFn;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::EnvFilter;
 
@@ -207,12 +208,21 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
         })
         .add_directive("robbb=trace".parse().unwrap());
 
-    let sub = tracing_subscriber::registry()
+    let remove_presence_update_filter = FilterFn::new(|metadata| {
+        !(metadata.target() == "serenity::gateway::shard"
+            && metadata.name() == "handle_gateway_dispatch"
+            && metadata.fields().field("event").map_or(false, |event| {
+                event.to_string().starts_with("PresenceUpdate")
+            }))
+    });
+
+    let sub = tracing_subscriber::registry::Registry::default()
         .with(log_filter)
+        .with(remove_presence_update_filter)
         .with(tracing_subscriber::fmt::Layer::default());
 
     if let Some(api_key) = honeycomb_api_key {
-        tracing::error!("honeycomb api key is set, initializing honeycomb layer");
+        tracing::info!("honeycomb api key is set, initializing honeycomb layer");
         let config = libhoney::Config {
             options: libhoney::client::Options {
                 api_key,
@@ -221,7 +231,10 @@ fn init_tracing(honeycomb_api_key: Option<String>) {
             },
             transmission_options: libhoney::transmission::Options::default(),
         };
-        let sub = sub.with(tracing_honeycomb::Builder::new_libhoney("robbb", config).build());
+
+        let honeycomb_layer = tracing_honeycomb::new_honeycomb_telemetry_layer("robbb", config);
+
+        let sub = sub.with(honeycomb_layer);
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     } else {
         tracing::info!("no honeycomb api key is set");
