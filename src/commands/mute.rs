@@ -67,12 +67,12 @@ pub async fn do_mute(
     ctx: &client::Context,
     guild: Guild,
     moderator: UserId,
-    mut member: Member,
+    member: Member,
     duration: std::time::Duration,
     reason: Option<&str>,
     context: Option<String>,
 ) -> Result<()> {
-    let (config, db) = ctx.get_config_and_db().await;
+    let db = ctx.get_db().await;
 
     let start_time = Utc::now();
     let end_time = start_time + chrono::Duration::from_std(duration).unwrap();
@@ -91,6 +91,15 @@ pub async fn do_mute(
     )
     .await?;
 
+    set_mute_role(&ctx, member).await?;
+    Ok(())
+}
+
+/// Adds the mute role to the user, but does _not_ add any database entry.
+/// This should only be used if we know that an active database entry for the mute already exists,
+/// or else we run the risk of accidentally muting someone forever.
+pub async fn set_mute_role(ctx: &client::Context, mut member: Member) -> Result<()> {
+    let config = ctx.get_config().await;
     member.add_role(&ctx, config.role_mute).await?;
     Ok(())
 }

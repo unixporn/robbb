@@ -16,6 +16,7 @@ macro_rules! abort_with {
     };
 }
 
+/// If the result of the given code is an error, log it nicely. Otherwise just ignore the value.
 #[macro_export]
 macro_rules! log_error {
     ($e:expr) => {
