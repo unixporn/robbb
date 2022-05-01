@@ -9,17 +9,24 @@ pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
-    let mentioned_user_id = &args
-        .single::<UserId>()
-        .invalid_usage(&KICK_COMMAND_OPTIONS)?;
+    let mentioned_user_id = {
+        let user_mention = args
+            .single_quoted::<String>()
+            .invalid_usage(&KICK_COMMAND_OPTIONS)?;
+        disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
+            .await?
+            .ok_or(UserErr::MentionedUserNotFound)?
+    };
+
+    let mentioned_user = mentioned_user_id.to_user(&ctx).await?;
 
     let reason = args.remains().unwrap_or("no reason");
 
-    do_kick(&ctx, guild, mentioned_user_id, reason).await?;
+    do_kick(&ctx, guild, &mentioned_user_id, reason).await?;
 
     db.add_kick(
         msg.author.id,
-        *mentioned_user_id,
+        mentioned_user_id,
         reason.to_string(),
         Utc::now(),
         Some(msg.link()),
@@ -37,9 +44,11 @@ pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     config
         .log_bot_action(&ctx, |e| {
+            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
             e.description(format!(
-                "User {} was kicked by {}\n{}",
+                "User {} ({}) was kicked by {}\n{}",
                 mentioned_user_id.mention(),
+                mentioned_user.tag(),
                 msg.author.id.mention(),
                 msg.to_context_link()
             ));
