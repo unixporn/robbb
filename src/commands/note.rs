@@ -21,6 +21,8 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             .ok_or(UserErr::MentionedUserNotFound)?
     };
 
+    let mentioned_user = mentioned_user_id.to_user(&ctx).await?;
+
     let note_content = args.remains().invalid_usage(&NOTE_COMMAND_OPTIONS)?;
 
     db.add_note(
@@ -36,10 +38,12 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     config
         .log_bot_action(&ctx, |e| {
             e.title("Note");
+            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
             e.description(format!(
-                "{} took a note about {}",
+                "{} took a note about {} ({})",
                 msg.author.id.mention(),
-                mentioned_user_id.mention()
+                mentioned_user_id.mention(),
+                mentioned_user.tag(),
             ));
             e.field("Note", note_content, false);
         })

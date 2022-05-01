@@ -9,25 +9,28 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     let (config, db) = ctx.get_config_and_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
-    let mentioned_user = &args
-        .single_quoted::<String>()
-        .invalid_usage(&WARN_COMMAND_OPTIONS)?;
-    let mentioned_user_id = disambiguate_user_mention(&ctx, &guild, msg, mentioned_user)
-        .await?
-        .ok_or(UserErr::MentionedUserNotFound)?;
+    let warned_user_id = {
+        let mentioned_user = &args
+            .single_quoted::<String>()
+            .invalid_usage(&WARN_COMMAND_OPTIONS)?;
+        disambiguate_user_mention(&ctx, &guild, msg, mentioned_user)
+            .await?
+            .ok_or(UserErr::MentionedUserNotFound)?
+    };
+    let warned_user = warned_user_id.to_user(&ctx).await?;
 
     let reason = args.remains().invalid_usage(&WARN_COMMAND_OPTIONS)?;
 
     db.add_warn(
         msg.author.id,
-        mentioned_user_id,
+        warned_user_id,
         reason.to_string(),
         Utc::now(),
         Some(msg.link()),
     )
     .await?;
 
-    let warn_count = db.count_warns(mentioned_user_id).await?;
+    let warn_count = db.count_warns(warned_user_id).await?;
 
     let police_emote = ctx
         .get_up_emotes()
@@ -40,7 +43,7 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
             &ctx,
             format!(
                 "{} has been warned by {} for the {} time for reason: {}{}",
-                mentioned_user_id.mention(),
+                warned_user_id.mention(),
                 msg.author.id.mention(),
                 util::format_count(warn_count),
                 reason,
@@ -51,9 +54,11 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     config
         .log_bot_action(&ctx, |e| {
+            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
             e.description(format!(
-                "{} was warned by {} _({} warn)_\n{}",
-                mentioned_user_id.mention(),
+                "{} ({}) was warned by {} _({} warn)_\n{}",
+                warned_user.mention(),
+                warned_user.tag(),
                 msg.author.id.mention(),
                 util::format_count(warn_count),
                 msg.to_context_link(),

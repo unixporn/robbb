@@ -9,12 +9,16 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
-    let mentioned_user_id = match args.single_quoted::<String>() {
-        Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
+    let mentioned_user_id = {
+        let user_mention = args
+            .single_quoted::<String>()
+            .invalid_usage(&MUTE_COMMAND_OPTIONS)?;
+        disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
             .await?
-            .ok_or(UserErr::MentionedUserNotFound)?,
-        Err(_) => msg.author.id,
+            .ok_or(UserErr::MentionedUserNotFound)?
     };
+
+    let mentioned_user = mentioned_user_id.to_user(&ctx).await?;
 
     let duration = args
         .single::<humantime::Duration>()
@@ -48,9 +52,11 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     config
         .log_bot_action(&ctx, |e| {
+            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
             e.description(format!(
-                "User {} was muted by {}\n{}",
+                "User {} ({}) was muted by {}\n{}",
                 mentioned_user_id.mention(),
+                mentioned_user.tag(),
                 msg.author.id.mention(),
                 msg.to_context_link(),
             ));

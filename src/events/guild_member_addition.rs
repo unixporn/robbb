@@ -8,26 +8,24 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
     let (config, db) = ctx.get_config_and_db().await;
     let active_mute = db.get_active_mute(new_member.user.id).await?;
     if let Some(mute) = active_mute {
-        log_error!(crate::commands::mute::set_mute_role(&ctx, new_member.clone()).await);
-        log_error!(
-            config
-                .channel_modlog
-                .send_embed(&ctx, |e| {
-                    e.author(|a| {
-                        a.name("Mute evasion caught")
-                            .icon_url(new_member.user.face())
-                    });
-                    e.title(new_member.user.name_with_disc_and_id());
-                    e.description(format!(
-                        "User {} was muted and rejoined.\nReadding the mute role.",
-                        new_member.mention()
-                    ));
-                    e.field("Reason", mute.reason, false);
-                    e.field("Start", util::format_date_detailed(mute.start_time), false);
-                    e.field("End", util::format_date_detailed(mute.end_time), false);
-                })
-                .await
-        );
+        crate::commands::mute::set_mute_role(&ctx, new_member.clone()).await?;
+        config
+            .channel_modlog
+            .send_embed(&ctx, |e| {
+                e.author(|a| {
+                    a.name("Mute evasion caught")
+                        .icon_url(new_member.user.face())
+                });
+                e.title(new_member.user.name_with_disc_and_id());
+                e.description(format!(
+                    "User {} was muted and rejoined.\nReadding the mute role.",
+                    new_member.mention()
+                ));
+                e.field("Reason", mute.reason, false);
+                e.field("Start", util::format_date_detailed(mute.start_time), false);
+                e.field("End", util::format_date_detailed(mute.end_time), false);
+            })
+            .await?;
     }
     Ok(())
 }
