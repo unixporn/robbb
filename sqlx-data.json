@@ -768,6 +768,72 @@
       "nullable": []
     }
   },
+  "c412e8d76a158cd7bdb428f8af4ec542202d376e393cc7588d9b06557ae9c796": {
+    "query": "select * from mute where usr=? and active=true",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "guildid",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "start_time",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "end_time",
+          "ordinal": 5,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "reason",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "active",
+          "ordinal": 7,
+          "type_info": "Bool"
+        },
+        {
+          "name": "context",
+          "ordinal": 8,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true
+      ]
+    }
+  },
   "dbe7847eb59535d213b80e8d322bd36203174963556e806b34a1e787d4814cbc": {
     "query": "insert into blocked_regexes(pattern, added_by) values (?, ?)",
     "describe": {
