@@ -19,6 +19,7 @@ pub mod profile;
 pub mod tag;
 pub mod warn;
 
+#[derive(Debug)]
 pub struct Db {
     pool: SqlitePool,
     blocklist_cache: Arc<RwLock<Option<Vec<String>>>>,
