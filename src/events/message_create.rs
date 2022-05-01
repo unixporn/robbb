@@ -328,6 +328,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     let image_attachment = mentioned_msg
         .attachments
         .iter()
+        .filter(|x| !x.filename.starts_with("SPOILER"))
         .find(|x| x.dimensions().is_some());
 
     debug!("retrieved the mentioned message");
