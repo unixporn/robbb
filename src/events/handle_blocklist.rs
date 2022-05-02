@@ -1,7 +1,4 @@
-use crate::{
-    checks::{self, PermissionLevel},
-    db::note::NoteType,
-};
+use crate::{checks, db::note::NoteType};
 use chrono::Utc;
 use tracing_futures::Instrument;
 
@@ -20,10 +17,11 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
 
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     if let Some(word) = blocklist_regex.find(&normalized_msg) {
-        if checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod {
-            tracing::info!("Moderator sent blocked word. Ignoring...");
-            return Ok(false);
-        }
+        // TODORW
+        //if checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod {
+        //tracing::info!("Moderator sent blocked word. Ignoring...");
+        //return Ok(false);
+        //}
 
         let word = word.as_str();
 
