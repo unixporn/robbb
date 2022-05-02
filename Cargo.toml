@@ -39,4 +39,5 @@ tracing-honeycomb = "0.4.3"
 libhoney-rust = "0.1.6"
 cpu-monitor = "0.1.1"
 poise = "0.1.0"
+parking_lot = "0.12.0"
 

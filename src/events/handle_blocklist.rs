@@ -1,4 +1,4 @@
-use crate::{checks, db::note::NoteType};
+use crate::db::note::NoteType;
 use chrono::Utc;
 use tracing_futures::Instrument;
 
@@ -7,6 +7,8 @@ use super::*;
 #[tracing::instrument(skip_all, fields(blocklist.blocked_word, msg.author = %msg.author.tag(), %msg.id))]
 /// If the message contains a blocked word, delete the message, notify the user and #bot-auto-mod.
 pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
+    // TODORW
+    /*
     let (config, db) = ctx.get_config_and_db().await;
 
     // remove invisible characters
@@ -84,4 +86,6 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
     } else {
         Ok(false)
     }
+*/
+    Ok(false)
 }

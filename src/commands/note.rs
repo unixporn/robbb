@@ -1,84 +1,117 @@
-use crate::db::note::NoteType;
+use chrono::Utc;
+use poise::{
+    serenity_prelude::{Mentionable, User, UserId},
+    Modal,
+};
+
+use crate::{
+    abort_with,
+    db::{note::NoteType, Db},
+    embeds, modlog,
+};
 
 use super::*;
 
+// TODORW probably use subcommands here
+
+#[derive(Debug, Modal)]
+#[name = "Take a note"]
+struct NoteModal {
+    #[name = "Note"]
+    #[paragraph]
+    note: String,
+}
+
 /// Write a note about a user.
-#[command]
-#[only_in(guilds)]
-#[usage("note <user> <content> | note undo <user>")]
-#[sub_commands(undo_note)]
-pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
+#[poise::command(slash_command, guild_only, prefix_command, track_edits)]
+pub async fn note(
+    ctx: Ctx<'_>,
+    #[description = "User"] user: User,
+    #[description = "The note"]
+    #[rest]
+    content: Option<String>,
+) -> Res<()> {
+    let db = ctx.get_db();
 
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
-
-    let mentioned_user_id = {
-        let user_mention = args
-            .single_quoted::<String>()
-            .invalid_usage(&NOTE_COMMAND_OPTIONS)?;
-        disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
-            .await?
-            .ok_or(UserErr::MentionedUserNotFound)?
+    let content = match (content, ctx) {
+        (Some(content), _) => content,
+        (None, poise::Context::Application(ctx)) => NoteModal::execute(ctx).await?.note,
+        (None, poise::Context::Prefix(_)) => {
+            abort_with!(UserErr::InvalidUsage("No note content provided"))
+        }
     };
 
-    let mentioned_user = mentioned_user_id.to_user(&ctx).await?;
-
-    let note_content = args.remains().invalid_usage(&NOTE_COMMAND_OPTIONS)?;
+    let success_msg = ctx.say_success("Noting...").await?.message().await.ok();
 
     db.add_note(
-        msg.author.id,
-        mentioned_user_id,
-        note_content.to_string(),
+        ctx.author().id,
+        user.id,
+        content.to_string(),
         Utc::now(),
         NoteType::ManualNote,
-        Some(msg.link()),
+        success_msg.map(|x| x.link()),
     )
     .await?;
 
-    modlog::log_note(&ctx, msg, &mentioned_user, note_content).await;
-    msg.reply_success(&ctx, "Noted!").await?;
+    modlog::log_note(ctx, &user, &content).await;
     Ok(())
 }
 
+/// Undo the most recent note of a user
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    track_edits,
+    rename = "undo-note"
+)]
+pub async fn undo_note(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
+    let db = ctx.get_db();
+    db.undo_latest_note(user.id).await?;
+    ctx.say_success("Successfully removed the note!").await?;
+
+    Ok(())
+}
+
+#[derive(Debug, poise::ChoiceParameter)]
+pub enum NoteFilterParam {
+    Mod,
+    Blocklist,
+    Warn,
+    Mute,
+    Ban,
+    Kick,
+    All,
+}
+
 /// Read notes about a user.
-#[command]
-#[only_in(guilds)]
-#[usage("notes <user> [all|mod|warn|mute|blocklist]")]
-pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    track_edits,
+    rename = "notes"
+)]
+pub async fn notes(
+    ctx: Ctx<'_>,
+    #[description = "User"] user: User,
+    #[description = "What kind of notes to show"] note_filter: Option<NoteFilterParam>,
+) -> Res<()> {
+    let db = ctx.get_db();
 
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
-
-    let mentioned_user_id = {
-        let user_mention = args
-            .single::<String>()
-            .invalid_usage(&NOTES_COMMAND_OPTIONS)?;
-        disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
-            .await?
-            .ok_or(UserErr::MentionedUserNotFound)?
+    let note_filter = match note_filter {
+        Some(NoteFilterParam::Mod) => Some(NoteType::ManualNote),
+        Some(NoteFilterParam::Blocklist) => Some(NoteType::BlocklistViolation),
+        Some(NoteFilterParam::Warn) => Some(NoteType::Warn),
+        Some(NoteFilterParam::Mute) => Some(NoteType::Mute),
+        Some(NoteFilterParam::Ban) => Some(NoteType::Ban),
+        Some(NoteFilterParam::Kick) => Some(NoteType::Kick),
+        _ => None,
     };
 
-    let note_filter = args
-        .single::<String>()
-        .unwrap_or_else(|_| "all".to_string());
-    let note_filter = match note_filter.as_str() {
-        "all" => None,
-        "mod" => Some(NoteType::ManualNote),
-        "blocklist" => Some(NoteType::BlocklistViolation),
-        "warn" => Some(NoteType::Warn),
-        "mute" => Some(NoteType::Mute),
-        "ban" => Some(NoteType::Ban),
-        "kick" => Some(NoteType::Kick),
-        _ => abort_with!(UserErr::invalid_usage(&NOTE_COMMAND_OPTIONS)),
-    };
+    let avatar_url = user.face();
 
-    let avatar_url = mentioned_user_id
-        .to_user(&ctx)
-        .await
-        .map(|user| user.face())
-        .ok();
-
-    let notes = fetch_note_values(&db, mentioned_user_id, note_filter).await?;
+    let notes = fetch_note_values(&db, user.id, note_filter).await?;
 
     let fields = notes.iter().map(|note| {
         let context_link = note
@@ -97,45 +130,22 @@ pub async fn notes(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
         )
     });
 
-    let base_embed = embeds::make_create_embed(ctx, |e| {
+    let base_embed = embeds::make_create_embed(ctx.discord(), |e| {
         e.title("Notes")
-            .description(format!("Notes about {}", mentioned_user_id.mention()))
-            .author(|a| {
-                avatar_url.map(|url| a.icon_url(url));
-                a
-            })
+            .description(format!("Notes about {}", user.mention()))
+            .author(|a| a.icon_url(avatar_url))
     })
     .await;
 
     embeds::PaginatedEmbed::create_from_fields(fields, base_embed)
         .await
-        .reply_to(&ctx, &msg)
+        .reply_to(ctx)
         .await?;
 
     Ok(())
 }
 
-/// Remove the most recent note on a user
-#[command("undo")]
-#[usage("note undo <user>")]
-pub async fn undo_note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
-    let mentioned_user = &args
-        .single_quoted::<String>()
-        .invalid_usage(&WARN_COMMAND_OPTIONS)?;
-    let mentioned_user_id = disambiguate_user_mention(&ctx, &guild, msg, mentioned_user)
-        .await?
-        .ok_or(UserErr::MentionedUserNotFound)?;
-
-    let db = ctx.get_db().await;
-    db.undo_latest_note(mentioned_user_id).await?;
-
-    msg.reply_success(&ctx, "Successfully removed the note!")
-        .await?;
-
-    Ok(())
-}
-
+#[allow(dead_code)]
 struct NotesEntry {
     note_type: NoteType,
     description: String,
@@ -144,11 +154,12 @@ struct NotesEntry {
     context: Option<String>,
 }
 
+#[allow(unused)]
 async fn fetch_note_values(
     db: &Db,
     user_id: UserId,
     filter: Option<NoteType>,
-) -> Result<Vec<NotesEntry>> {
+) -> Res<Vec<NotesEntry>> {
     let mut entries = Vec::new();
 
     if filter.is_none()

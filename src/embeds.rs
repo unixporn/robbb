@@ -1,4 +1,4 @@
-use crate::extensions::*;
+use crate::{prelude::Ctx, UpEmotes};
 
 use anyhow::Result;
 use chrono::Utc;
@@ -48,8 +48,8 @@ impl PaginatedEmbed {
         }
     }
 
-    #[tracing::instrument(skip_all, fields(?self, %msg.id))]
-    pub async fn reply_to(&self, ctx: &client::Context, msg: &Message) -> Result<Message> {
+    #[tracing::instrument(skip_all, fields(?self))]
+    pub async fn reply_to(&self, ctx: Ctx<'_>) -> Result<Message> {
         let pages = self.embeds.iter();
         let pages = pages
             .map(|e| {
@@ -60,29 +60,41 @@ impl PaginatedEmbed {
             .collect_vec();
 
         if pages.len() < 2 {
-            Ok(msg
-                .channel_id
-                .send_message(&ctx, |m: &mut CreateMessage| {
+            Ok(ctx
+                .channel_id()
+                .send_message(&ctx.discord(), |m: &mut CreateMessage| {
                     if let Some(create_message) = pages.first() {
                         m.clone_from(create_message);
                     } else {
                         m.set_embed(self.base_embed.clone());
                     }
-                    m.reference_message(msg)
+                    match ctx {
+                        poise::Context::Prefix(prefix) => {
+                            m.reference_message(prefix.msg);
+                        }
+                        _ => {}
+                    };
+                    m
                 })
                 .await?)
         } else {
             let mut current_page_idx = 0;
-            let created_msg = msg
-                .channel_id
-                .send_message(&ctx, |m| {
+            let created_msg = ctx
+                .channel_id()
+                .send_message(&ctx.discord(), |m| {
                     m.clone_from(pages.get(current_page_idx).unwrap());
-                    m.reference_message(msg)
+                    match ctx {
+                        poise::Context::Prefix(prefix) => {
+                            m.reference_message(prefix.msg);
+                        }
+                        _ => {}
+                    };
+                    m
                 })
                 .await?;
 
-            let ctx = ctx.clone();
-            let user_id = msg.author.id;
+            let serenity_ctx = ctx.discord().clone();
+            let user_id = ctx.author().id;
 
             tokio::spawn({
                 let mut created_msg = created_msg.clone();
@@ -92,11 +104,14 @@ impl PaginatedEmbed {
                         let emoji_left = ReactionType::from('◀');
                         let emoji_right = ReactionType::from('▶');
 
-                        let reaction_left = created_msg.react(&ctx, emoji_left.clone()).await?;
-                        let reaction_right = created_msg.react(&ctx, emoji_right.clone()).await?;
+                        let reaction_left =
+                            created_msg.react(&serenity_ctx, emoji_left.clone()).await?;
+                        let reaction_right = created_msg
+                            .react(&serenity_ctx, emoji_right.clone())
+                            .await?;
 
                         let mut collector = created_msg
-                            .await_reactions(&ctx)
+                            .await_reactions(&serenity_ctx)
                             .timeout(std::time::Duration::from_secs(30))
                             .collect_limit(10)
                             .author_id(user_id)
@@ -115,15 +130,15 @@ impl PaginatedEmbed {
                                 current_page_idx += 1;
                             }
                             created_msg
-                                .edit(&ctx, |e| {
+                                .edit(&serenity_ctx, |e| {
                                     e.0.clone_from(&pages.get(current_page_idx).unwrap().0);
                                     e
                                 })
                                 .await?;
-                            reaction.delete(&ctx).await?;
+                            reaction.delete(&serenity_ctx).await?;
                         }
 
-                        created_msg.delete_reactions(&ctx).await?;
+                        created_msg.delete_reactions(&serenity_ctx).await?;
                         Ok(())
                     }
                     .instrument(
@@ -148,7 +163,12 @@ pub async fn make_create_embed(
     ctx: &client::Context,
     build: impl FnOnce(&mut CreateEmbed) -> &mut CreateEmbed,
 ) -> CreateEmbed {
-    let stare = ctx.get_random_stare().await;
+    let stare = ctx
+        .data
+        .read()
+        .await
+        .get::<UpEmotes>()
+        .and_then(|x| x.random_stare());
 
     let mut e = CreateEmbed::default();
 

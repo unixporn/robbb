@@ -1,4 +1,5 @@
-use super::*;
+use thiserror::Error;
+
 // TODORW this is a placeholder, obviously
 #[derive(Debug, Clone)]
 pub struct CommandOptions {

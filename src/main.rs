@@ -1,30 +1,27 @@
 #![allow(clippy::needless_borrow)]
-use crate::extensions::*;
-use commands::poise_commands::all_commands;
+use anyhow::Context;
 use db::Db;
-use poise::serenity_prelude::GatewayIntents;
+use poise::serenity_prelude::{GatewayIntents, TypeMapKey};
+use prelude::Ctx;
 use rand::prelude::IteratorRandom;
-use serenity::builder::CreateEmbed;
-use serenity::client;
-use serenity::model::prelude::*;
-use serenity::prelude::*;
-use std::{path::PathBuf, sync::Arc};
+use serenity::{client, model::prelude::*};
+use std::sync::Arc;
 use tracing::Level;
-
-use crate::util::*;
-use anyhow::Result;
 
 pub mod attachment_logging;
 pub mod checks;
 pub mod commands;
+pub mod config;
 pub mod db;
 pub mod embeds;
 pub mod events;
 pub mod extensions;
 mod logging;
 pub mod modlog;
+pub mod prelude;
 pub mod util;
-use crate::logging::*;
+use crate::{events::handle_event, logging::*};
+pub use config::*;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -42,102 +39,40 @@ impl UpEmotes {
     }
 }
 
+async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> anyhow::Result<UpEmotes> {
+    let all_emoji = guild.emojis(&ctx).await?;
+    Ok(UpEmotes {
+        pensibe: all_emoji
+            .iter()
+            .find(|x| x.name == "pensibe")
+            .context("no pensibe emote found")?
+            .clone(),
+        police: all_emoji
+            .iter()
+            .find(|x| x.name == "police")
+            .context("no police emote found")?
+            .clone(),
+        poggers: all_emoji
+            .iter()
+            .find(|x| x.name == "poggersphisch")
+            .context("no police poggers found")?
+            .clone(),
+        stares: all_emoji
+            .into_iter()
+            .filter(|x| x.name.starts_with("stare"))
+            .collect(),
+    })
+}
+
 impl TypeMapKey for UpEmotes {
     type Value = Arc<UpEmotes>;
 }
 
-#[derive(Debug)]
-pub struct Config {
-    pub discord_token: String,
-
-    pub guild: GuildId,
-    pub role_mod: RoleId,
-    pub role_helper: RoleId,
-    pub role_mute: RoleId,
-    pub roles_color: Vec<RoleId>,
-
-    pub category_mod_private: ChannelId,
-    pub channel_showcase: ChannelId,
-    pub channel_feedback: ChannelId,
-    pub channel_modlog: ChannelId,
-    pub channel_mod_bot_stuff: ChannelId,
-    pub channel_auto_mod: ChannelId,
-    pub channel_bot_messages: ChannelId,
-    pub channel_bot_traffic: ChannelId,
-    pub channel_tech_support: ChannelId,
-    pub channel_mod_polls: ChannelId,
-
-    pub attachment_cache_path: PathBuf,
-    pub attachment_cache_max_size: usize,
-
-    pub time_started: chrono::DateTime<chrono::Utc>,
-}
-
-impl Config {
-    fn from_environment() -> Result<Self> {
-        Ok(Config {
-            discord_token: required_env_var("TOKEN")?,
-            guild: GuildId(parse_required_env_var("GUILD")?),
-            role_mod: RoleId(parse_required_env_var("ROLE_MOD")?),
-            role_helper: RoleId(parse_required_env_var("ROLE_HELPER")?),
-            role_mute: RoleId(parse_required_env_var("ROLE_MUTE")?),
-            roles_color: required_env_var("ROLES_COLOR")?
-                .split(',')
-                .map(|x| Ok(RoleId(x.trim().parse()?)))
-                .collect::<Result<_>>()?,
-            category_mod_private: ChannelId(parse_required_env_var("CATEGORY_MOD_PRIVATE")?),
-            channel_showcase: ChannelId(parse_required_env_var("CHANNEL_SHOWCASE")?),
-            channel_feedback: ChannelId(parse_required_env_var("CHANNEL_FEEDBACK")?),
-            channel_modlog: ChannelId(parse_required_env_var("CHANNEL_MODLOG")?),
-            channel_auto_mod: ChannelId(parse_required_env_var("CHANNEL_AUTO_MOD")?),
-            channel_mod_bot_stuff: ChannelId(parse_required_env_var("CHANNEL_MOD_BOT_STUFF")?),
-            channel_bot_messages: ChannelId(parse_required_env_var("CHANNEL_BOT_MESSAGES")?),
-            channel_bot_traffic: ChannelId(parse_required_env_var("CHANNEL_BOT_TRAFFIC")?),
-            channel_tech_support: ChannelId(parse_required_env_var("CHANNEL_TECH_SUPPORT")?),
-            channel_mod_polls: ChannelId(parse_required_env_var("CHANNEL_MOD_POLLS")?),
-            attachment_cache_path: parse_required_env_var("ATTACHMENT_CACHE_PATH")?,
-            attachment_cache_max_size: parse_required_env_var("ATTACHMENT_CACHE_MAX_SIZE")?,
-            time_started: chrono::Utc::now(),
-        })
-    }
-
-    async fn log_bot_action<F>(&self, ctx: &client::Context, build_embed: F)
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
-    {
-        let result = self
-            .guild
-            .send_embed(&ctx, self.channel_modlog, build_embed)
-            .await;
-
-        log_error!(result);
-    }
-    async fn log_automod_action<F>(&self, ctx: &client::Context, build_embed: F)
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
-    {
-        let result = self
-            .guild
-            .send_embed(&ctx, self.channel_auto_mod, build_embed)
-            .await;
-        log_error!(result);
-    }
-
-    #[allow(unused)]
-    async fn is_mod(&self, ctx: &client::Context, user_id: UserId) -> Result<bool> {
-        let user = user_id.to_user(&ctx).await?;
-        Ok(user.has_role(&ctx, self.guild, self.role_mod).await?)
-    }
-}
-
-impl TypeMapKey for Config {
-    type Value = Arc<Config>;
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UserData {
-    config: Config,
-    db: Db,
+    config: Arc<Config>,
+    db: Arc<Db>,
+    up_emotes: Option<Arc<UpEmotes>>,
 }
 
 #[tokio::main]
@@ -164,16 +99,40 @@ async fn main() {
 
     poise::Framework::build()
         .token(config.discord_token.to_string())
+        .client_settings(|client| client.cache_settings(|cache| cache.max_messages(500)))
         .user_data_setup(|ctx, _ready, _framework| {
-            Box::pin(async move { Ok(UserData { config, db }) })
+            Box::pin(async move {
+                let config = Arc::new(config);
+                let db = Arc::new(db);
+                ctx.data.write().await.insert::<Config>(config.clone());
+                ctx.data.write().await.insert::<Db>(db.clone());
+                let up_emotes = match load_up_emotes(&ctx, config.guild).await {
+                    Ok(emotes) => {
+                        let emotes = Arc::new(emotes.clone());
+                        ctx.data.write().await.insert::<UpEmotes>(emotes.clone());
+                        Some(emotes)
+                    }
+                    Err(err) => {
+                        tracing::warn!("Error loading emotes: {}", err);
+                        None
+                    }
+                };
+
+                Ok(UserData {
+                    config,
+                    db,
+                    up_emotes,
+                })
+            })
         })
         .intents(GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT)
         .options(poise::FrameworkOptions {
-            commands: all_commands(),
+            commands: commands::all_commands(),
             on_error: |err| Box::pin(on_error(err)),
             pre_command: |ctx| {
                 Box::pin(async move {
                     println!("Executing command {}...", ctx.command().qualified_name);
+                    before(ctx).await;
                 })
             },
             post_command: |ctx| {
@@ -182,22 +141,17 @@ async fn main() {
                 })
             },
             /// Every command invocation must pass this check to continue execution
-            command_check: Some(|ctx| {
+            command_check: Some(|_ctx| {
                 Box::pin(async move {
                     println!("checking...");
                     Ok(true)
                 })
             }),
 
-            listener: |ctx, event, _framework, _data| {
+            listener: |ctx, event, framework, data| {
                 Box::pin(async move {
                     println!("Got an event in listener: {:?}", event.name());
-                    match event {
-                        poise::Event::Message { new_message } => {
-                            //events::Handler.message(ctx, new_message).await;
-                        }
-                        _ => {}
-                    }
+                    handle_event(ctx, event, framework, data.clone()).await;
                     Ok(())
                 })
             },
@@ -216,22 +170,18 @@ async fn main() {
         .run()
         .await
         .unwrap();
-
-    //client.cache_and_http.cache.set_max_messages(500).await;
 }
 
-
-#[hook]
-async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
+async fn before(ctx: Ctx<'_>) -> bool {
     tracing::debug!(
-        command_name,
-        msg.content = %msg.content,
-        msg.author = %msg.author,
-        msg.id = %msg.id,
-        msg.channel_id = %msg.channel_id,
+        command_name = ctx.command().name,
+        //msg.content = %msg.content, // TODORW
+        msg.author = %ctx.author(),
+        msg.id = %ctx.id(),
+        msg.channel_id = %ctx.channel_id(),
         "command '{}' invoked by '{}'",
-        command_name,
-        msg.author.tag()
+        ctx.command().name,
+        ctx.author().tag()
     );
     true
 }

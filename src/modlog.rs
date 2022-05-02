@@ -1,35 +1,29 @@
-use itertools::Itertools;
-use serenity::{
-    builder::CreateEmbed,
-    client::Context,
-    model::{channel::Message, prelude::User},
-    prelude::Mentionable,
-};
+use serenity::{builder::CreateEmbed, client, model::prelude::User, prelude::Mentionable};
 
 use crate::{
     db::mute::Mute,
-    extensions::{ClientContextExt, MessageExt, UserExt},
-    util,
+    extensions::{ClientContextExt, UserExt},
+    prelude::Ctx,
 };
 
-pub async fn log_note(ctx: &Context, command_msg: &Message, user: &User, note_content: &str) {
-    let config = ctx.get_config().await;
+pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
+    let config = ctx.data().config.clone();
 
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(&ctx.discord(), |e| {
             e.title("Note");
-            set_author_section(e, &command_msg.author);
+            set_author_section(e, &ctx.author());
             e.thumbnail(user.face());
             e.description(format!(
                 "{} took a note about {}",
-                command_msg.author.id.mention(),
+                ctx.author().id.mention(),
                 user.mention_and_tag(),
             ));
             e.field("Note", note_content, false);
         })
         .await;
 }
-
+/*
 pub async fn log_warn(
     ctx: &Context,
     command_msg: &Message,
@@ -160,8 +154,9 @@ pub async fn log_mute_for_spamming(
         })
         .await;
 }
+*/
 
-pub async fn log_user_mute_ended(ctx: &Context, mute: &Mute) {
+pub async fn log_user_mute_ended(ctx: &client::Context, mute: &Mute) {
     let config = ctx.get_config().await;
     let user = mute.user.to_user(&ctx).await;
     config

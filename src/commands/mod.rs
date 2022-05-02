@@ -3,69 +3,30 @@ use crate::extensions::*;
 //use super::Config;
 use crate::util;
 use itertools::Itertools;
-use reaction_collector::ReactionAction;
-use regex::Regex;
-use serenity::{client, collector::reaction_collector, model::prelude::*};
-use thiserror::Error;
-use tracing_futures::Instrument;
+use poise::serenity_prelude::Member;
 
-use crate::UserData;
-pub type Error = Box<dyn std::error::Error + Send + Sync>;
-pub type Ctx<'a> = poise::Context<'a, UserData, Error>;
-
+pub use crate::prelude::*;
 pub mod errors;
 pub mod poise_commands;
 pub use errors::*;
 
 pub mod info;
 pub use info::*;
+pub mod pfp;
+pub use pfp::*;
+pub mod note;
+pub use note::*;
 
-//pub mod ask;
-//pub mod ban;
-//pub mod blocklist;
-//pub mod emojistats;
-//pub mod fetch;
-//pub mod help;
-//pub mod highlights;
-//pub mod info;
-//pub mod kick;
-//pub mod modping;
-//pub mod move_users;
-//pub mod mute;
-//pub mod note;
-//pub mod pfp;
-//pub mod poll;
-//pub mod purge;
-//pub mod role;
-//pub mod small;
-//pub mod tag;
-//pub mod top;
-//pub mod unban;
-//pub mod version;
-//pub mod warn;
-//use ask::*;
-//use ban::*;
-//use blocklist::*;
-//use emojistats::*;
-//pub use fetch::*;
-//pub use help::*;
-//use highlights::*;
-//use info::*;
-//use kick::*;
-//use modping::*;
-//use move_users::*;
-//use mute::*;
-//use note::*;
-//use pfp::*;
-//use poll::*;
-//use purge::*;
-//use role::*;
-//use small::*;
-//use tag::*;
-//use top::*;
-//use unban::*;
-//use version::*;
-//use warn::*;
+pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
+    vec![
+        poise_commands::register(),
+        pfp(),
+        info(),
+        note(),
+        notes(),
+        undo_note(),
+    ]
+}
 
 pub static SELECTION_EMOJI: [&str; 19] = [
     "1️⃣",
@@ -88,6 +49,17 @@ pub static SELECTION_EMOJI: [&str; 19] = [
     "\u{1f1f3}",
     "\u{1f1f4}",
 ];
+
+pub async fn member_or_self(ctx: Ctx<'_>, member: Option<Member>) -> Res<Member> {
+    if let Some(member) = member {
+        Ok(member)
+    } else {
+        Ok(ctx
+            .author_member()
+            .await
+            .user_error("failed to fetch message author")?)
+    }
+}
 
 //#[group]
 //#[only_in(guilds)]
