@@ -26,9 +26,9 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         pfp(),
         info(),
         note(),
-        notes(),
-        undo_note(),
-        mute(),
+        //notes(),
+        //undo_note(),
+        //mute(),
     ]
 }
 

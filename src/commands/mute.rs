@@ -6,7 +6,13 @@ use crate::modlog;
 use super::*;
 
 /// Mute a user for a given amount of time.
-#[poise::command(slash_command, guild_only, prefix_command, track_edits)]
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    track_edits,
+    check = "crate::checks::check_is_helper_or_mod"
+)]
 pub async fn mute(
     ctx: Ctx<'_>,
     #[description = "User"] user: Member,
@@ -16,7 +22,7 @@ pub async fn mute(
     reason: Option<String>,
 ) -> Res<()> {
     let success_msg = ctx
-        .say_success_mod_action(&format!("Muting {} for {}", user.mention(), duration))
+        .say_success_mod_action(format!("Muting {} for {}", user.mention(), duration))
         .await?
         .message()
         .await?;

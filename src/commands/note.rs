@@ -14,32 +14,41 @@ use super::*;
 
 // TODORW probably use subcommands here
 
-#[derive(Debug, Modal)]
-#[name = "Take a note"]
-struct NoteModal {
-    #[name = "Note"]
-    #[paragraph]
-    note: String,
-}
+//#[derive(Debug, Modal)]
+//#[name = "Take a note"]
+//struct NoteModal {
+//#[name = "Note"]
+//#[paragraph]
+//note: String,
+//}
 
 /// Write a note about a user.
-#[poise::command(slash_command, guild_only, prefix_command, track_edits)]
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    track_edits,
+    check = "crate::checks::check_is_moderator"
+)]
 pub async fn note(
     ctx: Ctx<'_>,
     #[description = "User"] user: User,
-    #[description = "The note"]
     #[rest]
-    content: Option<String>,
+    #[description = "The note"]
+    content: String,
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let content = match (content, ctx) {
-        (Some(content), _) => content,
-        (None, poise::Context::Application(ctx)) => NoteModal::execute(ctx).await?.note,
-        (None, poise::Context::Prefix(_)) => {
-            abort_with!(UserErr::InvalidUsage("No note content provided"))
-        }
-    };
+    // TODORW
+    //let content = match (ctx) {
+    //poise::Context::Application(ctx) if content.is_empty() => {
+    //NoteModal::execute(ctx).await?.note
+    //}
+    //poise::Context::Prefix(_) if content.is_empty() => {
+    //abort_with!(UserErr::InvalidUsage("No note content provided"))
+    //}
+    //_ => content,
+    //};
 
     let success_msg = ctx.say_success("Noting...").await?.message().await.ok();
 
@@ -63,7 +72,8 @@ pub async fn note(
     guild_only,
     prefix_command,
     track_edits,
-    rename = "undo-note"
+    rename = "undo-note",
+    check = "crate::checks::check_is_moderator"
 )]
 pub async fn undo_note(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
     let db = ctx.get_db();
@@ -90,7 +100,8 @@ pub enum NoteFilterParam {
     guild_only,
     prefix_command,
     track_edits,
-    rename = "notes"
+    rename = "notes",
+    check = "crate::checks::check_is_moderator"
 )]
 pub async fn notes(
     ctx: Ctx<'_>,
