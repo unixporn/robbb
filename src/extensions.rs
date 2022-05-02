@@ -24,14 +24,32 @@ type StdResult<T, E> = std::result::Result<T, E>;
 pub trait PoiseContextExt {
     async fn send_embed<F>(&self, build: F) -> StdResult<ReplyHandle<'_>, serenity::Error>
     where
+        F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync,
+    {
+        self.send_embed_full(false, build).await
+    }
+    async fn send_embed_full<F>(
+        &self,
+        ephemeral: bool,
+        build: F,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error>
+    where
         F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync;
 
-    async fn say_success(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error>;
+    async fn say_success(
+        &self,
+        text: impl Display + Send + Sync + 'static,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error>;
+
     async fn say_success_mod_action(
         &self,
-        text: &str,
+        text: impl Display + Send + Sync + 'static,
     ) -> std::result::Result<ReplyHandle<'_>, serenity::Error>;
-    async fn say_error(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error>;
+
+    async fn say_error(
+        &self,
+        text: impl Display + Send + Sync + 'static,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error>;
 
     fn get_guild_emojis(&self) -> Option<HashMap<EmojiId, Emoji>>;
 
@@ -50,20 +68,34 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         self.data().db.clone()
     }
 
-    async fn send_embed<F>(&self, build: F) -> StdResult<ReplyHandle<'_>, serenity::Error>
+    async fn send_embed_full<F>(
+        &self,
+        ephemeral: bool,
+        build: F,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error>
     where
         F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync,
     {
         self.send(|f| {
+            match self {
+                poise::Context::Application(_) => {}
+                poise::Context::Prefix(prefix) => {
+                    f.reference_message(prefix.msg);
+                }
+            }
             f.embed(|e| {
                 build(e);
                 e
             })
+            .ephemeral(ephemeral)
         })
         .await
     }
 
-    async fn say_success(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+    async fn say_success(
+        &self,
+        text: impl Display + Send + Sync + 'static,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
         let poggers = self
             .data()
             .up_emotes
@@ -77,14 +109,17 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         .await
     }
 
-    async fn say_error(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+    async fn say_error(
+        &self,
+        text: impl Display + Send + Sync + 'static,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
         let pensibe = self
             .data()
             .up_emotes
             .as_ref()
             .map(|x| format!(" {}", x.pensibe.clone()));
 
-        self.send_embed(|e| {
+        self.send_embed_full(true, |e| {
             e.description(format!("{}{}", text, pensibe.unwrap_or_default()));
             e.color(0xfb4934u32);
         })
@@ -92,7 +127,7 @@ impl<'a> PoiseContextExt for Ctx<'a> {
     }
     async fn say_success_mod_action(
         &self,
-        text: &str,
+        text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
         let police = self
             .data()
