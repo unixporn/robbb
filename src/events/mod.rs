@@ -4,7 +4,6 @@ use crate::{db::mute, extensions::*};
 use crate::{log_error, UpEmotes};
 use anyhow::{Context, Result};
 
-use serenity::async_trait;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
@@ -26,10 +25,9 @@ mod ready;
 
 pub struct Handler;
 
-#[async_trait]
-impl EventHandler for Handler {
+impl Handler {
     #[tracing::instrument(skip_all)]
-    async fn ready(&self, ctx: client::Context, data_about_bot: Ready) {
+    pub async fn ready(&self, ctx: client::Context, data_about_bot: Ready) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(
@@ -39,7 +37,12 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %new.user.tag()))]
-    async fn guild_member_update(&self, ctx: client::Context, old: Option<Member>, new: Member) {
+    pub async fn guild_member_update(
+        &self,
+        ctx: client::Context,
+        old: Option<Member>,
+        new: Member,
+    ) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(
@@ -56,7 +59,7 @@ impl EventHandler for Handler {
             %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
             )
     )]
-    async fn message(&self, ctx: client::Context, msg: Message) {
+    pub async fn message(&self, ctx: &client::Context, msg: &Message) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(
@@ -66,7 +69,7 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(msg.id = %event.id, msg.channel_id = %event.channel_id, ?event))]
-    async fn message_update(
+    pub async fn message_update(
         &self,
         ctx: client::Context,
         old_if_available: Option<Message>,
@@ -82,7 +85,7 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
-    async fn message_delete(
+    pub async fn message_delete(
         &self,
         ctx: client::Context,
         channel_id: ChannelId,
@@ -98,7 +101,7 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn message_delete_bulk(
+    pub async fn message_delete_bulk(
         &self,
         ctx: client::Context,
         channel_id: ChannelId,
@@ -120,7 +123,7 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(member.tag = %new_member.user.tag()))]
-    async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
+    pub async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(
@@ -131,7 +134,7 @@ impl EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]
-    async fn guild_member_removal(
+    pub async fn guild_member_removal(
         &self,
         ctx: client::Context,
         guild_id: GuildId,
@@ -155,7 +158,7 @@ impl EventHandler for Handler {
             reaction.message_id = ?event.message_id
         )
     )]
-    async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
+    pub async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(
@@ -172,7 +175,7 @@ impl EventHandler for Handler {
             reaction.message_id = ?event.message_id
         )
     )]
-    async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
+    pub async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(

@@ -1,77 +1,71 @@
-use crate::embeds;
 use crate::extensions::*;
-use crate::modlog;
-use crate::{abort_with, db::Db, util};
 
-use super::checks::*;
 //use super::Config;
-use anyhow::{Context, Result};
-use chrono::Utc;
+use crate::util;
 use itertools::Itertools;
 use reaction_collector::ReactionAction;
 use regex::Regex;
-use serenity::{
-    client,
-    collector::reaction_collector,
-    framework::standard::{
-        help_commands,
-        macros::{command, group, help},
-        Args, CommandGroup, CommandOptions, CommandResult, HelpOptions,
-    },
-    model::prelude::*,
-};
-use std::collections::HashSet;
+use serenity::{client, collector::reaction_collector, model::prelude::*};
 use thiserror::Error;
 use tracing_futures::Instrument;
 
-pub mod ask;
-pub mod ban;
-pub mod blocklist;
-pub mod emojistats;
+use crate::UserData;
+pub type Error = Box<dyn std::error::Error + Send + Sync>;
+pub type Ctx<'a> = poise::Context<'a, UserData, Error>;
+
 pub mod errors;
-pub mod fetch;
-pub mod help;
-pub mod highlights;
-pub mod info;
-pub mod kick;
-pub mod modping;
-pub mod move_users;
-pub mod mute;
-pub mod note;
-pub mod pfp;
-pub mod poll;
-pub mod purge;
-pub mod role;
-pub mod small;
-pub mod tag;
-pub mod top;
-pub mod unban;
-pub mod version;
-pub mod warn;
-use ask::*;
-use ban::*;
-use blocklist::*;
-use emojistats::*;
+pub mod poise_commands;
 pub use errors::*;
-pub use fetch::*;
-pub use help::*;
-use highlights::*;
-use info::*;
-use kick::*;
-use modping::*;
-use move_users::*;
-use mute::*;
-use note::*;
-use pfp::*;
-use poll::*;
-use purge::*;
-use role::*;
-use small::*;
-use tag::*;
-use top::*;
-use unban::*;
-use version::*;
-use warn::*;
+
+pub mod info;
+pub use info::*;
+
+//pub mod ask;
+//pub mod ban;
+//pub mod blocklist;
+//pub mod emojistats;
+//pub mod fetch;
+//pub mod help;
+//pub mod highlights;
+//pub mod info;
+//pub mod kick;
+//pub mod modping;
+//pub mod move_users;
+//pub mod mute;
+//pub mod note;
+//pub mod pfp;
+//pub mod poll;
+//pub mod purge;
+//pub mod role;
+//pub mod small;
+//pub mod tag;
+//pub mod top;
+//pub mod unban;
+//pub mod version;
+//pub mod warn;
+//use ask::*;
+//use ban::*;
+//use blocklist::*;
+//use emojistats::*;
+//pub use fetch::*;
+//pub use help::*;
+//use highlights::*;
+//use info::*;
+//use kick::*;
+//use modping::*;
+//use move_users::*;
+//use mute::*;
+//use note::*;
+//use pfp::*;
+//use poll::*;
+//use purge::*;
+//use role::*;
+//use small::*;
+//use tag::*;
+//use top::*;
+//use unban::*;
+//use version::*;
+//use warn::*;
 
 pub static SELECTION_EMOJI: [&str; 19] = [
     "1️⃣",
@@ -95,29 +89,30 @@ pub static SELECTION_EMOJI: [&str; 19] = [
     "\u{1f1f4}",
 ];
 
-#[group]
-#[only_in(guilds)]
-#[commands(
-    restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag,
-    kick, emojistats
-)]
-#[checks(moderator, channel_allows_commands)]
-struct Moderator;
+//#[group]
+//#[only_in(guilds)]
+//#[commands(
+//restart, warn, note, notes, latency, say, purge, unban, spurge, blocklist, set_tag, delete_tag,
+//kick, emojistats
+//)]
+//#[checks(moderator, channel_allows_commands)]
+//struct Moderator;
 
-#[group]
-#[only_in(guilds)]
-#[commands(ban, delban, mute)]
-#[checks(helper_or_mod, channel_allows_commands)]
-struct HelperOrMod;
+//#[group]
+//#[only_in(guilds)]
+//#[commands(ban, delban, mute)]
+//#[checks(helper_or_mod, channel_allows_commands)]
+//struct HelperOrMod;
 
-#[group]
-#[commands(
-    // info
-    modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
-    tag, invite, version, highlights, ask, uptime
-)]
-#[checks(channel_allows_commands)]
-struct General;
+//#[group]
+//#[commands(
+//// info
+//modping, pfp, move_users, repo, set_fetch, fetch, desc, git, dotfiles, poll, role, top,
+//tag, invite, version, highlights, ask, uptime
+//)]
+//#[checks(channel_allows_commands)]
+//struct General;
+/*
 
 #[tracing::instrument(skip_all)]
 pub async fn disambiguate_user_mention(
@@ -267,3 +262,4 @@ pub fn react_async(ctx: &client::Context, msg: &Message, reactions: Vec<Reaction
         .instrument(tracing::info_span!("react-async")),
     );
 }
+*/

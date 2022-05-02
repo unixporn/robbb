@@ -1,19 +1,17 @@
 use std::collections::HashSet;
 
-use crate::commands::fetch::FetchField;
 use crate::log_error;
 use crate::{attachment_logging, modlog};
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
-use serenity::framework::Framework;
 use tracing::debug;
 use tracing_futures::Instrument;
 
 use super::*;
 
-pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
+pub async fn message_create(ctx: &client::Context, msg: &Message) -> Result<()> {
     let config = ctx.get_config().await;
 
     if msg.author.bot {
@@ -75,16 +73,17 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<()> {
         err => log_error!("error while Handling a quoted message", err),
     };
 
-    if msg.channel_id != config.channel_showcase || msg.is_private() {
-        let framework = ctx
-            .data
-            .read()
-            .await
-            .get::<crate::FrameworkKey>()
-            .unwrap()
-            .clone();
-        framework.dispatch(ctx, msg).await;
-    }
+    // TODORW
+    //if msg.channel_id != config.channel_showcase || msg.is_private() {
+    //let framework = ctx
+    //.data
+    //.read()
+    //.await
+    //.get::<crate::FrameworkKey>()
+    //.unwrap()
+    //.clone();
+    //framework.dispatch(ctx, msg).await;
+    //}
     Ok(())
 }
 
@@ -407,16 +406,17 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let context = Some(msg.link());
 
-        crate::commands::mute::do_mute(
-            &ctx,
-            guild,
-            bot_id,
-            member,
-            duration,
-            Some("spam"),
-            context,
-        )
-        .await?;
+        // TODORW
+        //crate::commands::mute::do_mute(
+        //&ctx,
+        //guild,
+        //bot_id,
+        //member,
+        //duration,
+        //Some("spam"),
+        //context,
+        //)
+        //.await?;
         modlog::log_mute_for_spamming(ctx, msg, duration).await;
         log_error!(
             msg.channel_id
@@ -457,7 +457,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
                 let db = ctx.get_db().await;
                 db.update_fetch(
                     msg.author.id,
-                    hashmap! { FetchField::Image => attachment.url.to_string() },
+                    hashmap! { crate::db::fetch::FetchField::Image => attachment.url.to_string() },
                 )
                 .await?;
             }

@@ -1,4 +1,9 @@
 use super::*;
+// TODORW this is a placeholder, obviously
+#[derive(Debug, Clone)]
+pub struct CommandOptions {
+    usage: Option<&'static str>,
+}
 
 #[derive(Error, Debug)]
 pub enum UserErr {

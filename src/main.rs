@@ -1,20 +1,15 @@
 #![allow(clippy::needless_borrow)]
 use crate::extensions::*;
+use commands::poise_commands::all_commands;
 use db::Db;
 use poise::serenity_prelude::GatewayIntents;
 use rand::prelude::IteratorRandom;
-use serenity::client::{self, Client};
-use serenity::framework::standard::DispatchError;
-use serenity::framework::standard::{macros::hook, CommandResult, Reason};
+use serenity::builder::CreateEmbed;
+use serenity::client;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use serenity::{builder::CreateEmbed, framework::standard::StandardFramework};
 use std::{path::PathBuf, sync::Arc};
 use tracing::Level;
-use tracing_futures::Instrument;
-use tracing_subscriber::filter::FilterFn;
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use tracing_subscriber::EnvFilter;
 
 use crate::util::*;
 use anyhow::Result;
@@ -26,10 +21,12 @@ pub mod db;
 pub mod embeds;
 pub mod events;
 pub mod extensions;
+mod logging;
 pub mod modlog;
 pub mod util;
+use crate::logging::*;
 
-use commands::*;
+type Error = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug, Clone)]
 pub struct UpEmotes {
@@ -137,11 +134,6 @@ impl TypeMapKey for Config {
     type Value = Arc<Config>;
 }
 
-pub struct FrameworkKey;
-impl TypeMapKey for FrameworkKey {
-    type Value = Arc<StandardFramework>;
-}
-
 #[derive(Debug)]
 pub struct UserData {
     config: Config,
@@ -172,18 +164,43 @@ async fn main() {
 
     poise::Framework::build()
         .token(config.discord_token.to_string())
-        .user_data_setup(|ctx, ready, framework| {
+        .user_data_setup(|ctx, _ready, _framework| {
             Box::pin(async move { Ok(UserData { config, db }) })
         })
         .intents(GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT)
         .options(poise::FrameworkOptions {
-            commands: vec![commands::info::register(), commands::info::poise_info()],
-            //on_error: |err| Box::pin(eprintln!("{:?}", err)),
-            //pre_command: todo!(),
-            //post_command: todo!(),
-            //command_check: todo!(),
-            //allowed_mentions: todo!(),
-            //listener: todo!(),
+            commands: all_commands(),
+            on_error: |err| Box::pin(on_error(err)),
+            pre_command: |ctx| {
+                Box::pin(async move {
+                    println!("Executing command {}...", ctx.command().qualified_name);
+                })
+            },
+            post_command: |ctx| {
+                Box::pin(async move {
+                    println!("Executed command {}!", ctx.command().qualified_name);
+                })
+            },
+            /// Every command invocation must pass this check to continue execution
+            command_check: Some(|ctx| {
+                Box::pin(async move {
+                    println!("checking...");
+                    Ok(true)
+                })
+            }),
+
+            listener: |ctx, event, _framework, _data| {
+                Box::pin(async move {
+                    println!("Got an event in listener: {:?}", event.name());
+                    match event {
+                        poise::Event::Message { new_message } => {
+                            //events::Handler.message(ctx, new_message).await;
+                        }
+                        _ => {}
+                    }
+                    Ok(())
+                })
+            },
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("!".into()),
                 edit_tracker: Some(poise::EditTracker::for_timespan(
@@ -203,48 +220,6 @@ async fn main() {
     //client.cache_and_http.cache.set_max_messages(500).await;
 }
 
-fn init_tracing(honeycomb_api_key: Option<String>) {
-    let log_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| {
-            EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off")
-                .unwrap()
-        })
-        .add_directive("robbb=trace".parse().unwrap());
-
-    let remove_presence_update_filter = FilterFn::new(|metadata| {
-        !(metadata.target() == "serenity::gateway::shard"
-            && metadata.name() == "handle_gateway_dispatch"
-            && metadata.fields().field("event").map_or(false, |event| {
-                event.to_string().starts_with("PresenceUpdate")
-            }))
-    });
-
-    let sub = tracing_subscriber::registry::Registry::default()
-        .with(log_filter)
-        .with(remove_presence_update_filter)
-        .with(tracing_subscriber::fmt::Layer::default());
-
-    if let Some(api_key) = honeycomb_api_key {
-        tracing::info!("honeycomb api key is set, initializing honeycomb layer");
-        let config = libhoney::Config {
-            options: libhoney::client::Options {
-                api_key,
-                dataset: "robbb".to_string(),
-                ..libhoney::client::Options::default()
-            },
-            transmission_options: libhoney::transmission::Options::default(),
-        };
-
-        let honeycomb_layer = tracing_honeycomb::Builder::new_libhoney("robbb", config).build();
-
-        let sub = sub.with(honeycomb_layer);
-        tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
-    } else {
-        tracing::info!("no honeycomb api key is set");
-        let sub = sub.with(tracing_honeycomb::new_blackhole_telemetry_layer());
-        tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
-    };
-}
 
 #[hook]
 async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
@@ -261,159 +236,129 @@ async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
     true
 }
 
-#[hook]
-#[tracing::instrument(skip_all, fields(%command_name, %msg.content, %msg.channel_id, %error))]
-async fn dispatch_error_hook(
-    ctx: &client::Context,
-    msg: &Message,
-    error: DispatchError,
-    command_name: &str,
-) {
-    // Log dispatch errors that should be logged
-    match &error {
-        DispatchError::CheckFailed(required, Reason::Log(log))
-        | DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
-            tracing::warn!("Check for {} failed with: {}", required, log);
-        }
-        _ => {}
-    };
-
-    let _ = msg
-        .reply_error(&ctx, display_dispatch_error(command_name, error))
-        .await;
+async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
+    eprintln!("on_error: {:?}", error);
 }
 
-fn display_dispatch_error(command_name: &str, err: DispatchError) -> String {
-    match err {
-        DispatchError::CheckFailed(_required, reason) => match reason {
-            Reason::User(reason)
-            | Reason::UserAndLog {
-                user: reason,
-                log: _,
-            } => reason,
-            _ => "You're not allowed to use this command".to_string(),
-        },
-        DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),
-        DispatchError::CommandDisabled => format!("Command {} is disabled", command_name),
-        DispatchError::BlockedUser => "User not allowed to use bot".to_string(),
-        DispatchError::BlockedGuild => "Guild is blocked by bot".to_string(),
-        DispatchError::BlockedChannel => "Channel is blocked by bot".to_string(),
-        DispatchError::OnlyForDM => "Command may only be used in DMs".to_string(),
-        DispatchError::OnlyForGuilds => "Command may only be used in a server".to_string(),
-        DispatchError::OnlyForOwners => "Command may only be used by owners".to_string(),
-        DispatchError::LackingRole => "Missing a required role".to_string(),
-        DispatchError::LackingPermissions(flags) => format!(
-            "User is missing permissions - required permission number is {}",
-            flags
-        ),
-        DispatchError::NotEnoughArguments { min, given } => format!(
-            "Not enough arguments provided - got {} but needs {}",
-            given, min
-        ),
-        DispatchError::TooManyArguments { max, given } => format!(
-            "Too many arguments provided - got {} but can only handle {}",
-            given, max
-        ),
-        _ => {
-            tracing::error!("Unhandled dispatch error: {:?}", err);
-            "Failed to run command".to_string()
-        }
-    }
-}
+// TODORW
+//#[tracing::instrument(skip_all, fields(%command_name, %msg.content, %msg.channel_id, %error))]
+//async fn dispatch_error_hook(
+//ctx: &client::Context,
+//msg: &Message,
+//error: DispatchError,
+//command_name: &str,
+//) {
+//// Log dispatch errors that should be logged
+//match &error {
+//DispatchError::CheckFailed(required, Reason::Log(log))
+//| DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
+//tracing::warn!("Check for {} failed with: {}", required, log);
+//}
+//_ => {}
+//};
 
-#[hook]
-async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result: CommandResult) {
-    if let Err(err) = result {
-        match err.downcast_ref::<UserErr>() {
-            Some(err) => match err {
-                UserErr::MentionedUserNotFound => {
-                    let _ = msg.reply_error(&ctx, "No user found with that name").await;
-                }
-                UserErr::InvalidUsage(usage) => {
-                    let _ = msg.reply_error(&ctx, format!("Usage: {}", usage)).await;
-                }
-                UserErr::Other(issue) => {
-                    let _ = msg.reply_error(&ctx, format!("Error: {}", issue)).await;
-                }
-            },
-            None => match err.downcast::<serenity::Error>() {
-                Ok(err) => {
-                    let err = *err;
-                    tracing::warn!(
-                        error.command_name = %command_name,
-                        error.message = %err,
-                        "Serenity error [handling {}]: {} ({:?})",
-                        command_name,
-                        &err,
-                        &err
-                    );
-                    match err {
-                        serenity::Error::Http(err) => {
-                            if let serenity::http::error::Error::UnsuccessfulRequest(res) = *err {
-                                if res.status_code == serenity::http::StatusCode::NOT_FOUND
-                                    && res.error.message.to_lowercase().contains("unknown user")
-                                {
-                                    let _ = msg.reply_error(&ctx, "User not found").await;
-                                } else {
-                                    let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                                }
-                            }
-                        }
-                        serenity::Error::Model(err) => {
-                            let _ = msg.reply_error(&ctx, err).await;
-                        }
-                        _ => {
-                            let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                        }
-                    }
-                }
-                Err(err) => {
-                    let _ = msg.reply_error(&ctx, "Something went wrong").await;
-                    tracing::warn!(
-                        error.command_name = %command_name,
-                        error.message = %err,
-                        "Internal error [handling {}]: {} ({:#?})",
-                        command_name,
-                        &err,
-                        &err
-                    );
-                }
-            },
-        }
-    }
-}
+//let _ = msg
+//.reply_error(&ctx, display_dispatch_error(command_name, error))
+//.await;
+//}
 
-async fn send_honeycomb_deploy_marker(api_key: &str) {
-    let client = reqwest::Client::new();
-    log_error!(
-        client
-            .post("https://api.honeycomb.io/1/markers/robbb")
-            .header("X-Honeycomb-Team", api_key)
-            .body(format!(
-                r#"{{"message": "{}", "type": "deploy"}}"#,
-                util::bot_version()
-            ))
-            .send()
-            .await
-    );
-}
+// TODORW
+//fn display_dispatch_error(command_name: &str, err: DispatchError) -> String {
+//match err {
+//DispatchError::CheckFailed(_required, reason) => match reason {
+//Reason::User(reason)
+//| Reason::UserAndLog {
+//user: reason,
+//log: _,
+//} => reason,
+//_ => "You're not allowed to use this command".to_string(),
+//},
+//DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),
+//DispatchError::CommandDisabled => format!("Command {} is disabled", command_name),
+//DispatchError::BlockedUser => "User not allowed to use bot".to_string(),
+//DispatchError::BlockedGuild => "Guild is blocked by bot".to_string(),
+//DispatchError::BlockedChannel => "Channel is blocked by bot".to_string(),
+//DispatchError::OnlyForDM => "Command may only be used in DMs".to_string(),
+//DispatchError::OnlyForGuilds => "Command may only be used in a server".to_string(),
+//DispatchError::OnlyForOwners => "Command may only be used by owners".to_string(),
+//DispatchError::LackingRole => "Missing a required role".to_string(),
+//DispatchError::LackingPermissions(flags) => format!(
+//"User is missing permissions - required permission number is {}",
+//flags
+//),
+//DispatchError::NotEnoughArguments { min, given } => format!(
+//"Not enough arguments provided - got {} but needs {}",
+//given, min
+//),
+//DispatchError::TooManyArguments { max, given } => format!(
+//"Too many arguments provided - got {} but can only handle {}",
+//given, max
+//),
+//_ => {
+//tracing::error!("Unhandled dispatch error: {:?}", err);
+//"Failed to run command".to_string()
+//}
+//}
+//}
 
-async fn init_cpu_logging() {
-    use cpu_monitor::CpuInstant;
-    use std::time::Duration;
-    tokio::spawn(
-        async {
-            loop {
-                let start = CpuInstant::now();
-                tokio::time::sleep(Duration::from_millis(4000)).await;
-                let end = CpuInstant::now();
-                if let (Ok(start), Ok(end)) = (start, end) {
-                    let duration = end - start;
-                    let percentage = duration.non_idle() * 100.;
-                    tracing::info!(cpu_usage = percentage);
-                }
-            }
-        }
-        .instrument(tracing::info_span!("cpu-usage")),
-    );
-}
+// TODORW
+//async fn after(ctx: &client::Context, msg: &Message, command_name: &str, result: CommandResult) {
+//if let Err(err) = result {
+//match err.downcast_ref::<UserErr>() {
+//Some(err) => match err {
+//UserErr::MentionedUserNotFound => {
+//let _ = msg.reply_error(&ctx, "No user found with that name").await;
+//}
+//UserErr::InvalidUsage(usage) => {
+//let _ = msg.reply_error(&ctx, format!("Usage: {}", usage)).await;
+//}
+//UserErr::Other(issue) => {
+//let _ = msg.reply_error(&ctx, format!("Error: {}", issue)).await;
+//}
+//},
+//None => match err.downcast::<serenity::Error>() {
+//Ok(err) => {
+//let err = *err;
+//tracing::warn!(
+//error.command_name = %command_name,
+//error.message = %err,
+//"Serenity error [handling {}]: {} ({:?})",
+//command_name,
+//&err,
+//&err
+//);
+//match err {
+//serenity::Error::Http(err) => {
+//if let serenity::http::error::Error::UnsuccessfulRequest(res) = *err {
+//if res.status_code == serenity::http::StatusCode::NOT_FOUND
+//&& res.error.message.to_lowercase().contains("unknown user")
+//{
+//let _ = msg.reply_error(&ctx, "User not found").await;
+//} else {
+//let _ = msg.reply_error(&ctx, "Something went wrong").await;
+//}
+//}
+//}
+//serenity::Error::Model(err) => {
+//let _ = msg.reply_error(&ctx, err).await;
+//}
+//_ => {
+//let _ = msg.reply_error(&ctx, "Something went wrong").await;
+//}
+//}
+//}
+//Err(err) => {
+//let _ = msg.reply_error(&ctx, "Something went wrong").await;
+//tracing::warn!(
+//error.command_name = %command_name,
+//error.message = %err,
+//"Internal error [handling {}]: {} ({:#?})",
+//command_name,
+//&err,
+//&err
+//);
+//}
+//},
+//}
+//}
+//}
