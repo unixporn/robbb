@@ -14,10 +14,10 @@ use crate::{db::Db, util, Config};
 //mod guild_member_addition;
 //mod guild_member_removal;
 mod guild_member_update;
-//mod handle_blocklist;
-//mod message_create;
+mod handle_blocklist;
+mod message_create;
 //mod message_delete;
-//mod message_update;
+mod message_update;
 //mod reaction_add;
 //mod reaction_remove;
 pub mod ready;
@@ -29,7 +29,7 @@ pub async fn handle_event(
     data: UserData,
 ) {
     use poise::Event::*;
-    let result = match event {
+    let result = match event.clone() {
         Ready { data_about_bot } => ready::ready(ctx.clone(), data, data_about_bot).await,
         GuildMemberUpdate {
             old_if_available,
@@ -42,6 +42,15 @@ pub async fn handle_event(
             )
             .await
         }
+        Message { new_message } => {
+            message_create::message_create(ctx.clone(), data, new_message).await
+        }
+        MessageUpdate {
+            old_if_available,
+            new,
+            event,
+        } => message_update::message_update(ctx.clone(), data, old_if_available, new, event).await,
+
         _ => Ok(()),
     };
 
@@ -55,39 +64,6 @@ pub struct Handler;
 
 impl Handler {
     /*
-
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            command_name, message_create.notified_user_cnt, message_create.stopped_at_spam_protect,
-            message_create.stopped_at_blocklist, message_create.stopped_at_quote, message_create.emoji_used,
-            %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
-            )
-    )]
-    pub async fn message(&self, ctx: &client::Context, msg: &Message) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling message event",
-            message_create::message_create(ctx, msg).await
-        )
-    }
-
-    #[tracing::instrument(skip_all, fields(msg.id = %event.id, msg.channel_id = %event.channel_id, ?event))]
-    pub async fn message_update(
-        &self,
-        ctx: client::Context,
-        old_if_available: Option<Message>,
-        _new: Option<Message>,
-        event: MessageUpdateEvent,
-    ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling message_update event",
-            message_update::message_update(ctx, old_if_available, _new, event).await
-        );
-    }
 
     #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
     pub async fn message_delete(

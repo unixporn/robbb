@@ -5,7 +5,7 @@ use crate::modlog;
 use super::*;
 
 #[tracing::instrument(skip_all)]
-pub async fn ready(ctx: client::Context, data: UserData, _data_about_bot: &Ready) -> Result<()> {
+pub async fn ready(ctx: client::Context, data: UserData, _data_about_bot: Ready) -> Result<()> {
     tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let config = data.config.clone();
 

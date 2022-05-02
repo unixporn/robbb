@@ -1,54 +1,38 @@
+use chrono::Utc;
+use serenity::client;
+
+use crate::modlog;
+
 use super::*;
 
 /// Mute a user for a given amount of time.
-#[command]
-#[only_in(guilds)]
-#[usage("mute <user> <duration> [reason]")]
-pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
-
-    let mentioned_user_id = {
-        let user_mention = args
-            .single_quoted::<String>()
-            .invalid_usage(&MUTE_COMMAND_OPTIONS)?;
-        disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
-            .await?
-            .ok_or(UserErr::MentionedUserNotFound)?
-    };
-
-    let mentioned_user = mentioned_user_id.to_user(&ctx).await?;
-
-    let duration = args
-        .single::<humantime::Duration>()
-        .map_err(|_| UserErr::Other("Malformed duration".to_string()))?;
-
-    let reason = args.remains();
-
-    let guild = msg.guild(&ctx).context("Failed to fetch guild")?;
-    let member = guild.member(&ctx, mentioned_user_id).await?;
+#[poise::command(slash_command, guild_only, prefix_command, track_edits)]
+pub async fn mute(
+    ctx: Ctx<'_>,
+    #[description = "User"] user: Member,
+    #[description = "Duration of the mute"] duration: humantime::Duration,
+    #[description = "Reason"]
+    #[rest]
+    reason: Option<String>,
+) -> Res<()> {
+    let success_msg = ctx
+        .say_success_mod_action(&format!("Muting {} for {}", user.mention(), duration))
+        .await?
+        .message()
+        .await?;
 
     do_mute(
-        &ctx,
-        guild,
-        msg.author.id,
-        member,
+        ctx.discord(),
+        ctx.guild().unwrap(),
+        ctx.author().id,
+        user.clone(),
         *duration,
-        reason,
-        Some(msg.link()),
+        reason.clone(),
+        Some(success_msg.link()),
     )
     .await?;
 
-    msg.reply_success_mod_action(
-        &ctx,
-        format!(
-            "{} has been muted for {}",
-            mentioned_user_id.mention(),
-            duration
-        ),
-    )
-    .await?;
-
-    modlog::log_mute(ctx, msg, &mentioned_user, duration, reason).await;
+    modlog::log_mute(&ctx, &success_msg, &user.user, duration, reason).await;
 
     Ok(())
 }
@@ -60,9 +44,9 @@ pub async fn do_mute(
     moderator: UserId,
     member: Member,
     duration: std::time::Duration,
-    reason: Option<&str>,
+    reason: Option<String>,
     context: Option<String>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let db = ctx.get_db().await;
 
     let start_time = Utc::now();
@@ -75,7 +59,7 @@ pub async fn do_mute(
         guild.id,
         moderator,
         member.user.id,
-        reason.unwrap_or("no reason").to_string(),
+        reason.unwrap_or("no reason".to_string()),
         start_time,
         end_time,
         context,
@@ -89,7 +73,7 @@ pub async fn do_mute(
 /// Adds the mute role to the user, but does _not_ add any database entry.
 /// This should only be used if we know that an active database entry for the mute already exists,
 /// or else we run the risk of accidentally muting someone forever.
-pub async fn set_mute_role(ctx: &client::Context, mut member: Member) -> Result<()> {
+pub async fn set_mute_role(ctx: &client::Context, mut member: Member) -> anyhow::Result<()> {
     let config = ctx.get_config().await;
     member.add_role(&ctx, config.role_mute).await?;
     Ok(())

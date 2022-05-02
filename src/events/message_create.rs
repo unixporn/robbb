@@ -11,7 +11,16 @@ use tracing_futures::Instrument;
 
 use super::*;
 
-pub async fn message_create(ctx: &client::Context, msg: &Message) -> Result<()> {
+#[tracing::instrument(
+        skip_all,
+        fields(
+            command_name, message_create.notified_user_cnt, message_create.stopped_at_spam_protect,
+            message_create.stopped_at_blocklist, message_create.stopped_at_quote, message_create.emoji_used,
+            %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
+            )
+    )]
+pub async fn message_create(ctx: client::Context, _data: UserData, msg: Message) -> Result<()> {
+    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let config = ctx.get_config().await;
 
     if msg.author.bot {
@@ -406,17 +415,16 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let context = Some(msg.link());
 
-        // TODORW
-        //crate::commands::mute::do_mute(
-        //&ctx,
-        //guild,
-        //bot_id,
-        //member,
-        //duration,
-        //Some("spam"),
-        //context,
-        //)
-        //.await?;
+        crate::commands::mute::do_mute(
+            &ctx,
+            guild,
+            bot_id,
+            member,
+            duration,
+            Some("spam".to_string()),
+            context,
+        )
+        .await?;
         modlog::log_mute_for_spamming(ctx, msg, duration).await;
         log_error!(
             msg.channel_id
@@ -442,7 +450,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
             .await
             .context("Failed to delete invalid showcase submission")?;
         msg.author.direct_message(&ctx, |f| {
-                f.content(indoc!("
+                f.content(indoc::indoc!("
                     Your showcase submission was detected to be invalid. If you wanna comment on a rice, create a thread.
                     If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/robbb
                 "))
