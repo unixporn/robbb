@@ -1,5 +1,6 @@
 use crate::embeds;
 use crate::extensions::*;
+use crate::modlog;
 use crate::{abort_with, db::Db, util};
 
 use super::checks::*;

@@ -11,6 +11,7 @@ use serenity::{
         id::{ChannelId, EmojiId, GuildId},
         prelude::User,
     },
+    prelude::Mentionable,
     utils::Colour,
 };
 use std::{collections::HashMap, fmt::Display, sync::Arc};
@@ -61,12 +62,19 @@ impl ClientContextExt for client::Context {
 
 #[async_trait]
 pub trait UserExt {
+    /// Format a user as `name#discriminator (user-id)`
     fn name_with_disc_and_id(&self) -> String;
+    /// Format a user as `@mention (name#discriminator)`
+    /// Primarily needed because discord on mobile is bad and doesn't show mentions of users if they're not cached.
+    fn mention_and_tag(&self) -> String;
 }
 
 impl UserExt for User {
     fn name_with_disc_and_id(&self) -> String {
-        format!("{}({})", self.tag(), self.id)
+        format!("{} ({})", self.tag(), self.id)
+    }
+    fn mention_and_tag(&self) -> String {
+        format!("{} ({})", self.mention(), self.tag())
     }
 }
 

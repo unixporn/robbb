@@ -26,6 +26,7 @@ pub mod db;
 pub mod embeds;
 pub mod events;
 pub mod extensions;
+pub mod modlog;
 pub mod util;
 
 use commands::*;

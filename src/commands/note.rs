@@ -8,7 +8,7 @@ use super::*;
 #[usage("note <user> <content> | note undo <user>")]
 #[sub_commands(undo_note)]
 pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let (config, db) = ctx.get_config_and_db().await;
+    let db = ctx.get_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
@@ -35,19 +35,7 @@ pub async fn note(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     )
     .await?;
 
-    config
-        .log_bot_action(&ctx, |e| {
-            e.title("Note");
-            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
-            e.description(format!(
-                "{} took a note about {} ({})",
-                msg.author.id.mention(),
-                mentioned_user_id.mention(),
-                mentioned_user.tag(),
-            ));
-            e.field("Note", note_content, false);
-        })
-        .await;
+    modlog::log_note(&ctx, msg, &mentioned_user, note_content).await;
     msg.reply_success(&ctx, "Noted!").await?;
     Ok(())
 }

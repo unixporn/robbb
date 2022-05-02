@@ -5,8 +5,6 @@ use super::*;
 #[only_in(guilds)]
 #[usage("mute <user> <duration> [reason]")]
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let config = ctx.get_config().await;
-
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
     let mentioned_user_id = {
@@ -50,20 +48,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     )
     .await?;
 
-    config
-        .log_bot_action(&ctx, |e| {
-            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
-            e.description(format!(
-                "User {} ({}) was muted by {}\n{}",
-                mentioned_user_id.mention(),
-                mentioned_user.tag(),
-                msg.author.id.mention(),
-                msg.to_context_link(),
-            ));
-            e.field("Duration", duration, false);
-            reason.map(|r| e.field("Reason", r, false));
-        })
-        .await;
+    modlog::log_mute(ctx, msg, &mentioned_user, duration, reason).await;
 
     Ok(())
 }

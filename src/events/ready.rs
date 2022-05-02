@@ -1,5 +1,7 @@
 use serenity::futures::StreamExt;
 
+use crate::modlog;
+
 use super::*;
 
 pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
@@ -69,11 +71,7 @@ async fn start_mute_handler(ctx: client::Context) {
                 if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
                     tracing::error!(error.message = %err, "Error handling mute removal: {}", err);
                 } else {
-                    config
-                        .log_bot_action(&ctx, |e| {
-                            e.description(format!("{} is now unmuted", mute.user.mention()));
-                        })
-                        .await;
+                    modlog::log_user_mute_ended(&ctx, &mute).await;
                 }
             }
         }

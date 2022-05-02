@@ -32,8 +32,6 @@ async fn do_ban(
     mut args: Args,
     delete_days: u8,
 ) -> CommandResult {
-    let config = ctx.get_config().await;
-
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
     let mentioned_users = &args
@@ -133,21 +131,7 @@ async fn do_ban(
             )
             .await;
 
-        config
-            .log_bot_action(&ctx, |e| {
-                e.title("User yote");
-                e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
-                e.description(format!(
-                    "yote user(s):\n{}\n{}",
-                    successful_bans
-                        .iter()
-                        .map(|x| format!("- {} ({})", x.mention(), x.tag()))
-                        .join("\n"),
-                    msg.to_context_link(),
-                ));
-                e.field("Reason", reason, false);
-            })
-            .await;
+        modlog::log_ban(ctx, msg, &successful_bans, reason).await;
     }
 
     Ok(())

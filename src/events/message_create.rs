@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use crate::attachment_logging;
 use crate::commands::fetch::FetchField;
 use crate::log_error;
+use crate::{attachment_logging, modlog};
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
@@ -400,8 +400,6 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         };
 
     if is_spam || is_ping_spam {
-        let config = ctx.get_config().await;
-
         let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
         let member = guild.member(&ctx, msg.author.id).await?;
         let bot_id = ctx.cache.current_user_id().await;
@@ -420,20 +418,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
             context,
         )
         .await?;
-        config
-            .log_bot_action(&ctx, |e| {
-                e.description(format!(
-                    "User {} was muted for spamming\n{}",
-                    msg.author.id.mention(),
-                    msg.to_context_link(),
-                ));
-                e.field(
-                    "Duration",
-                    humantime::Duration::from(duration).to_string(),
-                    false,
-                );
-            })
-            .await;
+        modlog::log_mute_for_spamming(ctx, msg, duration).await;
         log_error!(
             msg.channel_id
                 .delete_messages(&ctx, msgs.iter().filter(|m| m.author == msg.author))

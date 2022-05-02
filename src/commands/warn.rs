@@ -6,7 +6,7 @@ use super::*;
 #[usage("warn <user> <reason> | warn undo <user>")]
 #[sub_commands(undo_warn)]
 pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let (config, db) = ctx.get_config_and_db().await;
+    let (_config, db) = ctx.get_config_and_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
     let warned_user_id = {
@@ -52,20 +52,7 @@ pub async fn warn(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
         )
         .await;
 
-    config
-        .log_bot_action(&ctx, |e| {
-            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
-            e.description(format!(
-                "{} ({}) was warned by {} _({} warn)_\n{}",
-                warned_user.mention(),
-                warned_user.tag(),
-                msg.author.id.mention(),
-                util::format_count(warn_count),
-                msg.to_context_link(),
-            ));
-            e.field("Reason", reason, false);
-        })
-        .await;
+    modlog::log_warn(&ctx, msg, warned_user, warn_count, reason).await;
     Ok(())
 }
 

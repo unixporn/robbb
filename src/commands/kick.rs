@@ -5,7 +5,7 @@ use super::*;
 #[only_in(guilds)]
 #[usage("kick <user> <reason>")]
 pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let (config, db) = ctx.get_config_and_db().await;
+    let (_config, db) = ctx.get_config_and_db().await;
 
     let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
 
@@ -42,19 +42,7 @@ pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
     )
     .await?;
 
-    config
-        .log_bot_action(&ctx, |e| {
-            e.author(|a| a.name(msg.author.tag()).icon_url(msg.author.face()));
-            e.description(format!(
-                "User {} ({}) was kicked by {}\n{}",
-                mentioned_user_id.mention(),
-                mentioned_user.tag(),
-                msg.author.id.mention(),
-                msg.to_context_link()
-            ));
-            e.field("Reason", reason, false);
-        })
-        .await;
+    modlog::log_kick(&ctx, msg, mentioned_user, reason).await;
 
     Ok(())
 }
