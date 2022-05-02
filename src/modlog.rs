@@ -1,9 +1,11 @@
+use poise::serenity_prelude::Message;
 use serenity::{builder::CreateEmbed, client, model::prelude::User, prelude::Mentionable};
 
 use crate::{
     db::mute::Mute,
-    extensions::{ClientContextExt, UserExt},
+    extensions::{ClientContextExt, MessageExt, PoiseContextExt, UserExt},
     prelude::Ctx,
+    util,
 };
 
 pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
@@ -97,15 +99,16 @@ pub async fn log_unban(ctx: &Context, command_msg: &Message, user: User) {
         })
         .await;
 }
+*/
 
 pub async fn log_mute(
-    ctx: &Context,
-    command_msg: &Message,
+    ctx: &Ctx<'_>,
+    context_msg: &Message,
     user: &User,
     duration: humantime::Duration,
-    reason: Option<&str>,
+    reason: Option<String>,
 ) {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
 
     let end_time = chrono::Duration::from_std(duration.into())
         .ok()
@@ -113,16 +116,16 @@ pub async fn log_mute(
         .map(util::format_date_detailed);
 
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(ctx.discord(), |e| {
             e.title("Mute");
-            set_author_section(e, &command_msg.author);
+            set_author_section(e, &ctx.author());
             e.thumbnail(user.face());
             e.description(format!(
                 "User {} ({}) was muted by {}\n{}",
                 user.id.mention(),
                 user.tag(),
-                command_msg.author.id.mention(),
-                command_msg.to_context_link(),
+                ctx.author().id.mention(),
+                context_msg.to_context_link(),
             ));
             e.field("Duration", format!("{}", duration), false);
             end_time.map(|t| e.field("End", t, false));
@@ -132,7 +135,7 @@ pub async fn log_mute(
 }
 
 pub async fn log_mute_for_spamming(
-    ctx: &Context,
+    ctx: &client::Context,
     spam_msg: &Message,
     duration: std::time::Duration,
 ) {
@@ -154,7 +157,6 @@ pub async fn log_mute_for_spamming(
         })
         .await;
 }
-*/
 
 pub async fn log_user_mute_ended(ctx: &client::Context, mute: &Mute) {
     let config = ctx.get_config().await;

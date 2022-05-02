@@ -126,6 +126,7 @@ pub trait ClientContextExt {
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>>;
     async fn get_config(&self) -> Arc<Config>;
     async fn get_db(&self) -> Arc<Db>;
+    async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>);
 }
 
 #[async_trait]
@@ -136,6 +137,9 @@ impl ClientContextExt for client::Context {
 
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
         self.data.read().await.get::<UpEmotes>().cloned()
+    }
+    async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>) {
+        tokio::join!(self.get_config(), self.get_db())
     }
 
     async fn get_config(&self) -> Arc<Config> {
@@ -207,6 +211,12 @@ pub trait MessageExt {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync;
 
+    async fn reply_error(
+        &self,
+        ctx: &client::Context,
+        s: impl Display + Send + Sync + 'static,
+    ) -> Result<Message>;
+
     fn to_context_link(&self) -> String;
 
     async fn create_thread(
@@ -251,7 +261,6 @@ impl MessageExt for Message {
             .await
             .context("Failed to send embed")
     }
-    /*
 
     async fn reply_error(
         &self,
@@ -268,6 +277,7 @@ impl MessageExt for Message {
         })
         .await
     }
+    /*
 
     async fn reply_success(
         &self,

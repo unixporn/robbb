@@ -6,6 +6,7 @@ use itertools::Itertools;
 use poise::serenity_prelude::Member;
 
 pub use crate::prelude::*;
+pub use poise::serenity_prelude::{Guild, Mentionable, UserId};
 pub mod errors;
 pub mod poise_commands;
 pub use errors::*;
@@ -16,6 +17,8 @@ pub mod pfp;
 pub use pfp::*;
 pub mod note;
 pub use note::*;
+pub mod mute;
+pub use mute::*;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
@@ -25,6 +28,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         note(),
         notes(),
         undo_note(),
+        mute(),
     ]
 }
 
