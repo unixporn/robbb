@@ -2,7 +2,6 @@
 use crate::extensions::*;
 use db::Db;
 use rand::prelude::IteratorRandom;
-use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::client::{self, Client};
 use serenity::framework::standard::DispatchError;
 use serenity::framework::standard::{macros::hook, CommandResult, Reason};
@@ -170,7 +169,7 @@ async fn main() {
     // Soon, with a rework of the command framework, this will be solved.
     let stub_framework = StandardFramework::new();
 
-    let mut client = Client::builder(&config.discord_token)
+    let mut client = Client::builder(&config.discord_token, GatewayIntents::all())
         .event_handler(events::Handler)
         .framework(stub_framework)
         .intents(GatewayIntents::all())
@@ -187,7 +186,7 @@ async fn main() {
         .group(&GENERAL_GROUP)
         .help(&help::MY_HELP);
 
-    client.cache_and_http.cache.set_max_messages(500).await;
+    client.cache_and_http.cache.set_max_messages(500);
 
     {
         let mut data = client.data.write().await;
@@ -260,8 +259,13 @@ async fn before(_: &Context, msg: &Message, command_name: &str) -> bool {
 }
 
 #[hook]
-#[tracing::instrument(skip_all, fields(%msg.content, %msg.channel_id, %error))]
-async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: DispatchError) {
+#[tracing::instrument(skip_all, fields(%command_name, %msg.content, %msg.channel_id, %error))]
+async fn dispatch_error_hook(
+    ctx: &client::Context,
+    msg: &Message,
+    error: DispatchError,
+    command_name: &str,
+) {
     // Log dispatch errors that should be logged
     match &error {
         DispatchError::CheckFailed(required, Reason::Log(log))
@@ -271,10 +275,12 @@ async fn dispatch_error_hook(ctx: &client::Context, msg: &Message, error: Dispat
         _ => {}
     };
 
-    let _ = msg.reply_error(&ctx, display_dispatch_error(error)).await;
+    let _ = msg
+        .reply_error(&ctx, display_dispatch_error(command_name, error))
+        .await;
 }
 
-fn display_dispatch_error(err: DispatchError) -> String {
+fn display_dispatch_error(command_name: &str, err: DispatchError) -> String {
     match err {
         DispatchError::CheckFailed(_required, reason) => match reason {
             Reason::User(reason)
@@ -285,7 +291,7 @@ fn display_dispatch_error(err: DispatchError) -> String {
             _ => "You're not allowed to use this command".to_string(),
         },
         DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),
-        DispatchError::CommandDisabled(command) => format!("Command {} is disabled", command),
+        DispatchError::CommandDisabled => format!("Command {} is disabled", command_name),
         DispatchError::BlockedUser => "User not allowed to use bot".to_string(),
         DispatchError::BlockedGuild => "Guild is blocked by bot".to_string(),
         DispatchError::BlockedChannel => "Channel is blocked by bot".to_string(),

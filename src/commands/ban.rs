@@ -32,7 +32,7 @@ async fn do_ban(
     mut args: Args,
     delete_days: u8,
 ) -> CommandResult {
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
 
     let mentioned_users = &args
         .single::<String>()
@@ -168,7 +168,7 @@ async fn handle_single_ban(
             .ok()
             .and_then(|x| x.joined_at)
             .unwrap_or_else(|| user.created_at());
-        Utc::now().signed_duration_since(join_or_create_date) < Duration::days(3)
+        Utc::now().signed_duration_since(*join_or_create_date) < Duration::days(3)
     } else {
         permission_level == PermissionLevel::Mod
     };

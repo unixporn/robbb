@@ -5,7 +5,7 @@ use super::*;
 #[only_in(guilds)]
 #[usage("mute <user> <duration> [reason]")]
 pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
 
     let mentioned_user_id = {
         let user_mention = args
@@ -24,7 +24,7 @@ pub async fn mute(ctx: &client::Context, msg: &Message, mut args: Args) -> Comma
 
     let reason = args.remains();
 
-    let guild = msg.guild(&ctx).await.context("Failed to fetch guild")?;
+    let guild = msg.guild(&ctx).context("Failed to fetch guild")?;
     let member = guild.member(&ctx, mentioned_user_id).await?;
 
     do_mute(

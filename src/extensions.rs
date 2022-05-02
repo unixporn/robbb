@@ -56,7 +56,7 @@ impl ClientContextExt for client::Context {
     }
 
     async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>> {
-        Some(self.cache.guild(id).await?.emojis)
+        Some(self.cache.guild(id)?.emojis)
     }
 }
 

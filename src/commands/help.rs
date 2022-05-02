@@ -38,7 +38,7 @@ async fn my_help(
         for group in groups {
             for cmd in group.options.commands {
                 if cmd.options.help_available && {
-                    help_commands::has_all_requirements(&ctx, cmd.options, msg).await
+                    help_commands::has_all_requirements(&ctx, cmd.options, msg)
                         && passes_all_checks(
                             group.options.checks,
                             &ctx,

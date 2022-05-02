@@ -1,6 +1,4 @@
-use futures::{stream, StreamExt};
 use itertools::Itertools;
-use serenity::http::AttachmentType;
 
 use super::*;
 
@@ -22,7 +20,7 @@ pub async fn message_delete(
     )
     .await?;
 
-    let msg = ctx.cache.message(channel_id, deleted_message_id).await;
+    let msg = ctx.cache.message(channel_id, deleted_message_id);
     // if the message can't be loaded, there's no need to try anything more,
     // so let's just give up. No need to error.
     let msg = match msg {
@@ -109,10 +107,10 @@ pub async fn message_delete_bulk(
         return Ok(());
     }
 
-    let msgs: Vec<Message> = stream::iter(deleted_message_ids)
+    let msgs: Vec<Message> = deleted_message_ids
+        .iter()
         .filter_map(|id| ctx.cache.message(channel_id, id))
-        .collect()
-        .await;
+        .collect();
 
     let channel_name = channel_id
         .name(&ctx)
@@ -132,7 +130,7 @@ pub async fn message_delete_bulk(
             e.title(msg_author.name_with_disc_and_id());
             e.description(
                 msgs.into_iter()
-                    .map(|m| format!("[{}]\n{}\n", util::format_date(m.timestamp), m.content))
+                    .map(|m| format!("[{}]\n{}\n", util::format_date(*m.timestamp), m.content))
                     .join("\n"),
             );
             e.footer(|f| f.text(format!("#{}", channel_name)));
@@ -152,7 +150,7 @@ async fn find_deletor(
         .guild
         .audit_logs(
             &ctx,
-            Some(guild::Action::Message(ActionMessage::Delete).num()),
+            Some(guild::Action::Message(MessageAction::Delete).num()),
             None,
             None,
             Some(10),
@@ -161,7 +159,7 @@ async fn find_deletor(
 
     Ok(audit_logs
         .entries
-        .values()
+        .iter()
         .find(|entry| {
             entry.target_id == Some(msg.author.id.0)
                 && entry
@@ -171,7 +169,13 @@ async fn find_deletor(
                     .unwrap_or(false)
         })
         .map(|entry| entry.user_id)
-        .and_then(|deletor| audit_logs.users.iter().find(|usr| usr.id == deletor))
+        .and_then(|deletor| {
+            audit_logs
+                .users
+                .iter()
+                .find(|(id, _)| **id == deletor)
+                .map(|(_, usr)| usr)
+        })
         .cloned())
 }
 

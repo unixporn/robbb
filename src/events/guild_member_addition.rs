@@ -54,22 +54,22 @@ pub async fn guild_member_addition(
                     "Account Creation Date",
                     format!(
                         "{} ({})",
-                        util::format_date(account_created_at),
-                        util::format_date_before_plaintext(account_created_at, join_date)
+                        util::format_date(*account_created_at),
+                        util::format_date_before_plaintext(*account_created_at, *join_date)
                             .replace("ago", "before joining")
                     ),
                     false,
                 );
-                e.field("Join Date", util::format_date(join_date), false);
+                e.field("Join Date", util::format_date(*join_date), false);
             } else {
                 e.field(
                     "Account Creation Date",
-                    util::format_date_detailed(account_created_at),
+                    util::format_date_detailed(*account_created_at),
                     false,
                 );
             }
             if DateTime::<Utc>::from(SystemTime::now())
-                .signed_duration_since(account_created_at)
+                .signed_duration_since(*account_created_at)
                 .num_days()
                 <= 3
             {

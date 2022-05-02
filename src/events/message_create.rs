@@ -125,7 +125,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
     // don't trigger on bot commands (except !ask)
     if msg.content.starts_with('!') && !msg.content.starts_with("!ask") {
-        tracing::Span::current().record("highlights.notified_user_cnt", &0);
+        tracing::Span::current().record("highlights.notified_user_cnt", &0i32);
         return Ok(0);
     }
 
@@ -141,7 +141,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     .await?;
 
     if highlight_matches.is_empty() {
-        tracing::Span::current().record("highlights.notified_user_cnt", &0);
+        tracing::Span::current().record("highlights.notified_user_cnt", &0i32);
         return Ok(0);
     }
     // don't highlight in threads or mod internal channels
@@ -155,7 +155,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         .guild()
         .context("Couldn't get a guild-channel from the channel")?;
     if channel.thread_metadata.is_some()
-        || config.category_mod_private == channel.category_id.context("Couldn't get category_id")?
+        || config.category_mod_private == channel.parent_id.context("Couldn't get category_id")?
     {
         return Ok(0);
     }
@@ -194,7 +194,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 // check if the user has already been notified of another word in this message
                 || handled_users.contains(&user_id)
                 // check if the user can read that channel
-                || !channel.permissions_for_user(&ctx, user_id).await?.read_messages()
+                || !channel.permissions_for_user(&ctx, user_id)?.read_message_history()
             {
                 continue;
             }
@@ -314,9 +314,8 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .context("Message not in a guild-channel")?;
 
     let user_can_see_channel = channel
-        .permissions_for_user(&ctx, msg.author.id)
-        .await?
-        .read_messages();
+        .permissions_for_user(&ctx, msg.author.id)?
+        .read_message_history();
 
     debug!("checked if user can see the channel");
 
@@ -356,7 +355,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
 
 #[tracing::instrument(skip_all)]
 async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    let account_age = Utc::now() - msg.author.created_at();
+    let account_age = Utc::now() - *msg.author.created_at();
 
     if msg.mentions.is_empty() || account_age > chrono::Duration::hours(24) {
         return Ok(false);
@@ -374,11 +373,11 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         .collect_vec();
 
     let is_spam = spam_msgs.len() > 3
-        && match spam_msgs.iter().minmax_by_key(|x| x.timestamp) {
+        && match spam_msgs.iter().minmax_by_key(|x| *x.timestamp) {
             itertools::MinMaxResult::NoElements => false,
             itertools::MinMaxResult::OneElement(_) => false,
             itertools::MinMaxResult::MinMax(min, max) => {
-                (max.timestamp - min.timestamp).num_minutes() < 2
+                (*max.timestamp - *min.timestamp).num_minutes() < 2
             }
         };
 
@@ -391,18 +390,18 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
             .map(|m| m.mentions.len())
             .sum::<usize>() as f32
             >= ping_spam_msgs.len() as f32 * 1.5
-        && match spam_msgs.iter().minmax_by_key(|x| x.timestamp) {
+        && match spam_msgs.iter().minmax_by_key(|x| *x.timestamp) {
             itertools::MinMaxResult::NoElements => false,
             itertools::MinMaxResult::OneElement(_) => false,
             itertools::MinMaxResult::MinMax(min, max) => {
-                (max.timestamp - min.timestamp).num_minutes() < 2
+                (*max.timestamp - *min.timestamp).num_minutes() < 2
             }
         };
 
     if is_spam || is_ping_spam {
-        let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+        let guild = msg.guild(&ctx).context("Failed to load guild")?;
         let member = guild.member(&ctx, msg.author.id).await?;
-        let bot_id = ctx.cache.current_user_id().await;
+        let bot_id = ctx.cache.current_user_id();
 
         let duration = std::time::Duration::from_secs(60 * 30);
 

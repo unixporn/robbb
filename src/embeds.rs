@@ -103,7 +103,7 @@ impl PaginatedEmbed {
                             .filter(move |r| {
                                 r.emoji == reaction_left.emoji || r.emoji == reaction_right.emoji
                             })
-                            .await;
+                            .build();
 
                         while let Some(reaction) = collector.next().await {
                             let reaction = &reaction.as_ref().as_inner_ref();
@@ -152,7 +152,7 @@ pub async fn make_create_embed(
 
     let mut e = CreateEmbed::default();
 
-    e.timestamp(&Utc::now());
+    e.timestamp(Utc::now());
     e.footer(|f| {
         if let Some(emoji) = stare {
             f.icon_url(emoji.url());

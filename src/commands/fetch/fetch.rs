@@ -10,7 +10,7 @@ use std::str::FromStr;
 pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let db = ctx.get_db().await;
 
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
     let (desired_field, mentioned_user_id) = match args.single_quoted::<String>() {
         Ok(first_arg) => {
             // if first argument is a field, fetch the author's field
@@ -42,7 +42,7 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
     let create_date = fetch_info.create_date;
     let fetch_data: Vec<(FetchField, String)> = fetch_info.get_values_ordered();
     let member = guild.member(&ctx, mentioned_user_id).await?;
-    let color = member.colour(&ctx).await;
+    let color = member.colour(&ctx);
 
     match desired_field {
         // Handle fetching a single field

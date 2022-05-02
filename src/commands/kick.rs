@@ -7,7 +7,7 @@ use super::*;
 pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     let (_config, db) = ctx.get_config_and_db().await;
 
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
 
     let mentioned_user_id = {
         let user_mention = args

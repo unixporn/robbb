@@ -8,7 +8,7 @@ use super::*;
 #[only_in(guilds)]
 pub async fn pfp(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
     //tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
-    let guild = msg.guild(&ctx).await.context("Failed to load guild")?;
+    let guild = msg.guild(&ctx).context("Failed to load guild")?;
 
     let mentioned_user_id = match args.single_quoted::<String>() {
         Ok(mentioned_user) => disambiguate_user_mention(&ctx, &guild, msg, &mentioned_user)
