@@ -1,55 +1,60 @@
 use std::sync::Arc;
 
 use crate::{db::mute, extensions::*};
-use crate::{log_error, UpEmotes};
+use crate::{log_error, UserData};
 use anyhow::{Context, Result};
 
+use crate::prelude::Error;
 use serenity::model::prelude::*;
-use serenity::prelude::*;
 
 use serenity::client;
 
 use crate::{db::Db, util, Config};
-use indoc::indoc;
 
-mod guild_member_addition;
-mod guild_member_removal;
+//mod guild_member_addition;
+//mod guild_member_removal;
 mod guild_member_update;
-mod handle_blocklist;
-mod message_create;
-mod message_delete;
-mod message_update;
-mod reaction_add;
-mod reaction_remove;
-mod ready;
+//mod handle_blocklist;
+//mod message_create;
+//mod message_delete;
+//mod message_update;
+//mod reaction_add;
+//mod reaction_remove;
+pub mod ready;
+
+pub async fn handle_event(
+    ctx: &client::Context,
+    event: &poise::Event<'_>,
+    _framework: &poise::Framework<UserData, Error>,
+    data: UserData,
+) {
+    use poise::Event::*;
+    let result = match event {
+        Ready { data_about_bot } => ready::ready(ctx.clone(), data, data_about_bot).await,
+        GuildMemberUpdate {
+            old_if_available,
+            new,
+        } => {
+            guild_member_update::guild_member_update(
+                ctx.clone(),
+                old_if_available.clone(),
+                new.clone(),
+            )
+            .await
+        }
+        _ => Ok(()),
+    };
+
+    log_error!(
+        format!("Error while handling {} event", event.name(),),
+        result
+    );
+}
 
 pub struct Handler;
 
 impl Handler {
-    #[tracing::instrument(skip_all)]
-    pub async fn ready(&self, ctx: client::Context, data_about_bot: Ready) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling ready event",
-            ready::ready(ctx, data_about_bot).await
-        )
-    }
-
-    #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %new.user.tag()))]
-    pub async fn guild_member_update(
-        &self,
-        ctx: client::Context,
-        old: Option<Member>,
-        new: Member,
-    ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling guild member update event",
-            guild_member_update::guild_member_update(ctx, old, new).await
-        );
-    }
+    /*
 
     #[tracing::instrument(
         skip_all,
@@ -183,6 +188,7 @@ impl Handler {
             reaction_remove::reaction_remove(ctx, event).await
         );
     }
+    */
 }
 
 async fn unmute(

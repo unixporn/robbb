@@ -6,11 +6,13 @@ static HOISTING_CHAR: &[char] = &[
     '!', '"', '#', '$', '\'', '(', ')', '*', '-', '+', '.', '/', '=',
 ];
 
+#[tracing::instrument(skip_all, fields(member_update.old = ?_old, member_update.new = ?new, member.tag = %new.user.tag()))]
 pub async fn guild_member_update(
     ctx: client::Context,
     _old: Option<Member>,
     new: Member,
 ) -> Result<()> {
+    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     dehoist_member(ctx, new).await?;
     Ok(())
 }

@@ -1656,6 +1656,7 @@ dependencies = [
  "lazy_static",
  "libhoney-rust",
  "maplit",
+ "parking_lot 0.12.0",
  "poise",
  "rand 0.8.5",
  "regex",

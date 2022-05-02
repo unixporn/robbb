@@ -5,6 +5,7 @@ use serenity::{
 };
 use std::env;
 
+// TODORW support UserErr stuff with actual error reporting to the user
 /// return with an error value immediately.
 #[macro_export]
 macro_rules! abort_with {
@@ -170,20 +171,4 @@ pub async fn channel_name(ctx: &client::Context, channel_id: ChannelId) -> Resul
         .guild()
         .context("Failed to get guild channel for channel object")?;
     Ok(channel.name().to_string())
-}
-
-pub async fn reply_embed<F>(
-    ctx: crate::commands::Ctx<'_>,
-    build: F,
-) -> Result<poise::ReplyHandle<'_>, serenity::Error>
-where
-    F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync,
-{
-    poise::send_reply(ctx, |f| {
-        f.embed(|e| {
-            build(e);
-            e
-        })
-    })
-    .await
 }

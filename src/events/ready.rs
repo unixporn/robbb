@@ -4,20 +4,13 @@ use crate::modlog;
 
 use super::*;
 
-pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
+#[tracing::instrument(skip_all)]
+pub async fn ready(ctx: client::Context, data: UserData, _data_about_bot: &Ready) -> Result<()> {
+    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
+    let config = data.config.clone();
+
     let bot_version = util::bot_version();
     tracing::info!("Robbb is ready! Running version {}", &bot_version);
-
-    let config = ctx.get_config().await;
-
-    match load_up_emotes(&ctx, config.guild).await {
-        Ok(emotes) => {
-            ctx.data.write().await.insert::<UpEmotes>(Arc::new(emotes));
-        }
-        Err(err) => {
-            tracing::warn!("Error loading emotes: {}", err);
-        }
-    }
 
     let _ = config
         .channel_mod_bot_stuff
@@ -34,8 +27,8 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
 
     dehoist_everyone(ctx.clone(), config.guild).await;
 
-    start_mute_handler(ctx.clone()).await;
-    start_attachment_log_handler(ctx).await;
+    start_mute_handler(ctx.clone(), data.clone()).await;
+    start_attachment_log_handler(ctx, data.clone()).await;
     Ok(())
 }
 
@@ -53,14 +46,13 @@ async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
         .await;
 }
 
-async fn start_mute_handler(ctx: client::Context) {
+async fn start_mute_handler(ctx: client::Context, data: UserData) {
     tokio::spawn(async move {
         let _ =
             tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
-        let (config, db) = ctx.get_config_and_db().await;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
-            let mutes = match db.get_newly_expired_mutes().await {
+            let mutes = match data.db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {
                     tracing::error!(error.message = %err, "Failed to request expired mutes: {}", err);
@@ -68,7 +60,7 @@ async fn start_mute_handler(ctx: client::Context) {
                 }
             };
             for mute in mutes {
-                if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
+                if let Err(err) = unmute(&ctx, &data.config, &data.db, &mute).await {
                     tracing::error!(error.message = %err, "Error handling mute removal: {}", err);
                 } else {
                     modlog::log_user_mute_ended(&ctx, &mute).await;
@@ -78,43 +70,17 @@ async fn start_mute_handler(ctx: client::Context) {
     });
 }
 
-async fn start_attachment_log_handler(ctx: client::Context) {
+async fn start_attachment_log_handler(_ctx: client::Context, data: UserData) {
     tokio::spawn(async move {
         let _ =
             tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
-        let config = ctx.get_config().await;
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
 
             log_error!(
                 "Failed to clean up attachments",
-                crate::attachment_logging::cleanup(&config).await
+                crate::attachment_logging::cleanup(&data.config).await
             );
         }
     });
-}
-
-async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> Result<UpEmotes> {
-    let all_emoji = guild.emojis(&ctx).await?;
-    Ok(UpEmotes {
-        pensibe: all_emoji
-            .iter()
-            .find(|x| x.name == "pensibe")
-            .context("no pensibe emote found")?
-            .clone(),
-        police: all_emoji
-            .iter()
-            .find(|x| x.name == "police")
-            .context("no police emote found")?
-            .clone(),
-        poggers: all_emoji
-            .iter()
-            .find(|x| x.name == "poggersphisch")
-            .context("no police poggers found")?
-            .clone(),
-        stares: all_emoji
-            .into_iter()
-            .filter(|x| x.name.starts_with("stare"))
-            .collect(),
-    })
 }

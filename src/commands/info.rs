@@ -1,11 +1,15 @@
+use poise::serenity_prelude::Mentionable;
+
 use super::*;
 
-#[poise::command(slash_command, prefix_command, track_edits)]
-pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Member) -> Result<(), Error> {
+/// Get general information about any member
+#[poise::command(slash_command, guild_only, prefix_command, track_edits)]
+pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
+    let user = member_or_self(ctx, user).await?;
     let created_at = user.user.created_at();
 
     let color = user.colour(ctx.discord());
-    util::reply_embed(ctx, |e| {
+    ctx.send_embed(|e| {
         e.title(user.user.tag());
         e.thumbnail(user.user.face());
         e.color_opt(color);

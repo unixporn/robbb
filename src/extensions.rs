@@ -1,6 +1,8 @@
-use crate::{db::Db, embeds::make_create_embed, Config, UpEmotes};
+use crate::{db::Db, embeds::make_create_embed, prelude::Ctx, Config, UpEmotes};
+
 use anyhow::{Context, Result};
 use itertools::Itertools;
+use poise::ReplyHandle;
 use serenity::{
     async_trait,
     builder::CreateEmbed,
@@ -16,47 +18,131 @@ use serenity::{
 };
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
+type StdResult<T, E> = std::result::Result<T, E>;
+
+#[async_trait]
+pub trait PoiseContextExt {
+    async fn send_embed<F>(&self, build: F) -> StdResult<ReplyHandle<'_>, serenity::Error>
+    where
+        F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync;
+
+    async fn say_success(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error>;
+    async fn say_success_mod_action(
+        &self,
+        text: &str,
+    ) -> std::result::Result<ReplyHandle<'_>, serenity::Error>;
+    async fn say_error(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error>;
+
+    fn get_guild_emojis(&self) -> Option<HashMap<EmojiId, Emoji>>;
+
+    fn get_random_stare(&self) -> Option<Emoji>;
+    fn get_db(&self) -> Arc<Db>;
+    fn get_config(&self) -> Arc<Config>;
+}
+
+#[async_trait]
+impl<'a> PoiseContextExt for Ctx<'a> {
+    fn get_config(&self) -> Arc<Config> {
+        self.data().config.clone()
+    }
+
+    fn get_db(&self) -> Arc<Db> {
+        self.data().db.clone()
+    }
+
+    async fn send_embed<F>(&self, build: F) -> StdResult<ReplyHandle<'_>, serenity::Error>
+    where
+        F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync,
+    {
+        self.send(|f| {
+            f.embed(|e| {
+                build(e);
+                e
+            })
+        })
+        .await
+    }
+
+    async fn say_success(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        let poggers = self
+            .data()
+            .up_emotes
+            .as_ref()
+            .map(|x| format!(" {}", x.poggers.clone()));
+
+        self.send_embed(|e| {
+            e.description(format!("{}{}", text, poggers.unwrap_or_default()));
+            e.color(0xb8bb26u32);
+        })
+        .await
+    }
+
+    async fn say_error(&self, text: &str) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        let pensibe = self
+            .data()
+            .up_emotes
+            .as_ref()
+            .map(|x| format!(" {}", x.pensibe.clone()));
+
+        self.send_embed(|e| {
+            e.description(format!("{}{}", text, pensibe.unwrap_or_default()));
+            e.color(0xfb4934u32);
+        })
+        .await
+    }
+    async fn say_success_mod_action(
+        &self,
+        text: &str,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        let police = self
+            .data()
+            .up_emotes
+            .as_ref()
+            .map(|x| format!(" {}", x.police.clone()));
+
+        self.send_embed(|e| {
+            e.description(format!("{}{}", text, police.unwrap_or_default()));
+            e.color(0xb8bb26u32);
+        })
+        .await
+    }
+
+    fn get_guild_emojis(&self) -> Option<HashMap<EmojiId, Emoji>> {
+        Some(self.guild()?.emojis)
+    }
+
+    fn get_random_stare(&self) -> Option<Emoji> {
+        self.data()
+            .up_emotes
+            .as_ref()
+            .and_then(|x| x.random_stare())
+    }
+}
+
 #[async_trait]
 pub trait ClientContextExt {
-    async fn get_config(&self) -> Arc<Config>;
-
-    async fn get_db(&self) -> Arc<Db>;
-
-    async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>);
-
-    async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>>;
-
     async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>>;
 
-    async fn get_random_stare(&self) -> Option<Emoji>;
+    async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>>;
+    async fn get_config(&self) -> Arc<Config>;
+    async fn get_db(&self) -> Arc<Db>;
 }
 
 #[async_trait]
 impl ClientContextExt for client::Context {
-    async fn get_config(&self) -> Arc<Config> {
-        self.data.read().await.get::<Config>().unwrap().clone()
-    }
-    async fn get_db(&self) -> Arc<Db> {
-        self.data.read().await.get::<Db>().unwrap().clone()
-    }
-    async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>) {
-        let data = self.data.read().await;
-        (
-            data.get::<Config>().unwrap().clone(),
-            data.get::<Db>().unwrap().clone(),
-        )
+    async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>> {
+        Some(self.cache.guild(id)?.emojis)
     }
 
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
         self.data.read().await.get::<UpEmotes>().cloned()
     }
 
-    async fn get_random_stare(&self) -> Option<Emoji> {
-        self.get_up_emotes().await?.random_stare()
+    async fn get_config(&self) -> Arc<Config> {
+        self.data.read().await.get::<Config>().cloned().unwrap()
     }
-
-    async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>> {
-        Some(self.cache.guild(id)?.emojis)
+    async fn get_db(&self) -> Arc<Db> {
+        self.data.read().await.get::<Db>().cloned().unwrap()
     }
 }
 
@@ -101,7 +187,7 @@ impl GuildIdExt for GuildId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let create_embed = make_create_embed(&ctx, |e| {
+        let create_embed = make_create_embed(ctx, |e| {
             build(e);
             e
         })
@@ -120,24 +206,6 @@ pub trait MessageExt {
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync;
-
-    async fn reply_error(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message>;
-
-    async fn reply_success(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message>;
-
-    async fn reply_success_mod_action(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message>;
 
     fn to_context_link(&self) -> String;
 
@@ -168,7 +236,7 @@ impl MessageExt for Message {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let create_embed = make_create_embed(&ctx, |e| {
+        let create_embed = make_create_embed(ctx, |e| {
             build(e);
             e
         })
@@ -183,6 +251,7 @@ impl MessageExt for Message {
             .await
             .context("Failed to send embed")
     }
+    /*
 
     async fn reply_error(
         &self,
@@ -233,6 +302,7 @@ impl MessageExt for Message {
         })
         .await
     }
+    */
 
     async fn create_thread(
         &self,
