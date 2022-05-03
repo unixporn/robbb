@@ -74,6 +74,7 @@ pub async fn handle_event(
             message_delete::message_delete(ctx.clone(), channel_id, deleted_message_id, guild_id)
                 .await
         }
+
         MessageDeleteBulk {
             multiple_deleted_messages_ids,
             channel_id,
