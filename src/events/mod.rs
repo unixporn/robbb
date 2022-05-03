@@ -11,15 +11,15 @@ use serenity::client;
 
 use crate::{db::Db, util, Config};
 
-//mod guild_member_addition;
-//mod guild_member_removal;
+mod guild_member_addition;
+mod guild_member_removal;
 mod guild_member_update;
 mod handle_blocklist;
 mod message_create;
-//mod message_delete;
+mod message_delete;
 mod message_update;
-//mod reaction_add;
-//mod reaction_remove;
+mod reaction_add;
+mod reaction_remove;
 pub mod ready;
 
 pub async fn handle_event(
@@ -42,6 +42,22 @@ pub async fn handle_event(
             )
             .await
         }
+        GuildMemberAddition { new_member } => {
+            guild_member_addition::guild_member_addition(ctx.clone(), new_member).await
+        }
+        GuildMemberRemoval {
+            guild_id,
+            user,
+            member_data_if_available,
+        } => {
+            guild_member_removal::guild_member_removal(
+                ctx.clone(),
+                guild_id,
+                user,
+                member_data_if_available,
+            )
+            .await
+        }
         Message { new_message } => {
             message_create::message_create(ctx.clone(), data, new_message).await
         }
@@ -50,6 +66,31 @@ pub async fn handle_event(
             new,
             event,
         } => message_update::message_update(ctx.clone(), data, old_if_available, new, event).await,
+        MessageDelete {
+            channel_id,
+            deleted_message_id,
+            guild_id,
+        } => {
+            message_delete::message_delete(ctx.clone(), channel_id, deleted_message_id, guild_id)
+                .await
+        }
+        MessageDeleteBulk {
+            multiple_deleted_messages_ids,
+            channel_id,
+            guild_id,
+        } => {
+            message_delete::message_delete_bulk(
+                ctx.clone(),
+                channel_id,
+                multiple_deleted_messages_ids,
+                guild_id,
+            )
+            .await
+        }
+        ReactionAdd { add_reaction } => reaction_add::reaction_add(ctx.clone(), add_reaction).await,
+        ReactionRemove { removed_reaction } => {
+            reaction_remove::reaction_remove(ctx.clone(), removed_reaction).await
+        }
 
         _ => Ok(()),
     };
@@ -58,113 +99,6 @@ pub async fn handle_event(
         format!("Error while handling {} event", event.name(),),
         result
     );
-}
-
-pub struct Handler;
-
-impl Handler {
-    /*
-
-    #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
-    pub async fn message_delete(
-        &self,
-        ctx: client::Context,
-        channel_id: ChannelId,
-        deleted_message_id: MessageId,
-        guild_id: Option<GuildId>,
-    ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling message_delete event",
-            message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id).await
-        );
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn message_delete_bulk(
-        &self,
-        ctx: client::Context,
-        channel_id: ChannelId,
-        multiple_deleted_messages_ids: Vec<MessageId>,
-        guild_id: Option<GuildId>,
-    ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling message_delete event",
-            message_delete::message_delete_bulk(
-                ctx,
-                channel_id,
-                multiple_deleted_messages_ids,
-                guild_id,
-            )
-            .await
-        );
-    }
-
-    #[tracing::instrument(skip_all, fields(member.tag = %new_member.user.tag()))]
-    pub async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling guild_member_addition event",
-            guild_member_addition::guild_member_addition(ctx, new_member.guild_id, new_member)
-                .await
-        );
-    }
-
-    #[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]
-    pub async fn guild_member_removal(
-        &self,
-        ctx: client::Context,
-        guild_id: GuildId,
-        user: User,
-        _member: Option<Member>,
-    ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling guild_member_removal event",
-            guild_member_removal::guild_member_removal(ctx, guild_id, user, _member).await
-        );
-    }
-
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            reaction.emoji = %event.emoji,
-            reaction.channel_id = %event.channel_id,
-            reaction.user_id = ?event.user_id,
-            reaction.message_id = ?event.message_id
-        )
-    )]
-    pub async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling reaction_add event",
-            reaction_add::reaction_add(ctx, event).await
-        );
-    }
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            reaction.emoji = %event.emoji,
-            reaction.channel_id = %event.channel_id,
-            reaction.user_id = ?event.user_id,
-            reaction.message_id = ?event.message_id
-        )
-    )]
-    pub async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-        log_error!(
-            "Error while handling reaction_remove event",
-            reaction_remove::reaction_remove(ctx, event).await
-        );
-    }
-    */
 }
 
 async fn unmute(
