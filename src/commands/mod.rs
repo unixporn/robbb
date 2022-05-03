@@ -26,6 +26,8 @@ pub mod help;
 pub use help::*;
 pub mod tag;
 pub use tag::*;
+pub mod role;
+pub use role::*;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
@@ -33,15 +35,17 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         poise_commands::delete(),
         pfp(),
         info(),
-        note(),
-        notes(),
-        undo_note(),
+        help(),
         mute(),
+        role(),
+        Command {
+            subcommands: vec![note_add(), note_undo(), note_list()],
+            ..note()
+        },
         Command {
             subcommands: vec![poll_vote(), poll_multi()],
             ..poll()
         },
-        help(),
         Command {
             subcommands: vec![tag_get(), tag_list(), tag_set(), tag_delete()],
             ..tag()

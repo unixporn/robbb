@@ -178,5 +178,3 @@ pub async fn channel_name(ctx: &client::Context, channel_id: ChannelId) -> Resul
         .context("Failed to get guild channel for channel object")?;
     Ok(channel.name().to_string())
 }
-
-
