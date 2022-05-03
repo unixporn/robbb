@@ -7,20 +7,11 @@ use crate::{
 use anyhow::Result;
 use chrono::Utc;
 use itertools::Itertools;
-use serenity::{
-    builder::CreateEmbed,
-    client,
-    futures::StreamExt,
-    model::channel::{Message, ReactionType},
-};
+use serenity::{builder::CreateEmbed, client, futures::StreamExt, model::channel::Message};
 use tracing_futures::Instrument;
 
-//TODORW
-/*
-mci.create_interaction_response(ctx.discord(), |ir| {
-            ir.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
-        })
-*/
+const PAGINATION_LEFT: &str = "LEFT";
+const PAGINATION_RIGHT: &str = "RIGHT";
 
 #[derive(Debug)]
 pub struct PaginatedEmbed {
@@ -70,7 +61,18 @@ impl PaginatedEmbed {
         } else {
             let mut current_page_idx = 0;
             let created_msg_handle = ctx
-                .send_embed(|e| e.clone_from(self.pages.get(current_page_idx).unwrap()))
+                .send(|e| {
+                    e.embed(|e| {
+                        e.clone_from(&self.pages.get(current_page_idx).unwrap());
+                        e
+                    });
+                    e.components(|c| {
+                        c.create_action_row(|r| {
+                            r.create_button(|b| b.label("←").custom_id(PAGINATION_LEFT));
+                            r.create_button(|b| b.label("→").custom_id(PAGINATION_RIGHT))
+                        })
+                    })
+                })
                 .await?;
             let created_msg = created_msg_handle.message().await?;
 
@@ -81,50 +83,41 @@ impl PaginatedEmbed {
                 let mut created_msg = created_msg.clone();
                 let created_msg_id = created_msg.id;
                 async move {
-                    let res: Result<()> = async move {
-                        let emoji_left = ReactionType::from('◀');
-                        let emoji_right = ReactionType::from('▶');
+                    let res: Result<()> =
+                        async move {
+                            let mut interaction_stream = created_msg
+                                .await_component_interactions(&serenity_ctx)
+                                .collect_limit(10)
+                                .timeout(std::time::Duration::from_secs(30))
+                                .author_id(user_id)
+                                .build();
 
-                        let reaction_left =
-                            created_msg.react(&serenity_ctx, emoji_left.clone()).await?;
-                        let reaction_right = created_msg
-                            .react(&serenity_ctx, emoji_right.clone())
-                            .await?;
+                            while let Some(interaction) = interaction_stream.next().await {
+                                let direction = interaction.data.clone().custom_id;
+                                if direction == PAGINATION_LEFT && current_page_idx > 0 {
+                                    current_page_idx -= 1;
+                                } else if direction == PAGINATION_RIGHT
+                                    && current_page_idx < pages.len() - 1
+                                {
+                                    current_page_idx += 1;
+                                }
+                                interaction.create_interaction_response(&serenity_ctx, |ir| {
+                                    ir.kind(poise::serenity_prelude::InteractionResponseType::UpdateMessage);
+                                    ir.interaction_response_data(|d| {
+                                        d.set_embed(pages.get(current_page_idx).unwrap().clone())
+                                    })
+                                }).await?;
 
-                        let mut collector = created_msg
-                            .await_reactions(&serenity_ctx)
-                            .timeout(std::time::Duration::from_secs(30))
-                            .collect_limit(10)
-                            .author_id(user_id)
-                            .filter(move |r| {
-                                r.emoji == reaction_left.emoji || r.emoji == reaction_right.emoji
-                            })
-                            .build();
-
-                        while let Some(reaction) = collector.next().await {
-                            let reaction = &reaction.as_ref().as_inner_ref();
-                            let emoji = &reaction.emoji;
-
-                            if emoji == &emoji_left && current_page_idx > 0 {
-                                current_page_idx -= 1;
-                            } else if emoji == &emoji_right && current_page_idx < pages.len() - 1 {
-                                current_page_idx += 1;
                             }
                             created_msg
-                                .edit(&serenity_ctx, |e| {
-                                    e.set_embed(pages.get(current_page_idx).unwrap().clone())
-                                })
+                                .edit(&serenity_ctx, |e| e.components(|c| c))
                                 .await?;
-                            reaction.delete(&serenity_ctx).await?;
+                            Ok(())
                         }
-
-                        created_msg.delete_reactions(&serenity_ctx).await?;
-                        Ok(())
-                    }
-                    .instrument(
-                        tracing::info_span!("paginate-embed", embed_msg.id = %created_msg_id),
-                    )
-                    .await;
+                        .instrument(
+                            tracing::info_span!("paginate-embed", embed_msg.id = %created_msg_id),
+                        )
+                        .await;
                     if let Err(err) = res {
                         tracing::error!("{}", err);
                     }
@@ -211,33 +204,3 @@ pub async fn make_error_embed(
     e.color(0xfb4934u32);
     e
 }
-
-// TODORW (how do I set the interaction as handled without needing to send a message?)
-/*
-
-                        let mut interaction_stream = created_msg
-                            .await_component_interactions(&serenity_ctx)
-                            .collect_limit(10)
-                            .timeout(std::time::Duration::from_secs(30))
-                            .author_id(user_id)
-                            .build();
-
-                        while let Some(interaction) = interaction_stream.next().await {
-                            let direction = interaction.data.clone().custom_id;
-                            if direction == PAGINATION_LEFT && current_page_idx > 0 {
-                                current_page_idx -= 1;
-                            } else if direction == PAGINATION_RIGHT
-                                && current_page_idx < pages.len() - 1
-                            {
-                                current_page_idx += 1;
-                            }
-
-                            created_msg
-                                .edit(&serenity_ctx, |e| {
-                                    e.set_embed(pages.get(current_page_idx).unwrap().clone())
-                                })
-                                .await?;
-                        }
-
-                        //created_msg.delete_reactions(&serenity_ctx).await?;
-*/
