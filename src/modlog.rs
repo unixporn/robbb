@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use poise::serenity_prelude::Message;
 use serenity::{client, model::prelude::User, prelude::Mentionable};
 
@@ -25,54 +26,53 @@ pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
         })
         .await;
 }
-/*
 pub async fn log_warn(
-    ctx: &Context,
-    command_msg: &Message,
+    ctx: &Ctx<'_>,
+    context_msg: &Message,
     user: User,
     warn_count: i32,
     reason: &str,
 ) {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(&ctx.discord(), |e| {
             e.title("Warn");
             e.author_user(ctx.author().clone());
             e.thumbnail(user.face());
             e.description(format!(
                 "{} was warned by {} _({} warn)_\n{}",
                 user.mention_and_tag(),
-                command_msg.author.id.mention(),
+                ctx.author().id.mention(),
                 util::format_count(warn_count),
-                command_msg.to_context_link(),
+                context_msg.to_context_link(),
             ));
             e.field("Reason", reason, false);
         })
         .await;
 }
 
-pub async fn log_kick(ctx: &Context, command_msg: &Message, user: User, reason: &str) {
-    let config = ctx.get_config().await;
+pub async fn log_kick(ctx: Ctx<'_>, context_msg: &Message, user: User, reason: &str) {
+    let config = ctx.get_config();
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(&ctx.discord(), |e| {
             e.title("Kick");
             e.thumbnail(user.face());
             e.author_user(ctx.author().clone());
             e.description(format!(
                 "User {} was kicked by {}\n{}",
                 user.mention_and_tag(),
-                command_msg.author.id.mention(),
-                command_msg.to_context_link()
+                ctx.author().id.mention(),
+                context_msg.to_context_link()
             ));
             e.field("Reason", reason, false);
         })
         .await;
 }
 
-pub async fn log_ban(ctx: &Context, command_msg: &Message, successful_bans: &[User], reason: &str) {
-    let config = ctx.get_config().await;
+pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[User], reason: &str) {
+    let config = ctx.get_config();
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(&ctx.discord(), |e| {
             e.title("Ban");
             e.author_user(ctx.author().clone());
             e.description(format!(
@@ -81,17 +81,17 @@ pub async fn log_ban(ctx: &Context, command_msg: &Message, successful_bans: &[Us
                     .iter()
                     .map(|x| format!("- {}", x.mention_and_tag()))
                     .join("\n"),
-                command_msg.to_context_link(),
+                context_msg.to_context_link(),
             ));
             e.field("Reason", reason, false);
         })
         .await;
 }
 
-pub async fn log_unban(ctx: &Context, command_msg: &Message, user: User) {
-    let config = ctx.get_config().await;
+pub async fn log_unban(ctx: Ctx<'_>, user: User) {
+    let config = ctx.get_config();
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(&ctx.discord(), |e| {
             e.title("Unban");
             e.author_user(ctx.author().clone());
             e.thumbnail(user.face());
@@ -99,7 +99,6 @@ pub async fn log_unban(ctx: &Context, command_msg: &Message, user: User) {
         })
         .await;
 }
-*/
 
 pub async fn log_mute(
     ctx: &Ctx<'_>,

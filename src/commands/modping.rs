@@ -1,16 +1,16 @@
 use super::*;
 
 /// Ping all online moderators. Do not abuse!
-#[command]
-#[only_in(guilds)]
-#[usage("modping <reason>")]
-pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    use OnlineStatus::*;
-
-    let config = ctx.get_config().await;
-    let reason = args.remains().invalid_usage(&MODPING_COMMAND_OPTIONS)?;
-
-    let guild = msg.guild(&ctx).context("Failed to fetch guild")?;
+#[poise::command(slash_command, guild_only, prefix_command, category = "Miscellaneous")]
+pub async fn modping(
+    ctx: Ctx<'_>,
+    #[description = "Why are you modpinging?"]
+    #[rest]
+    reason: String,
+) -> Res<()> {
+    use poise::serenity_prelude::OnlineStatus::*;
+    let config = ctx.get_config();
+    let guild = ctx.guild().user_error("not in a guild")?;
 
     let mods_and_helpers = guild
         .members_with_status(Online)
@@ -29,16 +29,15 @@ pub async fn modping(ctx: &client::Context, msg: &Message, args: Args) -> Comman
         mods_and_helpers.iter().map(|m| m.mention()).join(", ")
     };
 
-    msg.channel_id
-        .send_message(&ctx, |m| {
-            m.content(format!(
-                "{} pinged staff {} for reason {}",
-                msg.author.mention(),
-                mods,
-                reason,
-            ))
-        })
-        .await?;
+    ctx.send(|m| {
+        m.content(format!(
+            "{} pinged staff {} for reason {}",
+            ctx.author().mention(),
+            mods,
+            reason,
+        ))
+    })
+    .await?;
 
     Ok(())
 }

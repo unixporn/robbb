@@ -7,3 +7,4 @@ pub type Res<T> = std::result::Result<T, Error>;
 
 pub type Ctx<'a> = poise::Context<'a, UserData, Error>;
 pub type AppCtx<'a> = poise::ApplicationContext<'a, UserData, Error>;
+pub type PrefixCtx<'a> = poise::PrefixContext<'a, UserData, Error>;

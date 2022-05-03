@@ -1,62 +1,57 @@
+use anyhow::Context;
+use chrono::Utc;
+use poise::serenity_prelude::User;
+use serenity::client;
+
+use crate::modlog;
+
 use super::*;
 
 /// Kick a user from the server
-#[command]
-#[only_in(guilds)]
-#[usage("kick <user> <reason>")]
-pub async fn kick(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let (_config, db) = ctx.get_config_and_db().await;
+#[poise::command(
+    slash_command,
+    prefix_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
+pub async fn kick(
+    ctx: Ctx<'_>,
+    #[description = "Who is the criminal?"]
+    #[rename = "criminal"]
+    user: User,
+    #[description = "What did they do?"]
+    #[rest]
+    reason: String,
+) -> Res<()> {
+    let db = ctx.get_db();
+    let guild = ctx.guild().context("Failed to fetch guild")?;
+    do_kick(&ctx.discord(), guild, &user, &reason).await?;
 
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
-
-    let mentioned_user_id = {
-        let user_mention = args
-            .single_quoted::<String>()
-            .invalid_usage(&KICK_COMMAND_OPTIONS)?;
-        disambiguate_user_mention(&ctx, &guild, msg, &user_mention)
-            .await?
-            .ok_or(UserErr::MentionedUserNotFound)?
-    };
-
-    let mentioned_user = mentioned_user_id.to_user(&ctx).await?;
-
-    let reason = args.remains().unwrap_or("no reason");
-
-    do_kick(&ctx, guild, &mentioned_user_id, reason).await?;
+    let success_msg = ctx
+        .say_success_mod_action(format!(
+            "{} has been kicked from the server",
+            user.id.mention()
+        ))
+        .await?
+        .message()
+        .await?;
 
     db.add_kick(
-        msg.author.id,
-        mentioned_user_id,
+        ctx.author().id,
+        user.id,
         reason.to_string(),
         Utc::now(),
-        Some(msg.link()),
+        Some(success_msg.link()),
     )
     .await?;
 
-    msg.reply_success_mod_action(
-        &ctx,
-        format!(
-            "{} has been kicked from the server",
-            mentioned_user_id.mention()
-        ),
-    )
-    .await?;
-
-    modlog::log_kick(&ctx, msg, mentioned_user, reason).await;
+    modlog::log_kick(ctx, &success_msg, user, &reason).await;
 
     Ok(())
 }
 
-pub async fn do_kick(
-    ctx: &client::Context,
-    guild: Guild,
-    mentioned_user: &UserId,
-    reason: &str,
-) -> Result<()> {
-    let user = mentioned_user
-        .to_user(&ctx)
-        .await
-        .context("Failed to retrieve user for kicked user")?;
+pub async fn do_kick(ctx: &client::Context, guild: Guild, user: &User, reason: &str) -> Res<()> {
     let _ = user
         .dm(&ctx, |m| -> &mut serenity::builder::CreateMessage {
             m.embed(|e| {
@@ -65,6 +60,6 @@ pub async fn do_kick(
             })
         })
         .await;
-    guild.kick_with_reason(&ctx, mentioned_user, reason).await?;
+    guild.kick_with_reason(&ctx, user, reason).await?;
     Ok(())
 }

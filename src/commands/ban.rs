@@ -1,73 +1,87 @@
-use chrono::Duration;
+use anyhow::Context;
+use chrono::{Duration, Utc};
+use poise::serenity_prelude::User;
 
-use crate::checks;
+use crate::{
+    checks::{self, PermissionLevel},
+    modlog,
+};
 
 use super::*;
 
-/// Ban one or more users from the server. use `delban` to also delete the messages he sent within the last day.
-#[command]
-#[usage("ban <@user>[,<@user>,<@user>,...] <reason>")]
-#[aliases("yeet")]
-#[only_in(guilds)]
-pub async fn ban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    do_ban(ctx, msg, args, 0).await?;
+/// Ban a user from the server.
+#[poise::command(
+    slash_command,
+    prefix_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
+pub async fn ban(
+    ctx: Ctx<'_>,
+    #[description = "Who is the criminal?"]
+    #[rename = "criminal"]
+    user: User,
+    #[description = "Should I delete their recent messages?"]
+    #[rename = "delete"]
+    #[flag]
+    delete_messages: bool,
+    #[description = "What did they do?"] reason: String,
+) -> Res<()> {
+    do_ban(ctx, vec![user], reason, if delete_messages { 1 } else { 0 }).await?;
     Ok(())
 }
 
-/// Ban one or more users from the server, deleting all messages the user sent within the last day.
-#[command]
-#[only_in(guilds)]
-#[usage("delban <@user>[,<@user>,<@user>,...] <reason>")]
-#[aliases("delyeet")]
-#[help_available(false)]
-#[only_in(guilds)]
-pub async fn delban(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    do_ban(ctx, msg, args, 1).await?;
-    Ok(())
-}
-
-async fn do_ban(
-    ctx: &client::Context,
-    msg: &Message,
-    mut args: Args,
-    delete_days: u8,
-) -> CommandResult {
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
-
-    let mentioned_users = &args
-        .single::<String>()
-        .invalid_usage(&BAN_COMMAND_OPTIONS)?
-        .split(',')
-        .map(|x| {
-            x.parse::<UserId>()
-                .with_user_error(|_| format!("{} is not a valid user id", x))
-        })
-        .collect::<Result<Vec<UserId>, UserErr>>()?;
-
-    let reason = args.remains().invalid_usage(&BAN_COMMAND_OPTIONS)?;
-    let reason_has_user_id = reason
-        .split(' ')
-        .next()
-        .map(|x| x.parse::<UserId>().is_ok())
-        == Some(true);
-    if reason_has_user_id {
-        abort_with!("Found a user id in your ban reason. Make sure to list the users you want to ban separated by just a comma.");
+/// Ban multiple users from the server.
+#[poise::command(
+    slash_command,
+    prefix_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
+pub async fn ban_many(
+    ctx: Ctx<'_>,
+    #[description = "List of user-ids, separated by commas"]
+    #[rename = "criminals"]
+    user_ids: String,
+    #[description = "Should I delete their recent messages?"]
+    #[rename = "delete"]
+    #[flag]
+    delete_messages: bool,
+    #[description = "What did they do?"] reason: String,
+) -> Res<()> {
+    let mut users = Vec::new();
+    for user_id in user_ids.split(',') {
+        let user_id = user_id
+            .trim()
+            .parse::<UserId>()
+            .with_user_error(|_| format!("{} is not a valid user id", user_id))?
+            .to_user(&ctx.discord())
+            .await?;
+        users.push(user_id);
     }
+
+    do_ban(ctx, users, reason, if delete_messages { 1 } else { 0 }).await?;
+    Ok(())
+}
+
+async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8) -> Res<()> {
+    let guild = ctx.guild().context("Failed to load guild")?;
 
     let mut disallowed_bans = Vec::new();
     let mut not_found_users = Vec::new();
     let mut successful_bans = Vec::new();
 
-    let permission_level = checks::get_permission_level(&ctx, &msg).await;
+    let permission_level = checks::get_permission_level(ctx).await;
 
-    for user in mentioned_users {
+    for user in users {
         match handle_single_ban(
-            &ctx,
+            ctx,
             &guild,
-            msg,
             permission_level,
-            *user,
-            reason,
+            user.clone(),
+            &reason,
             delete_days,
         )
         .await
@@ -83,33 +97,31 @@ async fn do_ban(
             }
             std::result::Result::Err(BanFailedReason::Other(err)) => {
                 tracing::error!("{}", err);
-                let _ = msg
-                    .reply_error(
-                        &ctx,
-                        format!("Something went wrong banning {} ({})", user, user.mention()),
-                    )
+                let _ = ctx
+                    .say_error(format!(
+                        "Something went wrong banning {} ({})",
+                        user,
+                        user.mention()
+                    ))
                     .await;
             }
         }
     }
 
     if !not_found_users.is_empty() {
-        let _ = msg
-            .reply_error(
-                &ctx,
-                format!(
-                    "The following users don't seem to exist:\n{}",
-                    not_found_users
-                        .into_iter()
-                        .map(|x| format!("- {}", x.mention()))
-                        .join("\n")
-                ),
-            )
+        let _ = ctx
+            .say_error(format!(
+                "The following users don't seem to exist:\n{}",
+                not_found_users
+                    .into_iter()
+                    .map(|x| format!("- {}", x.mention()))
+                    .join("\n")
+            ))
             .await;
     }
 
     if !disallowed_bans.is_empty() {
-        let _ = msg.reply_error(&ctx,
+        let _ = ctx.say_error(
             format!(
                 "Failed to ban the following users because of the 3 day account / join age restriction for helpers:\n{}", 
                 disallowed_bans.into_iter().map(|x| format!("- {} ({})", x.tag(), x.id)).join("\n")
@@ -118,20 +130,19 @@ async fn do_ban(
     }
 
     if !successful_bans.is_empty() {
-        let _ = msg
-            .reply_success_mod_action(
-                &ctx,
-                format!(
-                    "successfully yote\n{}",
-                    successful_bans
-                        .iter()
-                        .map(|x| format!("- {} ({})", x.tag(), x.id))
-                        .join("\n")
-                ),
-            )
-            .await;
+        let success_msg = ctx
+            .say_success_mod_action(format!(
+                "successfully yote\n{}",
+                successful_bans
+                    .iter()
+                    .map(|x| format!("- {} ({})", x.tag(), x.id))
+                    .join("\n")
+            ))
+            .await?
+            .message()
+            .await?;
 
-        modlog::log_ban(ctx, msg, &successful_bans, reason).await;
+        modlog::log_ban(ctx, &success_msg, &successful_bans, &reason).await;
     }
 
     Ok(())
@@ -149,21 +160,15 @@ impl From<anyhow::Error> for BanFailedReason {
 }
 
 async fn handle_single_ban(
-    ctx: &client::Context,
+    ctx: Ctx<'_>,
     guild: &Guild,
-    msg: &Message,
     permission_level: PermissionLevel,
-    user: UserId,
+    user: User,
     reason: &str,
     delete_days: u8,
 ) -> Result<User, BanFailedReason> {
-    let user = user
-        .to_user(&ctx)
-        .await
-        .map_err(|_| BanFailedReason::UserNotFound)?;
-
     let ban_allowed = if permission_level == PermissionLevel::Helper {
-        let member = guild.member(&ctx, user.id).await;
+        let member = guild.member(&ctx.discord(), user.id).await;
         let join_or_create_date = member
             .ok()
             .and_then(|x| x.joined_at)
@@ -179,7 +184,7 @@ async fn handle_single_ban(
 
     if reason.to_string().contains("ice") {
         let _ = user
-            .dm(&ctx, |m| -> &mut serenity::builder::CreateMessage {
+            .dm(&ctx.discord(), |m| -> &mut serenity::builder::CreateMessage {
                m.content(indoc::formatdoc!(
                    "{}
 
@@ -192,7 +197,7 @@ async fn handle_single_ban(
             .await;
     } else {
         let _ = user
-            .dm(&ctx, |m| {
+            .dm(&ctx.discord(), |m| {
                 m.embed(|e| {
                     e.title(format!("You were banned from {}", guild.name));
                     e.field("Reason", reason, false)
@@ -201,19 +206,19 @@ async fn handle_single_ban(
             .await;
     }
 
-    let db = ctx.get_db().await;
+    let db = ctx.get_db();
     guild
-        .ban_with_reason(&ctx, &user, delete_days, reason)
+        .ban_with_reason(&ctx.discord(), &user, delete_days, reason)
         .await
         .context("Ban failed")?;
 
     // Log the ban as a Note in the database
     db.add_ban(
-        msg.author.id,
+        ctx.author().id,
         user.id,
         reason.to_string(),
         Utc::now(),
-        Some(msg.link()),
+        None, // Some(msg.link()), //TODORW
     )
     .await?;
 
