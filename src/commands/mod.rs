@@ -23,12 +23,13 @@ pub use mute::*;
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
         poise_commands::register(),
+        poise_commands::delete(),
         pfp(),
         info(),
         note(),
-        //notes(),
-        //undo_note(),
-        //mute(),
+        notes(),
+        undo_note(),
+        mute(),
     ]
 }
 

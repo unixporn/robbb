@@ -1,10 +1,10 @@
-use crate::{prelude::Ctx, UpEmotes};
+use crate::{extensions::PoiseContextExt, prelude::Ctx, UpEmotes};
 
 use anyhow::Result;
 use chrono::Utc;
 use itertools::Itertools;
 use serenity::{
-    builder::{CreateEmbed, CreateMessage},
+    builder::CreateEmbed,
     client,
     futures::StreamExt,
     model::channel::{Message, ReactionType},
@@ -13,7 +13,7 @@ use tracing_futures::Instrument;
 
 #[derive(Debug)]
 pub struct PaginatedEmbed {
-    embeds: Vec<CreateEmbed>,
+    pages: Vec<CreateEmbed>,
     base_embed: CreateEmbed,
 }
 
@@ -23,7 +23,7 @@ impl PaginatedEmbed {
         base_embed: CreateEmbed,
     ) -> PaginatedEmbed {
         PaginatedEmbed {
-            embeds: embeds.into_iter().collect(),
+            pages: embeds.into_iter().collect(),
             base_embed,
         }
     }
@@ -42,56 +42,26 @@ impl PaginatedEmbed {
             })
             .collect_vec();
 
-        PaginatedEmbed {
-            embeds: pages,
-            base_embed,
-        }
+        PaginatedEmbed { pages, base_embed }
     }
 
     #[tracing::instrument(skip_all, fields(?self))]
     pub async fn reply_to(&self, ctx: Ctx<'_>) -> Result<Message> {
-        let pages = self.embeds.iter();
-        let pages = pages
-            .map(|e| {
-                let mut m = CreateMessage::default();
-                m.set_embed(e.clone());
-                m
-            })
-            .collect_vec();
-
-        if pages.len() < 2 {
-            Ok(ctx
-                .channel_id()
-                .send_message(&ctx.discord(), |m: &mut CreateMessage| {
-                    if let Some(create_message) = pages.first() {
-                        m.clone_from(create_message);
-                    } else {
-                        m.set_embed(self.base_embed.clone());
-                    }
-                    match ctx {
-                        poise::Context::Prefix(prefix) => {
-                            m.reference_message(prefix.msg);
-                        }
-                        _ => {}
-                    };
-                    m
-                })
-                .await?)
+        let pages = self.pages.clone();
+        if pages.len() == 0 {
+            let handle = ctx.send_embed(|e| e.clone_from(&self.base_embed)).await?;
+            Ok(handle.message().await?)
+        } else if pages.len() == 1 {
+            let handle = ctx
+                .send_embed(|e| e.clone_from(self.pages.first().unwrap()))
+                .await?;
+            Ok(handle.message().await?)
         } else {
             let mut current_page_idx = 0;
-            let created_msg = ctx
-                .channel_id()
-                .send_message(&ctx.discord(), |m| {
-                    m.clone_from(pages.get(current_page_idx).unwrap());
-                    match ctx {
-                        poise::Context::Prefix(prefix) => {
-                            m.reference_message(prefix.msg);
-                        }
-                        _ => {}
-                    };
-                    m
-                })
+            let created_msg_handle = ctx
+                .send_embed(|e| e.clone_from(self.pages.get(current_page_idx).unwrap()))
                 .await?;
+            let created_msg = created_msg_handle.message().await?;
 
             let serenity_ctx = ctx.discord().clone();
             let user_id = ctx.author().id;
@@ -131,8 +101,7 @@ impl PaginatedEmbed {
                             }
                             created_msg
                                 .edit(&serenity_ctx, |e| {
-                                    e.0.clone_from(&pages.get(current_page_idx).unwrap().0);
-                                    e
+                                    e.set_embed(pages.get(current_page_idx).unwrap().clone())
                                 })
                                 .await?;
                             reaction.delete(&serenity_ctx).await?;
