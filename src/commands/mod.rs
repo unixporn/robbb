@@ -28,6 +28,8 @@ pub mod tag;
 pub use tag::*;
 pub mod role;
 pub use role::*;
+pub mod version;
+pub use version::*;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
@@ -38,6 +40,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         help(),
         mute(),
         role(),
+        version(),
         Command {
             subcommands: vec![note_add(), note_undo(), note_list()],
             ..note()
