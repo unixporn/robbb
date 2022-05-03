@@ -1,4 +1,9 @@
-use crate::{db::Db, embeds::make_create_embed, prelude::Ctx, Config, UpEmotes};
+use crate::{
+    db::Db,
+    embeds::{self, make_create_embed},
+    prelude::Ctx,
+    Config, UpEmotes,
+};
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
@@ -96,15 +101,9 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let poggers = self
-            .data()
-            .up_emotes
-            .as_ref()
-            .map(|x| format!(" {}", x.poggers.clone()));
-
+        let create_embed = embeds::make_success_embed(&self.discord(), text).await;
         self.send_embed(|e| {
-            e.description(format!("{}{}", text, poggers.unwrap_or_default()));
-            e.color(0xb8bb26u32);
+            e.clone_from(&create_embed);
         })
         .await
     }
@@ -113,15 +112,9 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let pensibe = self
-            .data()
-            .up_emotes
-            .as_ref()
-            .map(|x| format!(" {}", x.pensibe.clone()));
-
-        self.send_embed_full(true, |e| {
-            e.description(format!("{}{}", text, pensibe.unwrap_or_default()));
-            e.color(0xfb4934u32);
+        let create_embed = embeds::make_error_embed(&self.discord(), text).await;
+        self.send_embed(|e| {
+            e.clone_from(&create_embed);
         })
         .await
     }
@@ -129,15 +122,9 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let police = self
-            .data()
-            .up_emotes
-            .as_ref()
-            .map(|x| format!(" {}", x.police.clone()));
-
+        let create_embed = embeds::make_success_mod_action_embed(&self.discord(), text).await;
         self.send_embed(|e| {
-            e.description(format!("{}{}", text, police.unwrap_or_default()));
-            e.color(0xb8bb26u32);
+            e.clone_from(&create_embed);
         })
         .await
     }
@@ -300,54 +287,14 @@ impl MessageExt for Message {
     async fn reply_error(
         &self,
         ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
+        text: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
-        let pensibe = ctx
-            .get_up_emotes()
-            .await
-            .map(|x| format!(" {}", x.pensibe.clone()));
-        self.reply_embed(&ctx, |e| {
-            e.description(format!("{}{}", s, pensibe.unwrap_or_default()));
-            e.color(0xfb4934);
+        let create_embed = embeds::make_error_embed(ctx, text).await;
+        self.reply_embed(ctx, |e| {
+            e.clone_from(&create_embed);
         })
         .await
     }
-    /*
-
-    async fn reply_success(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message> {
-        let poggers = ctx
-            .get_up_emotes()
-            .await
-            .map(|x| format!(" {}", x.poggers.clone()));
-
-        self.reply_embed(&ctx, |e| {
-            e.description(format!("{}{}", s, poggers.unwrap_or_default()));
-            e.color(0xb8bb26);
-        })
-        .await
-    }
-
-    async fn reply_success_mod_action(
-        &self,
-        ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
-    ) -> Result<Message> {
-        let police = ctx
-            .get_up_emotes()
-            .await
-            .map(|x| format!(" {}", x.police.clone()));
-
-        self.reply_embed(&ctx, |e| {
-            e.description(format!("{}{}", s, police.unwrap_or_default()));
-            e.color(0xb8bb26);
-        })
-        .await
-    }
-    */
 
     async fn create_thread(
         &self,
@@ -378,15 +325,11 @@ pub trait ChannelIdExt {
     async fn send_error(
         &self,
         ctx: &client::Context,
-        s: impl Display + Send + Sync + 'static,
+        text: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
-        let pensibe = ctx
-            .get_up_emotes()
-            .await
-            .map(|x| format!(" {}", x.pensibe.clone()));
-        self.send_embed(&ctx, |e| {
-            e.description(format!("{}{}", s, pensibe.unwrap_or_default()));
-            e.color(0xfb4934);
+        let create_embed = embeds::make_error_embed(ctx, text).await;
+        self.send_embed(ctx, |e| {
+            e.clone_from(&create_embed);
         })
         .await
     }
