@@ -6,3 +6,4 @@ pub type Error = Box<dyn std::error::Error + Send + Sync>;
 pub type Res<T> = std::result::Result<T, Error>;
 
 pub type Ctx<'a> = poise::Context<'a, UserData, Error>;
+pub type AppCtx<'a> = poise::ApplicationContext<'a, UserData, Error>;

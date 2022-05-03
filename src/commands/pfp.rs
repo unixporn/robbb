@@ -3,7 +3,13 @@ use crate::embeds;
 use super::*;
 
 /// Show the profile picture of a user.
-#[poise::command(slash_command, guild_only, prefix_command, track_edits)]
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    category = "Miscellaneous",
+    track_edits
+)]
 pub async fn pfp(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
     let member = member_or_self(ctx, user).await?;
     let server_pfp = member.face();

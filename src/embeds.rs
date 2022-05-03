@@ -152,3 +152,33 @@ pub async fn make_create_embed(
     build(&mut e);
     e
 }
+
+// TODORW (how do I set the interaction as handled without needing to send a message?)
+/*
+
+                        let mut interaction_stream = created_msg
+                            .await_component_interactions(&serenity_ctx)
+                            .collect_limit(10)
+                            .timeout(std::time::Duration::from_secs(30))
+                            .author_id(user_id)
+                            .build();
+
+                        while let Some(interaction) = interaction_stream.next().await {
+                            let direction = interaction.data.clone().custom_id;
+                            if direction == PAGINATION_LEFT && current_page_idx > 0 {
+                                current_page_idx -= 1;
+                            } else if direction == PAGINATION_RIGHT
+                                && current_page_idx < pages.len() - 1
+                            {
+                                current_page_idx += 1;
+                            }
+
+                            created_msg
+                                .edit(&serenity_ctx, |e| {
+                                    e.set_embed(pages.get(current_page_idx).unwrap().clone())
+                                })
+                                .await?;
+                        }
+
+                        //created_msg.delete_reactions(&serenity_ctx).await?;
+*/

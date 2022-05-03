@@ -1,26 +1,14 @@
 use chrono::Utc;
-use poise::{
-    serenity_prelude::{Mentionable, User, UserId},
-    Modal,
-};
+use poise::serenity_prelude::{Mentionable, User, UserId};
 
 use crate::{
-    abort_with,
     db::{note::NoteType, Db},
     embeds, modlog,
 };
 
 use super::*;
 
-// TODORW probably use subcommands here
-
-//#[derive(Debug, Modal)]
-//#[name = "Take a note"]
-//struct NoteModal {
-//#[name = "Note"]
-//#[paragraph]
-//note: String,
-//}
+// TODORW probably wanna use subcommands here
 
 /// Write a note about a user.
 #[poise::command(
@@ -28,6 +16,7 @@ use super::*;
     guild_only,
     prefix_command,
     track_edits,
+    category = "Moderation",
     check = "crate::checks::check_is_moderator"
 )]
 pub async fn note(
@@ -38,17 +27,6 @@ pub async fn note(
     content: String,
 ) -> Res<()> {
     let db = ctx.get_db();
-
-    // TODORW
-    //let content = match (ctx) {
-    //poise::Context::Application(ctx) if content.is_empty() => {
-    //NoteModal::execute(ctx).await?.note
-    //}
-    //poise::Context::Prefix(_) if content.is_empty() => {
-    //abort_with!(UserErr::InvalidUsage("No note content provided"))
-    //}
-    //_ => content,
-    //};
 
     let success_msg = ctx.say_success("Noting...").await?.message().await.ok();
 
@@ -72,6 +50,7 @@ pub async fn note(
     guild_only,
     prefix_command,
     track_edits,
+    category = "Moderation",
     rename = "undo-note",
     check = "crate::checks::check_is_moderator"
 )]
@@ -100,6 +79,7 @@ pub enum NoteFilterParam {
     guild_only,
     prefix_command,
     track_edits,
+    category = "Moderation",
     rename = "notes",
     check = "crate::checks::check_is_moderator"
 )]

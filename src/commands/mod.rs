@@ -4,6 +4,7 @@ use crate::extensions::*;
 use crate::util;
 use itertools::Itertools;
 use poise::serenity_prelude::Member;
+use poise::Command;
 
 pub use crate::prelude::*;
 pub use poise::serenity_prelude::{Guild, Mentionable, UserId};
@@ -19,6 +20,12 @@ pub mod note;
 pub use note::*;
 pub mod mute;
 pub use mute::*;
+pub mod poll;
+pub use poll::*;
+pub mod help;
+pub use help::*;
+pub mod tag;
+pub use tag::*;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
@@ -30,6 +37,15 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         notes(),
         undo_note(),
         mute(),
+        Command {
+            subcommands: vec![poll_vote(), poll_multi()],
+            ..poll()
+        },
+        help(),
+        Command {
+            subcommands: vec![tag_get(), tag_list(), tag_set(), tag_delete()],
+            ..tag()
+        },
     ]
 }
 

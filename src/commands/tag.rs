@@ -1,25 +1,56 @@
+use chrono::Utc;
+use poise::Modal;
+
 use super::*;
 
-/// Get the text stored in a tag.
-#[command]
-#[usage("tag <name> OR tag list")]
-#[sub_commands(list_tags)]
-#[only_in(guilds)]
-pub async fn tag(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
-    let tag_name = args.remains().invalid_usage(&TAG_COMMAND_OPTIONS)?;
+// TODORW possibly return AutocompleteChoice s here, to preview a bit of the tags content
+async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
+    let db = ctx.get_db();
+    let tags = match db.list_tags().await {
+        Ok(tags) => tags,
+        Err(_) => Vec::new(),
+    };
+
+    tags.into_iter()
+        .filter(move |tag| tag.starts_with(&partial))
+        .map(|tag| tag.to_string())
+}
+
+/// Get the text stored in a tag
+#[poise::command(slash_command, guild_only, category = "Miscellaneous", track_edits)]
+pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
+    Ok(())
+}
+
+/// Get the text stored in a tag
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    category = "Miscellaneous",
+    rename = "get",
+    track_edits
+)]
+pub async fn tag_get(
+    ctx: Ctx<'_>,
+    #[description = "The tag to show"]
+    #[autocomplete = "tag_autocomplete"]
+    #[rename = "tag"]
+    tag_name: String,
+) -> Res<()> {
+    let db = ctx.get_db();
 
     let tag = db
-        .get_tag(tag_name)
+        .get_tag(&tag_name)
         .await?
         .user_error("No tag with this name exists")?;
 
-    let moderator = tag.moderator.to_user(&ctx).await?;
+    let moderator = tag.moderator.to_user(&ctx.discord()).await?;
 
     if util::validate_url(&tag.content) {
-        msg.reply(&ctx, &tag.content).await?;
+        ctx.say(&tag.content).await?;
     } else {
-        msg.reply_embed(&ctx, |e| {
+        ctx.send_embed(|e| {
             e.title(&tag.name);
             e.description(&tag.content);
             e.footer(|f| f.text(format!("Written by {}", moderator.tag())));
@@ -34,14 +65,19 @@ pub async fn tag(ctx: &client::Context, msg: &Message, args: Args) -> CommandRes
 }
 
 /// Get the names of all tags
-#[command("list")]
-#[usage("tag list")]
-pub async fn list_tags(ctx: &client::Context, msg: &Message) -> CommandResult {
-    let db = ctx.get_db().await;
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    category = "Miscellaneous",
+    rename = "list"
+)]
+pub async fn tag_list(ctx: Ctx<'_>) -> Res<()> {
+    let db = ctx.get_db();
 
     let tags = db.list_tags().await?;
 
-    msg.reply_embed(&ctx, |e| {
+    ctx.send_embed(|e| {
         e.title("Tags");
         e.description(&tags.join(", "));
     })
@@ -50,39 +86,56 @@ pub async fn list_tags(ctx: &client::Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-/// Save a new tag or update an old one.
-#[command("settag")]
-#[usage("settag <name> <content>")]
-pub async fn set_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
-    let tag_name = args
-        .single_quoted::<String>()
-        .invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
+#[derive(Debug, Modal)]
+#[name = "Specify the tags content"]
+struct TagSetModal {
+    #[name = "Content"]
+    #[paragraph]
+    content: String,
+}
 
-    let content = args.remains().invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
+/// Save a new tag or update an old one.
+#[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "set")]
+pub async fn tag_set(
+    ctx: AppCtx<'_>,
+    #[rename = "name"]
+    #[description = "The name of the tag"]
+    tag_name: String,
+) -> Res<()> {
+    let result = TagSetModal::execute(ctx).await?;
+
+    let ctx = Ctx::Application(ctx);
+    let db = ctx.get_db();
 
     db.set_tag(
-        msg.author.id,
+        ctx.author().id,
         tag_name,
-        content.to_string(),
+        result.content.to_string(),
         true,
         Some(Utc::now()),
     )
     .await?;
-    msg.reply_success(&ctx, "Succesfully set!").await?;
+    ctx.say_success("Succesfully set!").await?;
     Ok(())
 }
 
-/// Save a new tag or update an old one.
-#[command("deletetag")]
-#[usage("deletetag <name>")]
-pub async fn delete_tag(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
-    let tag_name = args
-        .single_quoted::<String>()
-        .invalid_usage(&SET_TAG_COMMAND_OPTIONS)?;
-
+/// Delete a tag
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    category = "Miscellaneous",
+    rename = "delete"
+)]
+pub async fn tag_delete(
+    ctx: Ctx<'_>,
+    #[rename = "name"]
+    #[description = "Name of the tag"]
+    #[autocomplete = "tag_autocomplete"]
+    tag_name: String,
+) -> Res<()> {
+    let db = ctx.get_db();
     db.delete_tag(tag_name).await?;
-    msg.reply_success(&ctx, "Succesfully removed!").await?;
+    ctx.say_success("Succesfully removed!").await?;
     Ok(())
 }
