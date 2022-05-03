@@ -2,6 +2,7 @@ use poise::serenity_prelude::ApplicationCommand;
 
 use super::*;
 
+/// Unregister all slash commands
 #[poise::command(slash_command, prefix_command, hide_in_help)]
 pub async fn delete(
     ctx: Ctx<'_>,
@@ -44,6 +45,7 @@ pub async fn delete(
     Ok(())
 }
 
+/// Register all slash commands
 #[poise::command(slash_command, prefix_command, hide_in_help)]
 pub async fn register(
     ctx: Ctx<'_>,
@@ -76,3 +78,25 @@ pub async fn register(
 
     Ok(())
 }
+/*
+
+            for command in guild.get_application_commands(&ctx.discord()).await? {
+                guild
+                    .edit_application_command(&ctx.discord(), command.id, |e| {
+                        if ctx
+                            .framework()
+                            .options()
+                            .commands
+                            .iter()
+                            .find(|x| x.name == command.name)
+                            .map_or(false, |x| x.category == Some("Moderation"))
+                        {
+                            e.default_permission(false)
+                        } else {
+                            e
+                        }
+                    })
+                    .await?;
+            }
+
+*/

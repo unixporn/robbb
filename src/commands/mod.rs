@@ -1,6 +1,5 @@
 use crate::extensions::*;
 
-//use super::Config;
 use crate::util;
 use itertools::Itertools;
 use poise::serenity_prelude::Member;
@@ -12,47 +11,55 @@ pub mod errors;
 pub mod poise_commands;
 pub use errors::*;
 
-pub mod info;
-pub use info::*;
-pub mod pfp;
-pub use pfp::*;
-pub mod note;
-pub use note::*;
-pub mod mute;
-pub use mute::*;
-pub mod poll;
-pub use poll::*;
+pub mod ask;
+pub mod ban;
 pub mod help;
-pub use help::*;
-pub mod tag;
-pub use tag::*;
+pub mod info;
+pub mod kick;
+pub mod modping;
+pub mod mute;
+pub mod note;
+pub mod pfp;
+pub mod poll;
 pub mod role;
-pub use role::*;
+pub mod tag;
+pub mod unban;
 pub mod version;
-pub use version::*;
+pub mod warn;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
         poise_commands::register(),
         poise_commands::delete(),
-        pfp(),
-        info(),
-        help(),
-        mute(),
-        role(),
-        version(),
+        pfp::pfp(),
+        info::info(),
+        help::help(),
+        mute::mute(),
+        role::role(),
+        version::version(),
         Command {
-            subcommands: vec![note_add(), note_undo(), note_list()],
-            ..note()
+            subcommands: vec![note::note_add(), note::note_undo(), note::note_list()],
+            ..note::note()
         },
         Command {
-            subcommands: vec![poll_vote(), poll_multi()],
-            ..poll()
+            subcommands: vec![poll::poll_vote(), poll::poll_multi()],
+            ..poll::poll()
         },
         Command {
-            subcommands: vec![tag_get(), tag_list(), tag_set(), tag_delete()],
-            ..tag()
+            subcommands: vec![
+                tag::tag_get(),
+                tag::tag_list(),
+                tag::tag_set(),
+                tag::tag_delete(),
+            ],
+            ..tag::tag()
         },
+        ask::ask(),
+        modping::modping(),
+        warn::warn(),
+        kick::kick(),
+        ban::ban(),
+        unban::unban(),
     ]
 }
 

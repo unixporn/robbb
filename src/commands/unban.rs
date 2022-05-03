@@ -1,22 +1,33 @@
+use anyhow::Context;
+
+use crate::modlog;
+
 use super::*;
+
 /// Unban a user.
-#[command]
-#[only_in(guilds)]
-#[usage("unban <user>")]
-pub async fn unban(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
+#[poise::command(
+    slash_command,
+    prefix_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
+pub async fn unban(
+    ctx: Ctx<'_>,
+    #[description = "ID of the user you want to unban"]
+    #[rename = "id"]
+    user_id: u64,
+) -> Res<()> {
+    let user_id = UserId(user_id);
+    let guild = ctx.guild().context("Failed to load guild")?;
+    let user = user_id.to_user(&ctx.discord()).await?;
 
-    let user_id = args
-        .single::<UserId>()
-        .invalid_usage(&UNBAN_COMMAND_OPTIONS)?;
-    let user = user_id.to_user(&ctx).await?;
+    guild.unban(&ctx.discord(), user_id).await?;
 
-    guild.unban(&ctx, user_id).await?;
-
-    msg.reply_success(&ctx, format!("Succesfully deyote {}", user_id.mention()))
+    ctx.say_success(format!("Succesfully deyote {}", user_id.mention()))
         .await?;
 
-    modlog::log_unban(ctx, msg, user).await;
+    modlog::log_unban(ctx, user).await;
 
     Ok(())
 }

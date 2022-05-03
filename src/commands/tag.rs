@@ -17,7 +17,7 @@ async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item =
 }
 
 /// Get the text stored in a tag
-#[poise::command(slash_command, guild_only, category = "Miscellaneous", track_edits)]
+#[poise::command(slash_command, guild_only, category = "Miscellaneous")]
 pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
@@ -28,8 +28,7 @@ pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
     guild_only,
     prefix_command,
     category = "Miscellaneous",
-    rename = "get",
-    track_edits
+    rename = "get"
 )]
 pub async fn tag_get(
     ctx: Ctx<'_>,

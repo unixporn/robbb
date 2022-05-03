@@ -12,7 +12,6 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    track_edits,
     category = "Moderation",
     check = "crate::checks::check_is_moderator"
 )]
@@ -25,7 +24,6 @@ pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
     slash_command,
     guild_only,
     prefix_command,
-    track_edits,
     category = "Moderation",
     check = "crate::checks::check_is_moderator",
     rename = "add"
@@ -60,7 +58,6 @@ pub async fn note_add(
     slash_command,
     guild_only,
     prefix_command,
-    track_edits,
     category = "Moderation",
     rename = "undo",
     check = "crate::checks::check_is_moderator"
@@ -89,7 +86,6 @@ pub enum NoteFilterParam {
     slash_command,
     guild_only,
     prefix_command,
-    track_edits,
     category = "Moderation",
     rename = "list",
     check = "crate::checks::check_is_moderator"

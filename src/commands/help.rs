@@ -4,6 +4,7 @@ use crate::embeds::{self, PaginatedEmbed};
 
 use super::*;
 
+/// Show this list
 #[poise::command(slash_command, guild_only, track_edits, prefix_command)]
 pub async fn help(
     ctx: Ctx<'_>,
