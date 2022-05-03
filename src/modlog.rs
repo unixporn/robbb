@@ -1,9 +1,9 @@
 use poise::serenity_prelude::Message;
-use serenity::{builder::CreateEmbed, client, model::prelude::User, prelude::Mentionable};
+use serenity::{client, model::prelude::User, prelude::Mentionable};
 
 use crate::{
     db::mute::Mute,
-    extensions::{ClientContextExt, MessageExt, PoiseContextExt, UserExt},
+    extensions::{ClientContextExt, CreateEmbedExt, MessageExt, PoiseContextExt, UserExt},
     prelude::Ctx,
     util,
 };
@@ -14,7 +14,7 @@ pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
     config
         .log_bot_action(&ctx.discord(), |e| {
             e.title("Note");
-            set_author_section(e, &ctx.author());
+            e.author_user(ctx.author().clone());
             e.thumbnail(user.face());
             e.description(format!(
                 "{} took a note about {}",
@@ -37,7 +37,7 @@ pub async fn log_warn(
     config
         .log_bot_action(&ctx, |e| {
             e.title("Warn");
-            set_author_section(e, &command_msg.author);
+            e.author_user(ctx.author().clone());
             e.thumbnail(user.face());
             e.description(format!(
                 "{} was warned by {} _({} warn)_\n{}",
@@ -57,7 +57,7 @@ pub async fn log_kick(ctx: &Context, command_msg: &Message, user: User, reason: 
         .log_bot_action(&ctx, |e| {
             e.title("Kick");
             e.thumbnail(user.face());
-            set_author_section(e, &command_msg.author);
+            e.author_user(ctx.author().clone());
             e.description(format!(
                 "User {} was kicked by {}\n{}",
                 user.mention_and_tag(),
@@ -74,7 +74,7 @@ pub async fn log_ban(ctx: &Context, command_msg: &Message, successful_bans: &[Us
     config
         .log_bot_action(&ctx, |e| {
             e.title("Ban");
-            set_author_section(e, &command_msg.author);
+            e.author_user(ctx.author().clone());
             e.description(format!(
                 "yote user(s):\n{}\n{}",
                 successful_bans
@@ -93,7 +93,7 @@ pub async fn log_unban(ctx: &Context, command_msg: &Message, user: User) {
     config
         .log_bot_action(&ctx, |e| {
             e.title("Unban");
-            set_author_section(e, &command_msg.author);
+            e.author_user(ctx.author().clone());
             e.thumbnail(user.face());
             e.description(format!("{} has been deyote", user.mention_and_tag()));
         })
@@ -118,7 +118,7 @@ pub async fn log_mute(
     config
         .log_bot_action(ctx.discord(), |e| {
             e.title("Mute");
-            set_author_section(e, &ctx.author());
+            e.author_user(ctx.author().clone());
             e.thumbnail(user.face());
             e.description(format!(
                 "User {} ({}) was muted by {}\n{}",
@@ -172,12 +172,4 @@ pub async fn log_user_mute_ended(ctx: &client::Context, mute: &Mute) {
             };
         })
         .await;
-}
-
-fn set_author_section(e: &mut CreateEmbed, author: &User) {
-    e.author(|a| {
-        a.name(author.tag())
-            .icon_url(author.face())
-            .url(format!("https://discord.com/users/{}", author.id))
-    });
 }

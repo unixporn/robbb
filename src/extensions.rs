@@ -413,6 +413,7 @@ impl ChannelIdExt for ChannelId {
 #[async_trait]
 pub trait CreateEmbedExt {
     fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed;
+    fn author_user(&mut self, u: User) -> &mut Self;
 }
 
 impl CreateEmbedExt for CreateEmbed {
@@ -421,6 +422,14 @@ impl CreateEmbedExt for CreateEmbed {
             self.color(c);
         }
         self
+    }
+
+    fn author_user(&mut self, u: User) -> &mut Self {
+        self.author(|a| {
+            a.name(u.tag())
+                .icon_url(u.face())
+                .url(format!("https://discord.com/users/{}", u.id))
+        })
     }
 }
 
