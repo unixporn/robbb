@@ -8,7 +8,17 @@ use crate::{
 
 use super::*;
 
-// TODORW probably wanna use subcommands here
+/// Write a note about a user.
+#[poise::command(
+    slash_command,
+    guild_only,
+    track_edits,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
+pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
+    Ok(())
+}
 
 /// Write a note about a user.
 #[poise::command(
@@ -17,9 +27,10 @@ use super::*;
     prefix_command,
     track_edits,
     category = "Moderation",
-    check = "crate::checks::check_is_moderator"
+    check = "crate::checks::check_is_moderator",
+    rename = "add"
 )]
-pub async fn note(
+pub async fn note_add(
     ctx: Ctx<'_>,
     #[description = "User"] user: User,
     #[rest]
@@ -51,10 +62,10 @@ pub async fn note(
     prefix_command,
     track_edits,
     category = "Moderation",
-    rename = "undo-note",
+    rename = "undo",
     check = "crate::checks::check_is_moderator"
 )]
-pub async fn undo_note(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
+pub async fn note_undo(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
     let db = ctx.get_db();
     db.undo_latest_note(user.id).await?;
     ctx.say_success("Successfully removed the note!").await?;
@@ -80,10 +91,10 @@ pub enum NoteFilterParam {
     prefix_command,
     track_edits,
     category = "Moderation",
-    rename = "notes",
+    rename = "list",
     check = "crate::checks::check_is_moderator"
 )]
-pub async fn notes(
+pub async fn note_list(
     ctx: Ctx<'_>,
     #[description = "User"] user: User,
     #[description = "What kind of notes to show"] note_filter: Option<NoteFilterParam>,
