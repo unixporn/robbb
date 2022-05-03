@@ -1,4 +1,8 @@
-use crate::{extensions::PoiseContextExt, prelude::Ctx, UpEmotes};
+use crate::{
+    extensions::{ClientContextExt, PoiseContextExt},
+    prelude::Ctx,
+    UpEmotes,
+};
 
 use anyhow::Result;
 use chrono::Utc;
@@ -10,6 +14,13 @@ use serenity::{
     model::channel::{Message, ReactionType},
 };
 use tracing_futures::Instrument;
+
+//TODORW
+/*
+mci.create_interaction_response(ctx.discord(), |ir| {
+            ir.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
+        })
+*/
 
 #[derive(Debug)]
 pub struct PaginatedEmbed {
@@ -150,6 +161,54 @@ pub async fn make_create_embed(
     });
 
     build(&mut e);
+    e
+}
+
+pub async fn make_success_embed(
+    ctx: &client::Context,
+    text: impl std::fmt::Display + Send + Sync + 'static,
+) -> CreateEmbed {
+    let emote = ctx
+        .get_up_emotes()
+        .await
+        .as_ref()
+        .map(|x| format!(" {}", x.poggers.clone()));
+
+    let mut e = CreateEmbed::default();
+    e.description(format!("{}{}", text, emote.unwrap_or_default()));
+    e.color(0xb8bb26u32);
+    e
+}
+
+pub async fn make_success_mod_action_embed(
+    ctx: &client::Context,
+    text: impl std::fmt::Display + Send + Sync + 'static,
+) -> CreateEmbed {
+    let emote = ctx
+        .get_up_emotes()
+        .await
+        .as_ref()
+        .map(|x| format!(" {}", x.police.clone()));
+
+    let mut e = CreateEmbed::default();
+    e.description(format!("{}{}", text, emote.unwrap_or_default()));
+    e.color(0xb8bb26u32);
+    e
+}
+
+pub async fn make_error_embed(
+    ctx: &client::Context,
+    text: impl std::fmt::Display + Send + Sync + 'static,
+) -> CreateEmbed {
+    let emote = ctx
+        .get_up_emotes()
+        .await
+        .as_ref()
+        .map(|x| format!(" {}", x.pensibe.clone()));
+
+    let mut e = CreateEmbed::default();
+    e.description(format!("{}{}", text, emote.unwrap_or_default()));
+    e.color(0xfb4934u32);
     e
 }
 
