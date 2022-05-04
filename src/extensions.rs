@@ -29,7 +29,7 @@ type StdResult<T, E> = std::result::Result<T, E>;
 pub trait PoiseContextExt {
     async fn send_embed<F>(&self, build: F) -> StdResult<ReplyHandle<'_>, serenity::Error>
     where
-        F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync,
+        F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
         self.send_embed_full(false, build).await
     }
@@ -39,7 +39,7 @@ pub trait PoiseContextExt {
         build: F,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error>
     where
-        F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync;
+        F: FnOnce(&mut CreateEmbed) + Send + Sync;
 
     async fn say_success(
         &self,
@@ -79,7 +79,7 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         build: F,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error>
     where
-        F: FnOnce(&mut poise::serenity_prelude::CreateEmbed) + Send + Sync,
+        F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
         self.send(|f| {
             match self {
