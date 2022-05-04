@@ -1,3 +1,4 @@
+use anyhow::bail;
 use poise::serenity_prelude::RoleId;
 
 use crate::{
@@ -45,7 +46,7 @@ pub async fn check_is_not_muted(ctx: Ctx<'_>) -> Res<bool> {
 async fn check_role(ctx: Ctx<'_>, role: RoleId) -> Res<bool> {
     Ok(match ctx.guild_id() {
         Some(guild_id) => ctx.author().has_role(ctx.discord(), guild_id, role).await?,
-        _ => Err("Not in a guild")?,
+        _ => bail!("Not in a guild"),
     })
 }
 

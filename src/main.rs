@@ -24,8 +24,6 @@ pub mod util;
 use crate::{events::handle_event, logging::*};
 pub use config::*;
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
-
 #[derive(Debug, Clone)]
 pub struct UpEmotes {
     pensibe: Emoji,
@@ -191,7 +189,7 @@ async fn before(ctx: Ctx<'_>) -> bool {
     true
 }
 
-async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
+async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>) {
     //eprintln!("on_error: {:#?}", error);
     use poise::FrameworkError::*;
     match error {
@@ -209,7 +207,7 @@ async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
         } => {
             tracing::error!(event = ?event, error = %error, "Error in event listener: {}", error);
         }
-        ArgumentParse { input, ctx, error } => {
+        ArgumentParse { input, ctx, .. } => {
             log_error!(
                 ctx.say_error(format!("Malformed value \"{}\"", input.unwrap_or_default()))
                     .await
@@ -298,7 +296,7 @@ async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
     }
 }
 
-async fn handle_command_error(ctx: Ctx<'_>, err: Error) {
+async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
     match err.downcast_ref::<commands::UserErr>() {
         Some(err) => match err {
             commands::UserErr::MentionedUserNotFound => {
@@ -310,7 +308,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: Error) {
         },
         None => match err.downcast::<serenity::Error>() {
             Ok(err) => {
-                let err = *err;
+                //let err = *err;
                 tracing::warn!(
                     error.command_name = %ctx.command().name,
                     error.message = %err,
