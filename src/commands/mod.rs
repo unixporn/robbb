@@ -26,6 +26,7 @@ pub mod tag;
 pub mod unban;
 pub mod version;
 pub mod warn;
+pub mod highlights;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
@@ -60,6 +61,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         kick::kick(),
         ban::ban(),
         unban::unban(),
+        highlights::highlights_command(),
     ]
 }
 

@@ -150,7 +150,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
 
 enum BanFailedReason {
     HelperRestriction(User),
-    UserNotFound,
+    UserNotFound, //TODORW
     Other(anyhow::Error),
 }
 impl From<anyhow::Error> for BanFailedReason {
