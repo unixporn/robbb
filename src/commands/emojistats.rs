@@ -1,42 +1,49 @@
 use std::collections::hash_map::HashMap;
 
+use anyhow::Context;
+use poise::serenity_prelude::{Emoji, EmojiId};
+
 use super::*;
 
-use crate::db::emoji_logging::{EmojiStats, Ordering};
+use crate::{
+    db::emoji_logging::{EmojiStats, Ordering},
+    util,
+};
 
-#[command]
-#[usage("emojistats [emoji] | --least")]
-pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
-
-    let (ordering, single_emoji) = match args.single_quoted::<String>().ok().as_deref() {
-        Some("--least") => (Some(Ordering::Ascending), None),
-        None => (Some(Ordering::Descending), None),
-        Some(arg) => {
-            let found_emoji = match crate::util::find_emojis(&arg).first() {
-                Some(searched_emoji) => db.get_emoji_usage_by_id(searched_emoji).await,
-                None => db.get_emoji_usage_by_name(&arg).await,
-            };
-
-            (
-                None,
-                Some(found_emoji.user_error("Could not find that emote")?),
-            )
-        }
+/// Get statistics about the usage of emotes
+#[poise::command(prefix_command, slash_command, guild_only, category = "Miscellaneous")]
+pub async fn emojistats(
+    ctx: Ctx<'_>,
+    #[description = "Reverse order of popularity"]
+    #[flag]
+    #[rename = "ascending"]
+    sort_ascending: bool,
+    #[description = "The emote you want statistics on"] emote: Option<String>,
+) -> Res<()> {
+    let db = ctx.get_db();
+    let ordering = match sort_ascending {
+        true => Ordering::Ascending,
+        false => Ordering::Descending,
     };
 
-    match single_emoji {
-        Some(emoji_data) => {
-            let guild_emojis = ctx
-                .get_guild_emojis(msg.guild_id.context("could not get guild id")?)
-                .await
-                .context("could not get guild emojis")?;
+    let guild_emojis = ctx
+        .get_guild_emojis()
+        .context("could not get guild emojis")?;
+
+    match emote {
+        Some(emote_name) => {
+            let found_emoji = match util::find_emojis(&emote_name).first() {
+                Some(searched_emoji) => db.get_emoji_usage_by_id(searched_emoji).await,
+                None => db.get_emoji_usage_by_name(&emote_name).await,
+            };
+            let emoji_data = found_emoji.user_error("Could not find that emote")?;
+
             let emoji = guild_emojis
                 .get(&emoji_data.emoji.id)
                 .user_error("Could not find emoji in guild")?;
-            msg.reply_embed(ctx, |e| {
+            ctx.send_embed(|e| {
                 e.title(format!("Emoji usage for *{}*", emoji.name));
-                e.image(emoji.url());
+                e.thumbnail(emoji.url());
                 e.description(format!(
                     "**Reactions:** {} \n**In Text:** {} \n**Total:** {}",
                     emoji_data.reactions,
@@ -47,17 +54,8 @@ pub async fn emojistats(ctx: &client::Context, msg: &Message, mut args: Args) ->
             .await?;
         }
         None => {
-            let emojis = db
-                .get_top_emoji_stats(
-                    10,
-                    ordering.context("no ordering is found for some reason")?,
-                )
-                .await?;
-            let guild_emojis = ctx
-                .get_guild_emojis(msg.guild_id.context("could not get guild id")?)
-                .await
-                .context("could not guild emojis")?;
-            msg.reply_embed(ctx, |e| {
+            let emojis = db.get_top_emoji_stats(10, ordering).await?;
+            ctx.send_embed(|e| {
                 e.title("Emoji usage");
                 e.description(display_emoji_list(&guild_emojis, emojis.into_iter()));
             })
