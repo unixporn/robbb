@@ -16,6 +16,13 @@ async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item =
         .map(|tag| tag.to_string())
 }
 
+pub fn tag_commands() -> Command<UserData, Error> {
+    Command {
+        subcommands: vec![tag_get(), tag_list(), tag_set(), tag_delete()],
+        ..tag()
+    }
+}
+
 /// Get the text stored in a tag
 #[poise::command(slash_command, guild_only, category = "Miscellaneous")]
 pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {

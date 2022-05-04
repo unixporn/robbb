@@ -6,7 +6,7 @@ use crate::{
     checks::{self, PermissionLevel},
 };
 
-pub fn highlights_command() -> Command<UserData, Error> {
+pub fn highlights_commands() -> Command<UserData, Error> {
     Command {
         subcommands: vec![
             highlights_add(),

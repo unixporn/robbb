@@ -2,81 +2,104 @@ use regex::Regex;
 
 use super::*;
 
-/// Control the blocklist
-#[allow(unreachable_code)]
-#[command]
-#[only_in(guilds)]
-#[sub_commands(blocklist_add, blocklist_remove, blocklist_get)]
-#[usage("blocklist <add | get | remove>")]
-pub async fn blocklist(_ctx: &client::Context, _msg: &Message) -> CommandResult {
-    abort_with!(UserErr::invalid_usage(&BLOCKLIST_COMMAND_OPTIONS));
+pub fn blocklist_commands() -> Command<UserData, Error> {
+    Command {
+        subcommands: vec![blocklist_add(), blocklist_remove(), blocklist_list()],
+        ..blocklist()
+    }
 }
 
-#[command("add")]
-#[usage("blocklist add `regex`")]
-pub async fn blocklist_add(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
+/// Control the blocklist
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
+pub async fn blocklist(ctx: Ctx<'_>) -> Res<()> {
+    Ok(())
+}
 
-    let pattern = args
-        .remains()
-        .filter(|x| x.starts_with('`') && x.ends_with('`'))
-        .user_error("Invalid argument. The word should be surrounded by \"`\"")?;
-
-    // verified previously
-    let pattern = pattern
-        .strip_prefix('`')
-        .and_then(|x| x.strip_suffix('`'))
-        .unwrap();
+/// Add a new pattern to the blocklist
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator",
+    rename = "add"
+)]
+pub async fn blocklist_add(
+    ctx: Ctx<'_>,
+    #[description = "Regex pattern for the blocked word"] pattern: String,
+) -> Res<()> {
+    let db = ctx.get_db();
 
     let _ = Regex::new(&pattern).user_error("Illegal regex pattern")?;
 
-    db.add_blocklist_entry(msg.author.id, &pattern).await?;
+    db.add_blocklist_entry(ctx.author().id, &pattern).await?;
 
-    msg.reply_success(&ctx, format!("Added `{}` to the blocklist", pattern))
+    ctx.say_success(format!("Added `{}` to the blocklist", pattern))
         .await?;
 
     Ok(())
 }
 
-#[command("remove")]
-#[aliases("rm", "delete")]
-#[usage("blocklist remove `regex`")]
-pub async fn blocklist_remove(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
+/// Remove a pattern from the blocklist
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator",
+    rename = "remove"
+)]
+pub async fn blocklist_remove(
+    ctx: Ctx<'_>,
+    #[autocomplete = "autocomplete_blocklist_entry"]
+    #[description = "Pattern to remove from the blocklist"]
+    pattern: String,
+) -> Res<()> {
+    let db = ctx.get_db();
 
-    let pattern = args
-        .remains()
-        .filter(|x| x.starts_with('`') && x.ends_with('`'))
-        .user_error("Invalid argument. The word should be surrounded by \"`\"")?;
-
-    // verified previously
-    let pattern = pattern
-        .strip_prefix('`')
-        .and_then(|x| x.strip_suffix('`'))
-        .unwrap();
-
-    db.remove_blocklist_entry(pattern).await?;
-    msg.reply_success(&ctx, format!("Removed `{}` from the blocklist", pattern))
+    db.remove_blocklist_entry(&pattern).await?;
+    ctx.say_success(format!("Removed `{}` from the blocklist", pattern))
         .await?;
 
     Ok(())
 }
 
-#[command("get")]
-#[aliases("ls", "list")]
-#[usage("blocklist get")]
-pub async fn blocklist_get(ctx: &client::Context, msg: &Message) -> CommandResult {
-    let (config, db) = ctx.get_config_and_db().await;
+/// Get all blocklist entries
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator",
+    rename = "list"
+)]
+pub async fn blocklist_list(ctx: Ctx<'_>) -> Res<()> {
+    let config = ctx.get_config();
 
-    if msg.channel_id != config.channel_mod_bot_stuff {
-        abort_with!("This can only be used in the mod-internal bot channel");
-    }
-
+    let db = ctx.get_db();
     let entries = db.get_blocklist().await?;
 
-    msg.reply_embed(&ctx, |e| {
+    let is_in_mod_bot_stuff = ctx.channel_id() == config.channel_mod_bot_stuff;
+
+    ctx.send_embed_full(!is_in_mod_bot_stuff, |e| {
+        e.title("Blocklist");
         e.description(entries.iter().map(|x| format!("`{}`", x)).join("\n"));
     })
     .await?;
     Ok(())
+}
+
+async fn autocomplete_blocklist_entry(ctx: Ctx<'_>, partial: String) -> Vec<String> {
+    let db = ctx.get_db();
+    if let Ok(blocklist) = db.get_blocklist().await {
+        blocklist
+            .iter()
+            .filter(|x| x.contains(&partial))
+            .map(|x| x.to_string())
+            .collect_vec()
+    } else {
+        Vec::new()
+    }
 }

@@ -8,6 +8,13 @@ use crate::{
 
 use super::*;
 
+pub fn note_commands() -> Command<UserData, Error> {
+    Command {
+        subcommands: vec![note_add(), note_undo(), note_list()],
+        ..note()
+    }
+}
+
 /// Write a note about a user.
 #[poise::command(
     slash_command,
