@@ -14,6 +14,7 @@ pub use errors::*;
 pub mod ask;
 pub mod ban;
 pub mod blocklist;
+pub mod emojistats;
 pub mod help;
 pub mod highlights;
 pub mod info;
@@ -60,6 +61,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         small::desc(),
         small::git(),
         small::dotfiles(),
+        emojistats::emojistats(),
     ]
 }
 
