@@ -13,6 +13,7 @@ pub use errors::*;
 
 pub mod ask;
 pub mod ban;
+pub mod blocklist;
 pub mod help;
 pub mod highlights;
 pub mod info;
@@ -38,30 +39,17 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         mute::mute(),
         role::role(),
         version::version(),
-        Command {
-            subcommands: vec![note::note_add(), note::note_undo(), note::note_list()],
-            ..note::note()
-        },
-        Command {
-            subcommands: vec![poll::poll_vote(), poll::poll_multi()],
-            ..poll::poll()
-        },
-        Command {
-            subcommands: vec![
-                tag::tag_get(),
-                tag::tag_list(),
-                tag::tag_set(),
-                tag::tag_delete(),
-            ],
-            ..tag::tag()
-        },
+        note::note_commands(),
+        poll::poll_commands(),
+        tag::tag_commands(),
         ask::ask(),
         modping::modping(),
         warn::warn(),
         kick::kick(),
         ban::ban(),
         unban::unban(),
-        highlights::highlights_command(),
+        highlights::highlights_commands(),
+        blocklist::blocklist_commands(),
     ]
 }
 
