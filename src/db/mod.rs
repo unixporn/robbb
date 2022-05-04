@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use anyhow::{bail, Context, Result};
@@ -24,6 +25,7 @@ pub struct Db {
     pool: SqlitePool,
     blocklist_cache: Arc<RwLock<Option<Vec<String>>>>,
     highlight_cache: RwLock<Option<highlights::HighlightsData>>,
+    tag_name_cache: RwLock<Option<HashSet<String>>>,
 }
 
 impl TypeMapKey for Db {
@@ -37,6 +39,7 @@ impl Db {
             pool,
             blocklist_cache: Arc::new(RwLock::new(None)),
             highlight_cache: RwLock::new(None),
+            tag_name_cache: RwLock::new(None),
         })
     }
 

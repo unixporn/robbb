@@ -26,7 +26,8 @@ impl Db {
 
         let moderator_id = moderator.0 as i64;
         sqlx::query!(
-            "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
+            "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?)
+                on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
             name,
             moderator_id,
             content,
@@ -39,6 +40,12 @@ impl Db {
         )
             .execute(&mut conn)
             .await?;
+
+        // Insert into the cache if there are already things in the cache.
+        // If there aren't yet, then we don't care, as the cache will be filled with all values when it's read for the first time.
+        if let Some(tag_names) = self.tag_name_cache.write().await.as_mut() {
+            tag_names.insert(name.clone());
+        }
 
         Ok(Tag {
             name,
@@ -75,13 +82,29 @@ impl Db {
         sqlx::query!(r#"delete from tag where name=? COLLATE NOCASE"#, name)
             .execute(&mut conn)
             .await?;
+
+        if let Some(tag_names) = self.tag_name_cache.write().await.as_mut() {
+            tag_names.remove(&name);
+        }
+
         Ok(())
     }
 
     pub async fn list_tags(&self) -> Result<Vec<String>> {
-        let mut conn = self.pool.acquire().await?;
-        Ok(sqlx::query_scalar(r#"select name as "name!" from tag"#)
-            .fetch_all(&mut conn)
-            .await?)
+        let tag_name_cache = self.tag_name_cache.read().await;
+        if let Some(tag_names) = tag_name_cache.as_ref() {
+            Ok(tag_names.clone().into_iter().collect())
+        } else {
+            std::mem::drop(tag_name_cache);
+            let mut conn = self.pool.acquire().await?;
+            let tag_names = sqlx::query_scalar(r#"select name as "name!" from tag"#)
+                .fetch_all(&mut conn)
+                .await?;
+
+            let mut tag_name_cache = self.tag_name_cache.write().await;
+            let _ = tag_name_cache.insert(tag_names.clone().into_iter().collect());
+
+            Ok(tag_names)
+        }
     }
 }
