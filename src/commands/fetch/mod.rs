@@ -133,8 +133,6 @@ impl std::str::FromStr for FetchField {
     }
 }
 
-// TODORW this would be clean, but doing PopArgument is pain
-
 #[async_trait]
 impl SlashArgument for FetchField {
     async fn extract(

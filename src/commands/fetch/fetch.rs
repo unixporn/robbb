@@ -57,9 +57,9 @@ pub async fn fetch(
 
         // Handle fetching all fields
         None => {
-            let profile_data = get_profile_data_of(&db, user.user.id).await?;
+            let profile = db.get_profile(user.user.id).await?;
             ctx.send_embed(|e| {
-                e.author(|a| a.name(user.user.tag()).icon_url(user.user.face()));
+                e.author_user(user.user.clone());
                 e.title(format!("Fetch {}", user.user.tag()));
                 e.color_opt(color);
                 if let Some(date) = create_date {
@@ -80,16 +80,14 @@ pub async fn fetch(
                         }
                     }
                 }
-                if let Some(profile) = profile_data {
-                    if let Some(git) = profile.git {
-                        e.field("git", git, true);
-                    }
-                    if let Some(desc) = profile.description {
-                        e.description(desc);
-                    }
-                    if let Some(dots) = profile.dotfiles {
-                        e.field("dotfiles", dots, true);
-                    }
+                if let Some(git) = profile.git {
+                    e.field("git", git, true);
+                }
+                if let Some(desc) = profile.description {
+                    e.description(desc);
+                }
+                if let Some(dots) = profile.dotfiles {
+                    e.field("dotfiles", dots, true);
                 }
             })
             .await?;
@@ -97,14 +95,4 @@ pub async fn fetch(
     }
 
     Ok(())
-}
-
-/// load profile values from the database.
-/// Returns `None` if no profile values are set
-async fn get_profile_data_of(
-    db: &Db,
-    user_id: UserId,
-) -> Result<Option<crate::db::profile::Profile>> {
-    let profile = db.get_profile(user_id).await?;
-    Ok(profile)
 }

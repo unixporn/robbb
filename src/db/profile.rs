@@ -75,7 +75,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn get_profile(&self, user_id: UserId) -> Result<Option<Profile>> {
+    pub async fn get_profile(&self, user_id: UserId) -> Result<Profile> {
         let mut conn = self.pool.acquire().await?;
 
         let user = user_id.0 as i64;
@@ -87,6 +87,12 @@ impl Db {
                 description: x.description,
                 git: x.git,
                 dotfiles: x.dotfiles,
+            })
+            .unwrap_or_else(|| Profile {
+                user: user_id,
+                description: None,
+                git: None,
+                dotfiles: None,
             }))
     }
 }
