@@ -14,6 +14,7 @@ pub use errors::*;
 pub mod ask;
 pub mod ban;
 pub mod help;
+pub mod highlights;
 pub mod info;
 pub mod kick;
 pub mod modping;
@@ -26,7 +27,6 @@ pub mod tag;
 pub mod unban;
 pub mod version;
 pub mod warn;
-pub mod highlights;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![

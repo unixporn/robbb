@@ -392,7 +392,7 @@
         {
           "name": "usage!: i32",
           "ordinal": 5,
-          "type_info": "Null"
+          "type_info": "Int64"
         }
       ],
       "parameters": {
@@ -414,6 +414,16 @@
       "columns": [],
       "parameters": {
         "Right": 5
+      },
+      "nullable": []
+    }
+  },
+  "5e7e1c0e6bc30fcaae882395e46cb1f3af61733077fe0525d0ff4e7096d0154a": {
+    "query": "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?)\n                on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 9
       },
       "nullable": []
     }
@@ -722,7 +732,7 @@
         {
           "name": "usage!: i32",
           "ordinal": 5,
-          "type_info": "Null"
+          "type_info": "Int64"
         }
       ],
       "parameters": {
@@ -736,16 +746,6 @@
         false,
         null
       ]
-    }
-  },
-  "bd91d4b1114d9b42aea12fd007ae2fe9ad6d93245dc58a7b6d2960edd9a4f8ec": {
-    "query": "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?) on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 9
-      },
-      "nullable": []
     }
   },
   "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d": {
