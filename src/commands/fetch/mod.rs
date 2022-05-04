@@ -1,11 +1,18 @@
 pub use super::*;
+use poise::{
+    async_trait,
+    serenity_prelude::{ApplicationCommandOptionType, CreateApplicationCommandOption},
+    ApplicationCommandOrAutocompleteInteraction, SlashArgument,
+};
 #[allow(clippy::module_inception)]
-pub mod fetch;
-pub mod setfetch;
-pub use fetch::*;
 use serde::{Deserialize, Serialize};
+use serenity::client;
+use std::{fmt, str::FromStr};
+
+pub mod fetch;
+pub use fetch::*;
+pub mod setfetch;
 pub use setfetch::*;
-use std::fmt;
 
 /// convert the field-value into the desired format.
 /// Returns `None` if the string is empty, as empty values must not be included in embeds.
@@ -43,23 +50,6 @@ fn find_distro_image(distro: &str) -> Option<&str> {
         .map(|(_, url)| *url)
 }
 
-pub static FETCH_KEY_ORDER: [FetchField; 14] = [
-    FetchField::Distro,
-    FetchField::Kernel,
-    FetchField::Terminal,
-    FetchField::Editor,
-    FetchField::DEWM,
-    FetchField::Bar,
-    FetchField::Resolution,
-    FetchField::DisplayProtocol,
-    FetchField::Shell,
-    FetchField::GTK3,
-    FetchField::Icons,
-    FetchField::CPU,
-    FetchField::GPU,
-    FetchField::Memory,
-];
-
 #[derive(Debug, Serialize, Deserialize, Hash, PartialEq, Eq, Clone)]
 pub enum FetchField {
     Distro,
@@ -84,6 +74,24 @@ pub enum FetchField {
     Image,
 }
 
+pub static FETCH_KEY_ORDER: [FetchField; 15] = [
+    FetchField::Distro,
+    FetchField::Kernel,
+    FetchField::Terminal,
+    FetchField::Editor,
+    FetchField::DEWM,
+    FetchField::Bar,
+    FetchField::Resolution,
+    FetchField::DisplayProtocol,
+    FetchField::Shell,
+    FetchField::GTK3,
+    FetchField::Icons,
+    FetchField::CPU,
+    FetchField::GPU,
+    FetchField::Memory,
+    FetchField::Image,
+];
+
 impl fmt::Display for FetchField {
     fn fmt(&self, writer: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -91,14 +99,18 @@ impl fmt::Display for FetchField {
             FetchField::DisplayProtocol => write!(writer, "Display Protocol"),
             FetchField::GTK3 => write!(writer, "GTK3 Theme"),
             FetchField::Icons => write!(writer, "GTK Icon Theme"),
-            FetchField::Image => write!(writer, "image"),
+            FetchField::Image => write!(writer, "Image"),
             _ => write!(writer, "{:?}", self),
         }
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("Not a valid fetch field")]
+pub struct FetchFieldParseError;
+
 impl std::str::FromStr for FetchField {
-    type Err = String;
+    type Err = FetchFieldParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_ascii_lowercase().as_str() {
             "distro" => Ok(Self::Distro),
@@ -116,7 +128,34 @@ impl std::str::FromStr for FetchField {
             "gpu" => Ok(Self::GPU),
             "memory" => Ok(Self::Memory),
             "image" => Ok(Self::Image),
-            _ => Err("Not a valid fetch field.".into()),
+            _ => Err(FetchFieldParseError),
+        }
+    }
+}
+
+// TODORW this would be clean, but doing PopArgument is pain
+
+#[async_trait]
+impl SlashArgument for FetchField {
+    async fn extract(
+        _: &client::Context,
+        _: ApplicationCommandOrAutocompleteInteraction<'_>,
+        value: &serde_json::Value,
+    ) -> Result<Self, poise::SlashArgError> {
+        let s = value
+            .as_str()
+            .ok_or_else(|| poise::SlashArgError::CommandStructureMismatch("Expected String"))?;
+        Ok(
+            FetchField::from_str(s).map_err(|e| poise::SlashArgError::Parse {
+                error: Box::new(e),
+                input: s.to_string(),
+            })?,
+        )
+    }
+    fn create(builder: &mut CreateApplicationCommandOption) {
+        builder.kind(ApplicationCommandOptionType::String);
+        for value in FETCH_KEY_ORDER.iter() {
+            builder.add_string_choice(value.to_string(), value.to_string());
         }
     }
 }

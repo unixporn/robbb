@@ -5,6 +5,11 @@ use serenity::{
 };
 use std::env;
 
+use crate::{
+    commands::OptionExt,
+    prelude::{AppCtx, Res},
+};
+
 // TODORW support UserErr stuff with actual error reporting to the user
 /// return with an error value immediately.
 #[macro_export]
@@ -177,4 +182,59 @@ pub async fn channel_name(ctx: &client::Context, channel_id: ChannelId) -> Resul
         .guild()
         .context("Failed to get guild channel for channel object")?;
     Ok(channel.name().to_string())
+}
+
+pub async fn run_text_field_modal(
+    app_ctx: AppCtx<'_>,
+    title: &str,
+    label: &str,
+    placeholder: &str,
+    default_content: &str,
+) -> Res<String> {
+    // For now we must do this manually rather than using the poise macro solution
+    // as we want to set a default value for the modal content.
+
+    let interaction = app_ctx.interaction.unwrap();
+    interaction
+        .create_interaction_response(app_ctx.discord, |ir| {
+            ir.kind(poise::serenity_prelude::InteractionResponseType::Modal);
+            ir.interaction_response_data(|d| {
+                d.custom_id("text_field_modal");
+                d.title(title);
+                d.components(|c| {
+                    c.create_action_row(|r| {
+                        r.create_input_text(|t| {
+                            t.custom_id("content");
+                            t.label(label);
+                            t.style(poise::serenity_prelude::InputTextStyle::Paragraph);
+                            t.required(true);
+                            t.value(default_content);
+                            t.placeholder(placeholder)
+                        })
+                    })
+                })
+            })
+        })
+        .await?;
+
+    app_ctx
+        .has_sent_initial_response
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+
+    // Wait for user to submit
+    let response = poise::serenity_prelude::CollectModalInteraction::new(&app_ctx.discord.shard)
+        .author_id(interaction.user.id)
+        .await
+        .unwrap();
+
+    // Send acknowledgement so that the pop-up is closed
+    response
+        .create_interaction_response(app_ctx.discord, |b| {
+            b.kind(poise::serenity_prelude::InteractionResponseType::DeferredUpdateMessage)
+        })
+        .await?;
+
+    let content = poise::find_modal_text(&mut response.data.clone(), "content")
+        .user_error("Missing tag content data from modal")?;
+    Ok(content)
 }

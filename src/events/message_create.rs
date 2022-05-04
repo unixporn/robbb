@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::commands::fetch::FetchField;
 use crate::log_error;
 use crate::{attachment_logging, modlog};
 use chrono::Utc;
@@ -465,7 +466,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
                 let db = ctx.get_db().await;
                 db.update_fetch(
                     msg.author.id,
-                    hashmap! { crate::db::fetch::FetchField::Image => attachment.url.to_string() },
+                    hashmap! { FetchField::Image => attachment.url.to_string() },
                 )
                 .await?;
             }
