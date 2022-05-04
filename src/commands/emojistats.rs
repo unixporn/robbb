@@ -11,7 +11,13 @@ use crate::{
 };
 
 /// Get statistics about the usage of emotes
-#[poise::command(prefix_command, slash_command, guild_only, category = "Miscellaneous")]
+#[poise::command(
+    slash_command,
+    prefix_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
 pub async fn emojistats(
     ctx: Ctx<'_>,
     #[description = "Reverse order of popularity"]

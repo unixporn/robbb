@@ -56,6 +56,8 @@ pub trait PoiseContextExt {
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error>;
 
+    async fn guild_channel(&self) -> anyhow::Result<GuildChannel>;
+
     fn get_guild_emojis(&self) -> Option<HashMap<EmojiId, Emoji>>;
 
     fn get_random_stare(&self) -> Option<Emoji>;
@@ -127,6 +129,16 @@ impl<'a> PoiseContextExt for Ctx<'a> {
             e.clone_from(&create_embed);
         })
         .await
+    }
+
+    async fn guild_channel(&self) -> anyhow::Result<GuildChannel> {
+        Ok(self
+            .channel_id()
+            .to_channel(&self.discord())
+            .await
+            .context("Failed to load channel")?
+            .guild()
+            .context("Failed to load GuildChannel")?)
     }
 
     fn get_guild_emojis(&self) -> Option<HashMap<EmojiId, Emoji>> {

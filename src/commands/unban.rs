@@ -16,9 +16,8 @@ pub async fn unban(
     ctx: Ctx<'_>,
     #[description = "ID of the user you want to unban"]
     #[rename = "id"]
-    user_id: u64,
+    user_id: UserId,
 ) -> Res<()> {
-    let user_id = UserId(user_id);
     let guild = ctx.guild().context("Failed to load guild")?;
     let user = user_id.to_user(&ctx.discord()).await?;
 

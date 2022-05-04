@@ -1,50 +1,48 @@
 use itertools::Itertools;
 use lazy_static::lazy_static;
+use regex::Regex;
 
-use crate::db::fetch::Fetch;
+use crate::{abort_with, db::fetch::Fetch};
 
-use super::*;
+use super::{fetch::format_fetch_field_value, *};
 use std::collections::HashMap;
 
 use fetch::FetchField;
 
-/// Get statistics on what the community uses.
-#[command]
-#[only_in(guilds)]
-#[usage("top [field-name] [`regex`]")]
-#[example("!top")]
-#[example("!top Editor")]
-#[example("!top Editor `n?vim`")]
-pub async fn top(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
+/// Get statistics about what the community uses.
+#[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "top")]
+pub async fn top(
+    ctx: Ctx<'_>,
+    #[description = "What do you care about?"] field: Option<FetchField>,
+    #[description = "Regex pattern for values you want more details about"] pattern: Option<String>,
+) -> Res<()> {
+    let db = ctx.get_db();
 
     let fetches = db.get_all_fetches().await?;
 
-    if !args.is_empty() {
-        let field_name = args
-            .single_quoted::<FetchField>()
-            .user_error("Not a valid field.")?;
-        if let Some(value_pattern) = args.remains() {
-            let value_pattern = util::parse_backticked_string(&value_pattern)
-                .user_error("Must be surrounded in \\`backticks\\`")?;
-
-            top_for_regex(ctx, msg, fetches, field_name, value_pattern).await?;
-        } else {
-            top_for_field(ctx, msg, fetches, field_name).await?;
+    match (field, pattern) {
+        (Some(field), Some(pattern)) => {
+            top_for_regex(ctx, fetches, field, &pattern).await?;
         }
-    } else {
-        top_all_values(ctx, msg, fetches).await?;
+        (Some(field), None) => {
+            top_for_field(ctx, fetches, field).await?;
+        }
+        (None, None) => {
+            top_all_values(ctx, fetches).await?;
+        }
+        (None, Some(_)) => {
+            abort_with!("You must also tell me what field to check");
+        }
     }
     Ok(())
 }
 
 async fn top_for_regex(
-    ctx: &client::Context,
-    msg: &Message,
+    ctx: Ctx<'_>,
     fetches: Vec<Fetch>,
     field_name: FetchField,
     value_pattern: &str,
-) -> CommandResult {
+) -> Res<()> {
     let regex = regex::RegexBuilder::new(&value_pattern)
         .case_insensitive(true)
         .build()
@@ -64,12 +62,14 @@ async fn top_for_regex(
 
     let percentage = (matching_value_count as f64 / total_field_values as f64) * 100f64;
 
-    msg.reply_embed(&ctx, |e| {
+    ctx.send_embed(|e| {
         e.title(format!("Stats for matching {}s", field_name));
         e.description(indoc::formatdoc!(
-            "**Total**: {}
+            "**Matching**: `{}`
+             **Total**: {}
              **Percentage**: {:.2}
             ",
+            value_pattern,
             matching_value_count,
             percentage,
         ));
@@ -78,12 +78,7 @@ async fn top_for_regex(
     Ok(())
 }
 
-async fn top_for_field(
-    ctx: &client::Context,
-    msg: &Message,
-    fetches: Vec<Fetch>,
-    field_name: FetchField,
-) -> CommandResult {
+async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField) -> Res<()> {
     let field_values = fetches
         .into_iter()
         .filter_map(|mut x| x.info.remove(&field_name))
@@ -121,7 +116,7 @@ async fn top_for_field(
         })
         .join("\n");
 
-    msg.reply_embed(&ctx, |e| {
+    ctx.send_embed(|e| {
         e.title(format!("Top {}", field_name));
         e.description(top_values_text);
     })
@@ -129,14 +124,13 @@ async fn top_for_field(
     Ok(())
 }
 
-async fn top_all_values(
-    ctx: &client::Context,
-    msg: &Message,
-    fetches: Vec<Fetch>,
-) -> CommandResult {
+async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
     let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
-        for field_name in super::fetch::FETCH_KEY_ORDER.iter() {
+        for field_name in super::fetch::FETCH_KEY_ORDER
+            .iter()
+            .filter(|&x| x != &FetchField::Image)
+        {
             let data_value = data.entry(field_name.clone()).or_insert_with(Vec::new);
             if let Some(field) = fetch.info.get(field_name) {
                 data_value.push(field.clone());
@@ -167,12 +161,11 @@ async fn top_all_values(
         .map(|(field, value, _cnt, perc)| format!("**{}**: {} ({:.2}%)", field, value, perc))
         .join("\n");
 
-    msg.reply_embed(&ctx, |e| {
+    ctx.send_embed(|e| {
         e.title("Top");
         e.description(top_values_text);
     })
-    .await
-    .context("sending reply to top-command")?;
+    .await?;
     Ok(())
 }
 

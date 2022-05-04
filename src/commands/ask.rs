@@ -37,12 +37,8 @@ pub async fn ask(prefix_ctx: PrefixCtx<'_>, #[rest] question: String) -> Res<()>
         return Ok(());
     };
 
-    ctx.channel_id()
-        .to_channel(&ctx.discord())
-        .await
-        .context("Failed to request message channel")?
-        .guild()
-        .context("Failed to request guild channel")?
+    ctx.guild_channel()
+        .await?
         .create_public_thread(&ctx.discord(), prefix_ctx.msg, |e| e.name(title))
         .await
         .context("Failed to create thread for tech-support question")?;

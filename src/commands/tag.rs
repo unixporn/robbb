@@ -1,10 +1,17 @@
 use chrono::Utc;
-use poise::Modal;
 
 use super::*;
 
-// TODORW possibly return AutocompleteChoice s here, to preview a bit of the tags content
+/// Autocomplete all tags, but also provide whatever the user has already typed as one of the options.
+/// Used in /tag set, to provide completion for edits, but also allow adding new tags
 async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
+    tag_autocomplete_existing(ctx, partial.clone())
+        .await
+        .chain(std::iter::once(partial))
+}
+
+/// Autocomplete all tags
+async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
     let db = ctx.get_db();
     let tags = match db.list_tags().await {
         Ok(tags) => tags,
@@ -40,7 +47,7 @@ pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
 pub async fn tag_get(
     ctx: Ctx<'_>,
     #[description = "The tag to show"]
-    #[autocomplete = "tag_autocomplete"]
+    #[autocomplete = "tag_autocomplete_existing"]
     #[rename = "tag"]
     tag_name: String,
 ) -> Res<()> {
@@ -92,39 +99,6 @@ pub async fn tag_list(ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
-#[derive(Debug, Modal)]
-#[name = "Specify the tags content"]
-struct TagSetModal {
-    #[name = "Content"]
-    #[paragraph]
-    content: String,
-}
-
-/// Save a new tag or update an old one.
-#[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "set")]
-pub async fn tag_set(
-    ctx: AppCtx<'_>,
-    #[rename = "name"]
-    #[description = "The name of the tag"]
-    tag_name: String,
-) -> Res<()> {
-    let result = TagSetModal::execute(ctx).await?;
-
-    let ctx = Ctx::Application(ctx);
-    let db = ctx.get_db();
-
-    db.set_tag(
-        ctx.author().id,
-        tag_name,
-        result.content.to_string(),
-        true,
-        Some(Utc::now()),
-    )
-    .await?;
-    ctx.say_success("Succesfully set!").await?;
-    Ok(())
-}
-
 /// Delete a tag
 #[poise::command(
     slash_command,
@@ -137,11 +111,46 @@ pub async fn tag_delete(
     ctx: Ctx<'_>,
     #[rename = "name"]
     #[description = "Name of the tag"]
-    #[autocomplete = "tag_autocomplete"]
+    #[autocomplete = "tag_autocomplete_existing"]
     tag_name: String,
 ) -> Res<()> {
     let db = ctx.get_db();
     db.delete_tag(tag_name).await?;
     ctx.say_success("Succesfully removed!").await?;
+    Ok(())
+}
+
+/// Save a new tag or update an old one.
+#[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "set")]
+pub async fn tag_set(
+    app_ctx: AppCtx<'_>,
+    #[rename = "name"]
+    #[description = "The name of the tag"]
+    #[autocomplete = "tag_autocomplete"]
+    tag_name: String,
+) -> Res<()> {
+    let ctx = Ctx::Application(app_ctx);
+    let db = ctx.get_db();
+
+    let existing_tag = db.get_tag(&tag_name).await?;
+
+    let new_content = util::run_text_field_modal(
+        app_ctx,
+        "Set your tag",
+        "Content",
+        "Your tag content",
+        &existing_tag.map(|x| x.content).unwrap_or_default(),
+    )
+    .await?;
+
+    db.set_tag(
+        ctx.author().id,
+        tag_name,
+        new_content,
+        true,
+        Some(Utc::now()),
+    )
+    .await?;
+    ctx.say_success("Succesfully set!").await?;
     Ok(())
 }

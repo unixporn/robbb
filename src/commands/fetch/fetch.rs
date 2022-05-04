@@ -1,59 +1,45 @@
 use anyhow::Result;
 
+use crate::db::Db;
+
 use super::*;
-use std::str::FromStr;
 
 /// Fetch a users system information.
-#[command("fetch")]
-#[only_in(guilds)]
-#[usage("fetch [user] [field]")]
-pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> CommandResult {
-    let db = ctx.get_db().await;
-
-    let guild = msg.guild(&ctx).context("Failed to load guild")?;
-    let (desired_field, mentioned_user_id) = match args.single_quoted::<String>() {
-        Ok(first_arg) => {
-            // if first argument is a field, fetch the author's field
-            match FetchField::from_str(&first_arg) {
-                Ok(field) => (Some(field), msg.author.id),
-                Err(_) => {
-                    let field = args
-                        .single_quoted::<String>()
-                        .ok()
-                        .map(|x| FetchField::from_str(&x))
-                        .transpose()
-                        .map_err(|_| UserErr::other("Not a valid fetch field."))?;
-                    let user = disambiguate_user_mention(&ctx, &guild, msg, &first_arg)
-                        .await?
-                        .ok_or(UserErr::MentionedUserNotFound)?;
-                    (field, user)
-                }
-            }
-        }
-        Err(_) => (args.single_quoted().ok(), msg.author.id),
-    };
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    category = "Miscellaneous",
+    rename = "fetch"
+)]
+pub async fn fetch(
+    ctx: Ctx<'_>,
+    #[description = "The user"] user: Option<Member>,
+    #[description = "The specific field you care about"] field: Option<FetchField>,
+) -> Res<()> {
+    let db = ctx.get_db();
+    let user = member_or_self(ctx, user).await?;
 
     // Query the database
     let fetch_info = db
-        .get_fetch(mentioned_user_id)
+        .get_fetch(user.user.id)
         .await?
         .user_error("This user has not set their fetch.")?;
 
     let create_date = fetch_info.create_date;
     let fetch_data: Vec<(FetchField, String)> = fetch_info.get_values_ordered();
-    let member = guild.member(&ctx, mentioned_user_id).await?;
-    let color = member.colour(&ctx);
+    let color = user.colour(&ctx.discord());
 
-    match desired_field {
+    match field {
         // Handle fetching a single field
         Some(desired_field) => {
             let (field_name, value) = fetch_data
                 .into_iter()
                 .find(|(k, _)| k == &desired_field)
                 .user_error("Failed to get that value. Maybe the user hasn't set it?")?;
-            msg.reply_embed(&ctx, |e| {
-                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
-                e.title(format!("{}'s {}", member.user.name, field_name));
+            ctx.send_embed(|e| {
+                e.author(|a| a.name(user.user.tag()).icon_url(user.user.face()));
+                e.title(format!("{}'s {}", user.user.name, field_name));
                 e.color_opt(color);
                 if let Some(date) = create_date {
                     e.timestamp(date);
@@ -71,10 +57,10 @@ pub async fn fetch(ctx: &client::Context, msg: &Message, mut args: Args) -> Comm
 
         // Handle fetching all fields
         None => {
-            let profile_data = get_profile_data_of(&db, mentioned_user_id).await?;
-            msg.reply_embed(&ctx, |e| {
-                e.author(|a| a.name(member.user.tag()).icon_url(member.user.face()));
-                e.title(format!("Fetch {}", member.user.tag()));
+            let profile_data = get_profile_data_of(&db, user.user.id).await?;
+            ctx.send_embed(|e| {
+                e.author(|a| a.name(user.user.tag()).icon_url(user.user.face()));
+                e.title(format!("Fetch {}", user.user.tag()));
                 e.color_opt(color);
                 if let Some(date) = create_date {
                     e.timestamp(date);

@@ -1,98 +1,53 @@
-use std::str::FromStr;
+use chrono::Utc;
 
 use super::*;
 
-#[derive(Debug)]
-enum DeletionRange {
-    Amount(usize),
-    Duration(std::time::Duration),
-}
-
-impl FromStr for DeletionRange {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(s.parse::<usize>().map(DeletionRange::Amount).or_else(|_| {
-            humantime::Duration::from_str(s).map(|d| DeletionRange::Duration(d.into()))
-        })?)
-    }
-}
-
-/// **silently** delete <amount> messages sent by <user> in the current channel or messages sent in the last <duration> by <user>.
-/// Doesn't delete messages older than 14 days.
-#[command]
-#[only_in(guilds)]
-#[usage("spurge <amount OR duration> <@user>")]
-#[help_available(false)]
-pub async fn spurge(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    do_purge(&ctx, &msg, args, true).await
-}
-
-/// delete <amount> messages sent by <user> in the current channel or messages sent in the last <duration> by <user>.
-/// Doesn't delete messages older than 14 days.
-/// (use `spurge` to do this silently)
-#[command]
-#[only_in(guilds)]
-#[usage("purge <amount OR duration> <@user>")]
-pub async fn purge(ctx: &client::Context, msg: &Message, args: Args) -> CommandResult {
-    do_purge(&ctx, &msg, args, false).await
-}
-
-async fn do_purge(
-    ctx: &client::Context,
-    msg: &Message,
-    mut args: Args,
-    silent: bool,
-) -> CommandResult {
-    let range = args
-        .single::<DeletionRange>()
-        .invalid_usage(&PURGE_COMMAND_OPTIONS)?;
-
-    let mentioned_user_id = args
-        .single::<UserId>()
-        .invalid_usage(&PURGE_COMMAND_OPTIONS)?;
-
-    let channel = msg
-        .channel(&ctx)
-        .await
-        .context("Failed to load channel")?
-        .guild()
-        .context("Failed to load GuildChannel")?;
-
-    let msg_count = match range {
-        DeletionRange::Amount(n) => n,
-        _ => 100, // maximal amount of messages that we can fetch at all
-    };
-
+/// Delete recent messages of a user. Cannot delete messages older than 14 days.
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Moderation",
+    check = "crate::checks::check_is_moderator"
+)]
+pub async fn purge(
+    ctx: Ctx<'_>,
+    #[description = "User id of the bad guy"] user: UserId,
+    #[description = "How far back should we delete?"] duration: Option<humantime::Duration>,
+    #[min = 1]
+    #[max = 100]
+    #[description = "How many messages should we delete?"]
+    count: Option<usize>,
+) -> Res<()> {
+    let channel = ctx.guild_channel().await?;
+    // 100 is the maximal amount of messages that we can fetch at all
+    let count = count.unwrap_or(100);
     // discord does not let us bulk-delete messages older than 14 days
     let too_old_timestamp = Utc::now().timestamp() - 60 * 60 * 24 * 14;
 
+    let response_msg = ctx.say("Purging their messages").await?.message().await?;
+
     let recent_messages = channel
-        .messages(&ctx, |m| m.limit(100).before(msg.id))
+        .messages(&ctx.discord(), |m| m.limit(100).before(response_msg.id))
         .await?
         .into_iter()
-        .filter(|msg| msg.author.id == mentioned_user_id)
+        .filter(|msg| msg.author.id == user)
         .take_while(|msg| {
-            msg.timestamp.timestamp() > too_old_timestamp
-                && match range {
-                    DeletionRange::Duration(d) => {
-                        msg.timestamp.timestamp() > Utc::now().timestamp() - (d.as_secs() as i64)
-                    }
-                    _ => true,
-                }
+            let msg_timestamp = msg.timestamp.timestamp();
+            msg_timestamp > too_old_timestamp
+                && duration
+                    .map(|d| msg_timestamp > Utc::now().timestamp() - (d.as_secs() as i64))
+                    .unwrap_or(true)
         })
-        .take(msg_count)
+        .take(count)
         .collect_vec();
 
-    channel.delete_messages(&ctx, &recent_messages).await?;
-    if silent {
-        msg.delete(&ctx).await?;
-    } else {
-        msg.reply_success(
-            &ctx,
-            format!("Successfully deleted {} messages", recent_messages.len()),
-        )
+    channel
+        .delete_messages(&ctx.discord(), &recent_messages)
         .await?;
-    }
+    ctx.say_success(format!(
+        "Successfully deleted {} messages",
+        recent_messages.len()
+    ))
+    .await?;
     Ok(())
 }

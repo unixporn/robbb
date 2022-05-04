@@ -15,18 +15,22 @@ pub mod ask;
 pub mod ban;
 pub mod blocklist;
 pub mod emojistats;
+pub mod fetch;
 pub mod help;
 pub mod highlights;
 pub mod info;
 pub mod kick;
 pub mod modping;
+pub mod move_users;
 pub mod mute;
 pub mod note;
 pub mod pfp;
 pub mod poll;
+pub mod purge;
 pub mod role;
 pub mod small;
 pub mod tag;
+pub mod top;
 pub mod unban;
 pub mod version;
 pub mod warn;
@@ -62,6 +66,11 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         small::git(),
         small::dotfiles(),
         emojistats::emojistats(),
+        purge::purge(),
+        move_users::move_users(),
+        fetch::fetch(),
+        fetch::setfetch_commands(),
+        top::top(),
     ]
 }
 
