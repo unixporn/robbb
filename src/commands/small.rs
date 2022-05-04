@@ -69,7 +69,6 @@ pub async fn invite(ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
-// TODORW include a way to query the description again, probably via fetch -- or a subcommand
 /// Set your profiles description.
 #[poise::command(prefix_command, guild_only, slash_command)]
 pub async fn desc(
@@ -83,7 +82,6 @@ pub async fn desc(
     Ok(())
 }
 
-// TODORW include a way to query the git again, probably via fetch -- or a subcommand
 /// Provide a link to your github/gilab/... profile.
 #[poise::command(prefix_command, guild_only, slash_command)]
 pub async fn git(
@@ -97,7 +95,8 @@ pub async fn git(
     Ok(())
 }
 
-// TODORW include a way to query the description again, probably via fetch -- or a subcommand
+//TODORW integrate profile things into the fetch data...
+
 /// Provide a link to your dotfiles
 #[poise::command(prefix_command, guild_only, slash_command, aliases("dots"))]
 pub async fn dotfiles(

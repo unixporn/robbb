@@ -88,8 +88,10 @@ struct MultiPollModal {
     category = "Miscellaneous",
     rename = "multi"
 )]
-pub async fn poll_multi(ctx: AppCtx<'_>) -> Res<()> {
-    let modal_result = MultiPollModal::execute(ctx).await?;
+pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
+    let ctx = poise::Context::Application(app_ctx);
+
+    let modal_result = MultiPollModal::execute(app_ctx).await?;
 
     let options_lines = modal_result.options.lines().collect_vec();
 
@@ -107,9 +109,6 @@ pub async fn poll_multi(ctx: AppCtx<'_>) -> Res<()> {
     });
 
     let options = SELECTION_EMOJI.iter().zip(options_lines).collect_vec();
-
-    // TODORW this is ugly
-    let ctx = poise::Context::Application(ctx);
 
     let poll_msg = ctx
         .send(|m| {

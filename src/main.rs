@@ -192,7 +192,7 @@ async fn before(ctx: Ctx<'_>) -> bool {
 }
 
 async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
-    eprintln!("on_error: {:?}", error);
+    //eprintln!("on_error: {:#?}", error);
     use poise::FrameworkError::*;
     match error {
         Command { error, ctx } => {
@@ -209,7 +209,7 @@ async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
         } => {
             tracing::error!(event = ?event, error = %error, "Error in event listener: {}", error);
         }
-        ArgumentParse { input, ctx, .. } => {
+        ArgumentParse { input, ctx, error } => {
             log_error!(
                 ctx.say_error(format!("Malformed value \"{}\"", input.unwrap_or_default()))
                     .await
@@ -254,7 +254,7 @@ async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
             missing_permissions,
             ctx,
         } => {
-            log_error!(ctx.say_error("You're not allowed to do this").await);
+            log_error!(ctx.say_error("Missing permissions").await);
             tracing::error!(
                 error = "User missing permissions",
                 error.missing_permissions = ?missing_permissions,
@@ -283,88 +283,26 @@ async fn on_error(error: poise::FrameworkError<'_, UserData, Error>) {
                     ctx.say_error("Something went wrong while checking your permissions")
                         .await
                 );
-                tracing::error!(error = %error, command_name=%ctx.command().name, "Error while running command check: {}", error);
+                tracing::error!(
+                    error = %error,
+                    command_name = %ctx.command().name,
+                    "Error while running command check: {}", error
+                );
             } else {
                 log_error!(ctx.say_error("Insufficient permissions").await);
             }
         }
         DynamicPrefix { error } => {
-            tracing::error!(error=%error, "Error in dynamic prefix");
+            tracing::error!(error = %error, "Error in dynamic prefix");
         }
     }
 }
 
-// TODORW
-//#[tracing::instrument(skip_all, fields(%command_name, %msg.content, %msg.channel_id, %error))]
-//async fn dispatch_error_hook(
-//ctx: &client::Context,
-//msg: &Message,
-//error: DispatchError,
-//command_name: &str,
-//) {
-//// Log dispatch errors that should be logged
-//match &error {
-//DispatchError::CheckFailed(required, Reason::Log(log))
-//| DispatchError::CheckFailed(required, Reason::UserAndLog { user: _, log }) => {
-//tracing::warn!("Check for {} failed with: {}", required, log);
-//}
-//_ => {}
-//};
-
-//let _ = msg
-//.reply_error(&ctx, display_dispatch_error(command_name, error))
-//.await;
-//}
-
-// TODORW
-//fn display_dispatch_error(command_name: &str, err: DispatchError) -> String {
-//match err {
-//DispatchError::CheckFailed(_required, reason) => match reason {
-//Reason::User(reason)
-//| Reason::UserAndLog {
-//user: reason,
-//log: _,
-//} => reason,
-//_ => "You're not allowed to use this command".to_string(),
-//},
-//DispatchError::Ratelimited(_info) => "Hit a rate-limit".to_string(),
-//DispatchError::CommandDisabled => format!("Command {} is disabled", command_name),
-//DispatchError::BlockedUser => "User not allowed to use bot".to_string(),
-//DispatchError::BlockedGuild => "Guild is blocked by bot".to_string(),
-//DispatchError::BlockedChannel => "Channel is blocked by bot".to_string(),
-//DispatchError::OnlyForDM => "Command may only be used in DMs".to_string(),
-//DispatchError::OnlyForGuilds => "Command may only be used in a server".to_string(),
-//DispatchError::OnlyForOwners => "Command may only be used by owners".to_string(),
-//DispatchError::LackingRole => "Missing a required role".to_string(),
-//DispatchError::LackingPermissions(flags) => format!(
-//"User is missing permissions - required permission number is {}",
-//flags
-//),
-//DispatchError::NotEnoughArguments { min, given } => format!(
-//"Not enough arguments provided - got {} but needs {}",
-//given, min
-//),
-//DispatchError::TooManyArguments { max, given } => format!(
-//"Too many arguments provided - got {} but can only handle {}",
-//given, max
-//),
-//_ => {
-//tracing::error!("Unhandled dispatch error: {:?}", err);
-//"Failed to run command".to_string()
-//}
-//}
-//}
-
-// TODORW
 async fn handle_command_error(ctx: Ctx<'_>, err: Error) {
     match err.downcast_ref::<commands::UserErr>() {
         Some(err) => match err {
             commands::UserErr::MentionedUserNotFound => {
                 let _ = ctx.say_error("No user found with that name").await;
-            }
-            // TODORW this kinda doesn't work right now
-            commands::UserErr::InvalidUsage(usage) => {
-                let _ = ctx.say_error(format!("Usage: {}", usage)).await;
             }
             commands::UserErr::Other(issue) => {
                 let _ = ctx.say_error(format!("Error: {}", issue)).await;
@@ -374,12 +312,12 @@ async fn handle_command_error(ctx: Ctx<'_>, err: Error) {
             Ok(err) => {
                 let err = *err;
                 tracing::warn!(
-                error.command_name = %ctx.command().name,
-                error.message = %err,
-                "Serenity error [handling {}]: {} ({:?})",
-                ctx.command().name,
-                &err,
-                &err
+                    error.command_name = %ctx.command().name,
+                    error.message = %err,
+                    "Serenity error [handling {}]: {} ({:?})",
+                    ctx.command().name,
+                    &err,
+                    &err
                 );
                 match err {
                     serenity::Error::Http(err) => {
