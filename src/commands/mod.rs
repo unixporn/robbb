@@ -24,6 +24,7 @@ pub mod note;
 pub mod pfp;
 pub mod poll;
 pub mod role;
+pub mod small;
 pub mod tag;
 pub mod unban;
 pub mod version;
@@ -50,6 +51,15 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         unban::unban(),
         highlights::highlights_commands(),
         blocklist::blocklist_commands(),
+        small::restart(),
+        small::say(),
+        small::latency(),
+        small::uptime(),
+        small::repo(),
+        small::invite(),
+        small::desc(),
+        small::git(),
+        small::dotfiles(),
     ]
 }
 

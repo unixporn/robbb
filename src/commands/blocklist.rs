@@ -16,7 +16,7 @@ pub fn blocklist_commands() -> Command<UserData, Error> {
     category = "Moderation",
     check = "crate::checks::check_is_moderator"
 )]
-pub async fn blocklist(ctx: Ctx<'_>) -> Res<()> {
+pub async fn blocklist(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
