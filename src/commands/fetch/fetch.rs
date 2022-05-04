@@ -1,7 +1,3 @@
-use anyhow::Result;
-
-use crate::db::Db;
-
 use super::*;
 
 /// Fetch a users system information.
