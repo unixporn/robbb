@@ -223,12 +223,27 @@ pub async fn set_fetch_update(
     category = "Miscellaneous",
     rename = "clear"
 )]
-pub async fn set_fetch_clear(ctx: Ctx<'_>) -> Res<()> {
+pub async fn set_fetch_clear(
+    ctx: Ctx<'_>,
+    #[description = "Field you want to clear"] field: Option<FetchField>,
+) -> Res<()> {
     let db = ctx.get_db();
-    db.set_fetch(ctx.author().id, HashMap::new(), Some(Utc::now()))
-        .await?;
-    ctx.say_success("Successfully cleared your fetch data!")
-        .await?;
+
+    if let Some(field) = field {
+        let old_fetch = db.get_fetch(ctx.author().id).await?;
+        if let Some(mut fetch) = old_fetch {
+            fetch.info.remove(&field);
+            db.set_fetch(ctx.author().id, fetch.info, Some(Utc::now()))
+                .await?;
+        }
+        ctx.say_success(format!("Successfully cleared your {}", field))
+            .await?;
+    } else {
+        db.set_fetch(ctx.author().id, HashMap::new(), Some(Utc::now()))
+            .await?;
+        ctx.say_success("Successfully cleared your fetch data!")
+            .await?;
+    }
     Ok(())
 }
 
