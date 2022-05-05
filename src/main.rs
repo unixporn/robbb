@@ -330,7 +330,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
                         }
                     }
                     serenity::Error::Model(err) => {
-                        let _ = ctx.say_error(err).await;
+                        let _ = ctx.say_error(format!("{}", err)).await;
                     }
                     _ => {
                         let _ = ctx.say_error("Something went wrong").await;

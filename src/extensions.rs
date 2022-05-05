@@ -1,7 +1,7 @@
 use crate::{
     db::Db,
     embeds::{self, make_create_embed},
-    prelude::Ctx,
+    prelude::{BoxedCreateEmbedBuilder, BoxedCreateMessageBuilder, Ctx},
     Config, UpEmotes,
 };
 
@@ -31,7 +31,10 @@ pub trait PoiseContextExt {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        self.send_embed_full(false, build).await
+        let build_fn: BoxedCreateEmbedBuilder = Box::new(move |e| {
+            build(e);
+        });
+        self.send_embed_full(false, build_fn).await
     }
     async fn send_embed_full<F>(
         &self,
@@ -49,7 +52,7 @@ pub trait PoiseContextExt {
     async fn say_success_mod_action(
         &self,
         text: impl Display + Send + Sync + 'static,
-    ) -> std::result::Result<ReplyHandle<'_>, serenity::Error>;
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error>;
 
     async fn say_error(
         &self,
@@ -103,7 +106,7 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let create_embed = embeds::make_success_embed(&self.discord(), text).await;
+        let create_embed = embeds::make_success_embed(&self.discord(), &format!("{}", text)).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
@@ -114,7 +117,7 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let create_embed = embeds::make_error_embed(&self.discord(), text).await;
+        let create_embed = embeds::make_error_embed(&self.discord(), &format!("{}", text)).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
@@ -124,7 +127,8 @@ impl<'a> PoiseContextExt for Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let create_embed = embeds::make_success_mod_action_embed(&self.discord(), text).await;
+        let create_embed =
+            embeds::make_success_mod_action_embed(&self.discord(), &format!("{}", text)).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
@@ -230,8 +234,9 @@ impl GuildIdExt for GuildId {
             e
         })
         .await;
+        let msg_fn: BoxedCreateMessageBuilder = Box::new(|m| m.set_embed(create_embed));
         Ok(channel_id
-            .send_message(&ctx, |m| m.set_embed(create_embed))
+            .send_message(&ctx, msg_fn)
             .await
             .context("Failed to send embed message")?)
     }
@@ -243,7 +248,7 @@ pub trait MessageExt {
 
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync;
+        F: FnOnce(&mut CreateEmbed) -> &mut CreateEmbed + Send + Sync;
 
     async fn reply_error(
         &self,
@@ -278,20 +283,18 @@ impl MessageExt for Message {
 
     async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
     where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
+        F: FnOnce(&mut CreateEmbed) -> &mut CreateEmbed + Send + Sync,
     {
-        let create_embed = make_create_embed(ctx, |e| {
-            build(e);
-            e
-        })
-        .await;
+        let create_embed = make_create_embed(ctx, |e| build(e)).await;
+        let msg = self.clone();
+        let msg_fn: BoxedCreateMessageBuilder = Box::new(move |m| {
+            m.allowed_mentions(|f| f.replied_user(false));
+            m.reference_message(&msg);
+            m.set_embed(create_embed)
+        });
 
         self.channel_id
-            .send_message(&ctx, move |m| {
-                m.allowed_mentions(|f| f.replied_user(false));
-                m.reference_message(self);
-                m.set_embed(create_embed)
-            })
+            .send_message(&ctx, msg_fn)
             .await
             .context("Failed to send embed")
     }
@@ -301,9 +304,10 @@ impl MessageExt for Message {
         ctx: &client::Context,
         text: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
-        let create_embed = embeds::make_error_embed(ctx, text).await;
+        let create_embed = embeds::make_error_embed(ctx, &format!("{}", text)).await;
         self.reply_embed(ctx, |e| {
             e.clone_from(&create_embed);
+            e
         })
         .await
     }
@@ -339,7 +343,7 @@ pub trait ChannelIdExt {
         ctx: &client::Context,
         text: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
-        let create_embed = embeds::make_error_embed(ctx, text).await;
+        let create_embed = embeds::make_error_embed(ctx, &format!("{}", text)).await;
         self.send_embed(ctx, |e| {
             e.clone_from(&create_embed);
         })
@@ -358,8 +362,10 @@ impl ChannelIdExt for ChannelId {
             e
         })
         .await;
+
+        let msg_fn: BoxedCreateMessageBuilder = Box::new(|m| m.set_embed(create_embed));
         Ok(self
-            .send_message(&ctx, |m| m.set_embed(create_embed))
+            .send_message(&ctx, msg_fn)
             .await
             .context("Failed to send embed message")?)
     }

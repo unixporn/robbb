@@ -65,7 +65,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
 
                 embeds::make_success_embed(
                     &ctx.discord(),
-                    format!("Success! You're now {}", role_id.mention()),
+                    &format!("Success! You're now {}", role_id.mention()),
                 )
                 .await
             } else {
