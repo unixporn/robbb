@@ -157,10 +157,7 @@ pub async fn make_create_embed(
     e
 }
 
-pub async fn make_success_embed(
-    ctx: &client::Context,
-    text: impl std::fmt::Display + Send + Sync + 'static,
-) -> CreateEmbed {
+pub async fn make_success_embed(ctx: &client::Context, text: &str) -> CreateEmbed {
     let emote = ctx
         .get_up_emotes()
         .await
@@ -173,10 +170,7 @@ pub async fn make_success_embed(
     e
 }
 
-pub async fn make_success_mod_action_embed(
-    ctx: &client::Context,
-    text: impl std::fmt::Display + Send + Sync + 'static,
-) -> CreateEmbed {
+pub async fn make_success_mod_action_embed(ctx: &client::Context, text: &str) -> CreateEmbed {
     let emote = ctx
         .get_up_emotes()
         .await
@@ -189,10 +183,7 @@ pub async fn make_success_mod_action_embed(
     e
 }
 
-pub async fn make_error_embed(
-    ctx: &client::Context,
-    text: impl std::fmt::Display + Send + Sync + 'static,
-) -> CreateEmbed {
+pub async fn make_error_embed(ctx: &client::Context, text: &str) -> CreateEmbed {
     let emote = ctx
         .get_up_emotes()
         .await

@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::commands::fetch::FetchField;
 use crate::log_error;
+use crate::prelude::BoxedCreateMessageBuilder;
 use crate::{attachment_logging, modlog};
 use chrono::Utc;
 use itertools::Itertools;
@@ -356,7 +357,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
             e.image(&attachment.url);
         }
         e.description(&mentioned_msg.content);
-        e.timestamp(&mentioned_msg.timestamp);
+        e.timestamp(&mentioned_msg.timestamp)
     })
     .await?;
     Ok(true)
@@ -503,14 +504,16 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
     if let Some(bottom_pin_msg) = last_bottom_pin_msg {
         bottom_pin_msg.delete(&ctx).await?;
     }
+
     msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| {
             e.title("CONTRIBUTING.md").color(0xb8bb26);
             e.description(indoc::indoc!(
-                "Before posting, please make sure to check if your idea is a **repetitive topic**. (Listed in pins)
-                Note that we have added a consequence for failure. The inability to delete repetitive feedback will result in an 'unsatisfactory' mark on your official testing record, followed by death. Good luck!"
-            ))
-        })
-    }).await?;
+                    "Before posting, please make sure to check if your idea is a **repetitive topic**. (Listed in pins)
+                    Note that we have added a consequence for failure. The inability to delete repetitive feedback will result in an 'unsatisfactory' mark on your official testing record, followed by death. Good luck!"
+                ))
+            })
+        }
+).await?;
     Ok(())
 }

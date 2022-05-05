@@ -125,7 +125,9 @@ pub async fn set_fetch_set(app_ctx: AppCtx<'_>) -> Res<()> {
                 db.update_fetch(ctx.author().id, setfetch_data).await?;
                 embeds::make_success_embed(&ctx.discord(), "Successfully updated your fetch").await
             }
-            Err(user_err) => embeds::make_error_embed(&ctx.discord(), user_err).await,
+            Err(user_err) => {
+                embeds::make_error_embed(&ctx.discord(), &format!("{}", user_err)).await
+            }
         };
 
         instructions_msg
