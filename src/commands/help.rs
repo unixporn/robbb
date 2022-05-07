@@ -17,7 +17,7 @@ pub async fn help(
         .options()
         .commands
         .iter()
-        .filter(|x| x.slash_action.is_some() || x.prefix_action.is_some());
+        .filter(|x| !x.hide_in_help && (x.slash_action.is_some() || x.prefix_action.is_some()));
 
     if let Some(desired_command) = command {
         let command = commands
@@ -50,7 +50,6 @@ pub async fn help(
         }
         reply_help_full(ctx, &available_commands).await?;
     }
-
     Ok(())
 }
 

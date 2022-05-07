@@ -6,8 +6,9 @@ use poise::serenity_prelude::{GatewayIntents, TypeMapKey};
 use prelude::Ctx;
 use rand::prelude::IteratorRandom;
 use serenity::{client, model::prelude::*};
-use std::sync::Arc;
+use std::{ops::DerefMut, sync::Arc};
 use tracing::Level;
+use tracing_futures::Instrument;
 
 pub mod attachment_logging;
 pub mod checks;
@@ -75,7 +76,7 @@ pub struct UserData {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
 
     init_tracing(honeycomb_api_key.clone());
@@ -167,16 +168,27 @@ async fn main() {
             ..Default::default()
         })
         .run()
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }
 
+#[tracing::instrument(skip_all, fields(
+    command_name = %ctx.command().name,
+    msg.author = %ctx.author(),
+    msg.id = %ctx.id(),
+    msg.channel_id = %ctx.channel_id(),
+))]
 async fn before(ctx: Ctx<'_>) -> bool {
+    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
+    let span = tracing::Span::current();
+    ctx.set_invocation_data(span).await;
+
     let content = match ctx {
         poise::Context::Application(_) => "<slash command>".to_string(),
         poise::Context::Prefix(prefix) => prefix.msg.content.to_string(),
     };
-    tracing::debug!(
+    tracing::info!(
         command_name = ctx.command().name,
         msg.content = %content,
         msg.author = %ctx.author(),
@@ -189,8 +201,45 @@ async fn before(ctx: Ctx<'_>) -> bool {
     true
 }
 
+fn framework_error_context<'a, 'b>(
+    error: &'a poise::FrameworkError<'b, UserData, prelude::Error>,
+) -> Option<Ctx<'b>> {
+    use poise::FrameworkError::*;
+    match error {
+        Command { ctx, .. }
+        | ArgumentParse { ctx, .. }
+        | CooldownHit { ctx, .. }
+        | MissingBotPermissions { ctx, .. }
+        | MissingUserPermissions { ctx, .. }
+        | NotAnOwner { ctx }
+        | GuildOnly { ctx }
+        | DmOnly { ctx }
+        | NsfwOnly { ctx }
+        | CommandCheckFailed { ctx, .. } => Some(ctx.clone()),
+        DynamicPrefix { .. } | Setup { .. } | CommandStructureMismatch { .. } | Listener { .. } => {
+            None
+        }
+    }
+}
+
+/// Handler passed to poise
 async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>) {
-    //eprintln!("on_error: {:#?}", error);
+    let ctx = framework_error_context(&error);
+    let span: Option<tracing::Span> = if let Some(ctx) = ctx {
+        let span = ctx.invocation_data::<tracing::Span>().await;
+        span.map(|mut s| s.deref_mut().clone())
+    } else {
+        None
+    };
+
+    if let Some(span) = span {
+        handle_poise_error(error).instrument(span).await;
+    } else {
+        handle_poise_error(error).await;
+    }
+}
+
+async fn handle_poise_error(error: poise::FrameworkError<'_, UserData, prelude::Error>) {
     use poise::FrameworkError::*;
     match error {
         Command { error, ctx } => {
