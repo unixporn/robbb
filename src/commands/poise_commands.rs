@@ -3,7 +3,13 @@ use poise::serenity_prelude::ApplicationCommand;
 use super::*;
 
 /// Unregister all slash commands
-#[poise::command(slash_command, prefix_command, hide_in_help)]
+#[poise::command(
+    slash_command,
+    prefix_command,
+    category = "Administration",
+    check = "crate::checks::check_is_moderator",
+    hide_in_help
+)]
 pub async fn delete(
     ctx: Ctx<'_>,
     #[description = "global"]
@@ -46,7 +52,13 @@ pub async fn delete(
 }
 
 /// Register all slash commands
-#[poise::command(slash_command, prefix_command, hide_in_help)]
+#[poise::command(
+    slash_command,
+    prefix_command,
+    category = "Administration",
+    check = "crate::checks::check_is_moderator",
+    hide_in_help
+)]
 pub async fn register(
     ctx: Ctx<'_>,
     #[description = "global"]

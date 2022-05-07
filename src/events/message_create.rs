@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use crate::commands::fetch::FetchField;
 use crate::log_error;
-use crate::prelude::BoxedCreateMessageBuilder;
 use crate::{attachment_logging, modlog};
 use chrono::Utc;
 use itertools::Itertools;
