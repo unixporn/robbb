@@ -1,6 +1,6 @@
 #![allow(clippy::needless_borrow)]
 use anyhow::Context;
-use db::Db;
+use db_robbb::Db;
 use extensions::PoiseContextExt;
 use poise::serenity_prelude::{GatewayIntents, TypeMapKey};
 use prelude::Ctx;
@@ -14,7 +14,6 @@ pub mod attachment_logging;
 pub mod checks;
 pub mod commands;
 pub mod config;
-pub mod db;
 pub mod embeds;
 pub mod events;
 pub mod extensions;
@@ -23,7 +22,12 @@ pub mod modlog;
 pub mod prelude;
 pub mod util;
 use crate::{events::handle_event, logging::*};
+
 pub use config::*;
+
+pub use shared_robbb::*;
+
+pub use db_robbb as db;
 
 #[derive(Debug, Clone)]
 pub struct UpEmotes {

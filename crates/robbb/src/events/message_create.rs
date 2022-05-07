@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
-use crate::commands::fetch::FetchField;
 use crate::log_error;
 use crate::{attachment_logging, modlog};
 use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
+use shared_robbb::fetch_field::FetchField;
 use tracing::debug;
 use tracing_futures::Instrument;
 

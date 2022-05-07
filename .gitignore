@@ -1,4 +1,4 @@
-/target
+target/
 .env
 flake.lock
 trup.db-*

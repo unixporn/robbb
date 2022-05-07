@@ -5,9 +5,8 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serenity::model::id::UserId;
 
-use crate::commands::fetch::{FetchField, FETCH_KEY_ORDER};
-
 use super::Db;
+use shared_robbb::fetch_field::{FetchField, FETCH_KEY_ORDER};
 
 #[derive(Debug)]
 pub struct Fetch {

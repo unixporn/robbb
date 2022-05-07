@@ -4,9 +4,9 @@ use futures::StreamExt;
 use poise::serenity_prelude::Attachment;
 
 use super::*;
-use crate::db::fetch::Fetch;
 use crate::extensions::StrExt;
 use crate::{abort_with, embeds};
+use db_robbb::fetch::Fetch;
 use std::collections::HashMap;
 use std::str::FromStr;
 

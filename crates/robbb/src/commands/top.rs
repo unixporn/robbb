@@ -1,12 +1,11 @@
 use itertools::Itertools;
 use lazy_static::lazy_static;
+use shared_robbb::fetch_field::FetchField;
 
 use crate::{abort_with, db::fetch::Fetch};
 
 use super::{fetch::format_fetch_field_value, *};
 use std::collections::HashMap;
-
-use fetch::FetchField;
 
 /// Get statistics about what the community uses.
 #[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "top")]
@@ -126,7 +125,7 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
 async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
     let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
-        for field_name in super::fetch::FETCH_KEY_ORDER
+        for field_name in shared_robbb::fetch_field::FETCH_KEY_ORDER
             .iter()
             .filter(|&x| x != &FetchField::Image)
         {

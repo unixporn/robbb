@@ -5,10 +5,8 @@ use poise::serenity_prelude::{Emoji, EmojiId};
 
 use super::*;
 
-use crate::{
-    db::emoji_logging::{EmojiStats, Ordering},
-    util,
-};
+use crate::util;
+use db_robbb::emoji_logging::{EmojiStats, Ordering};
 
 /// Get statistics about the usage of emotes
 #[poise::command(

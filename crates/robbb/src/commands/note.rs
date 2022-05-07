@@ -1,10 +1,8 @@
+use crate::db::{note::NoteType, Db};
 use chrono::Utc;
 use poise::serenity_prelude::{Mentionable, User, UserId};
 
-use crate::{
-    db::{note::NoteType, Db},
-    embeds, modlog,
-};
+use crate::{embeds, modlog};
 
 use super::*;
 
