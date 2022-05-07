@@ -212,7 +212,6 @@ dependencies = [
  "maplit",
  "parking_lot 0.12.0",
  "poise",
- "rand 0.8.5",
  "regex",
  "reqwest 0.11.10",
  "serde",
@@ -224,10 +223,7 @@ dependencies = [
  "tokio-util 0.7.1",
  "tracing",
  "tracing-futures",
- "tracing-log",
- "tracing-subscriber",
  "unicase",
- "url",
 ]
 
 [[package]]
@@ -382,17 +378,16 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "chrono-humanize",
  "itertools 0.10.3",
  "lazy_static",
+ "poise",
  "regex",
  "serde",
  "serde_json",
  "serenity",
- "shared_robbb",
  "sqlx",
+ "thiserror",
  "tracing",
- "tracing-futures",
  "unicase",
 ]
 
@@ -1990,13 +1985,22 @@ dependencies = [
  "anyhow",
  "chrono",
  "chrono-humanize",
- "humantime",
+ "db_robbb",
+ "futures",
+ "itertools 0.10.3",
  "lazy_static",
  "poise",
+ "rand 0.8.5",
+ "regex",
  "serde",
  "serde_json",
  "serenity",
  "thiserror",
+ "tokio 1.18.1",
+ "tokio-util 0.7.1",
+ "tracing",
+ "tracing-futures",
+ "url",
 ]
 
 [[package]]

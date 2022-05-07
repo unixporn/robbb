@@ -1,6 +1,6 @@
+use db_robbb::fetch_field::{FetchField, FETCH_KEY_ORDER};
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use shared_robbb::fetch_field::FetchField;
 
 use crate::{abort_with, db::fetch::Fetch};
 
@@ -125,10 +125,7 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
 async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
     let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
-        for field_name in shared_robbb::fetch_field::FETCH_KEY_ORDER
-            .iter()
-            .filter(|&x| x != &FetchField::Image)
-        {
+        for field_name in FETCH_KEY_ORDER.iter().filter(|&x| x != &FetchField::Image) {
             let data_value = data.entry(field_name.clone()).or_insert_with(Vec::new);
             if let Some(field) = fetch.info.get(field_name) {
                 data_value.push(field.clone());

@@ -15,4 +15,14 @@ thiserror = "1.0"
 lazy_static = "1.4"
 chrono = "0.4"
 chrono-humanize = "0.2"
-humantime = "2"
+itertools = "0.10"
+tokio-util = { version = "0.7", features = ["compat"] }
+tokio = { version = "1.16", features = ["macros", "fs", "rt-multi-thread"]}
+futures = "0.3"
+tracing = "0.1.31"
+tracing-futures = "0.2.5"
+rand = "0.8"
+regex = "1"
+url = "2"
+
+db_robbb = { path = "../db_robbb" }

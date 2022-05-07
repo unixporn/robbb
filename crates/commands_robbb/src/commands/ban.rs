@@ -2,10 +2,7 @@ use anyhow::Context;
 use chrono::{Duration, Utc};
 use poise::serenity_prelude::User;
 
-use crate::{
-    checks::{self, PermissionLevel},
-    modlog,
-};
+use crate::checks::{self, PermissionLevel};
 
 use super::*;
 
@@ -142,7 +139,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
             .message()
             .await?;
 
-        modlog::log_ban(ctx, &success_msg, &successful_bans, &reason).await;
+        crate::modlog::log_ban(ctx, &success_msg, &successful_bans, &reason).await;
     }
 
     Ok(())

@@ -1,13 +1,10 @@
 #![allow(clippy::needless_borrow)]
 
-pub use commands_robbb::config::*;
-use commands_robbb::load_up_emotes;
-pub use commands_robbb::prelude::*;
-pub use commands_robbb::{
-    checks, commands, config, extensions, log_error, modlog, prelude, util, UpEmotes,
-};
+pub use commands_robbb::{checks, commands};
 pub use db_robbb as db;
-pub use shared_robbb::*;
+pub use shared_robbb::prelude::*;
+pub use shared_robbb::{config, extensions, log_error, prelude, util, UpEmotes};
+use shared_robbb::{load_up_emotes, Config};
 
 use db_robbb::Db;
 use extensions::PoiseContextExt;

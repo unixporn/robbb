@@ -1,3 +1,5 @@
+use db_robbb::Db;
+
 use super::*;
 
 #[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]

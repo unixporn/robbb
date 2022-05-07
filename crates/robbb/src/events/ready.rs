@@ -1,6 +1,5 @@
+use commands_robbb::modlog;
 use serenity::futures::StreamExt;
-
-use crate::modlog;
 
 use super::*;
 

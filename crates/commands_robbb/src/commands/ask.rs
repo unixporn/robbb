@@ -1,8 +1,6 @@
 use anyhow::Context;
 use tracing_futures::Instrument;
 
-use crate::abort_with;
-
 use super::*;
 
 /// Ask a question in tech-support

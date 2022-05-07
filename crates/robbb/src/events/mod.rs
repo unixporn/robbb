@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
 use crate::{db::mute, extensions::*};
-use crate::{log_error, UserData};
 use anyhow::{Context, Result};
 
-use commands_robbb::prelude::Error;
+use db_robbb::Db;
 use serenity::model::prelude::*;
+use shared_robbb::log_error;
+use shared_robbb::prelude::Error;
+use shared_robbb::util;
+use shared_robbb::Config;
 
 use serenity::client;
-
-use crate::{db::Db, util, Config};
+use shared_robbb::UserData;
 
 mod guild_member_addition;
 mod guild_member_removal;

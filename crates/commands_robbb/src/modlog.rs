@@ -1,9 +1,8 @@
+use db_robbb::db::mute::Mute;
 use itertools::Itertools;
 use poise::serenity_prelude::Message;
 use serenity::{client, model::prelude::User, prelude::Mentionable};
-
-use crate::{
-    db::mute::Mute,
+use shared_robbb::{
     extensions::{ClientContextExt, CreateEmbedExt, MessageExt, PoiseContextExt, UserExt},
     prelude::Ctx,
     util,

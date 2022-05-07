@@ -1,8 +1,7 @@
 pub use super::*;
 #[allow(clippy::module_inception)]
-use shared_robbb::fetch_field::FetchField;
-
 pub mod fetch;
+use db_robbb::fetch_field::FetchField;
 pub use fetch::*;
 pub mod setfetch;
 pub use setfetch::*;

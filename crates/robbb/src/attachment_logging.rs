@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use shared_robbb::Config;
 use std::{
     os::unix::prelude::MetadataExt,
     path::{Path, PathBuf},
@@ -12,8 +13,6 @@ use serenity::{
         id::{ChannelId, MessageId},
     },
 };
-
-use crate::Config;
 
 #[tracing::instrument(skip_all, fields(msg.id = %msg_id, msg.channel_id = %channel_id))]
 pub async fn store_attachments(
