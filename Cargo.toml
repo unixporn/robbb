@@ -2,6 +2,7 @@
 members = [
     "crates/robbb",
     "crates/db_robbb",
+    "crates/commands_robbb",
     "crates/shared_robbb"
 ]
 [profile.dev]

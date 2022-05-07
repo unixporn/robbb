@@ -4,7 +4,7 @@ use crate::{db::mute, extensions::*};
 use crate::{log_error, UserData};
 use anyhow::{Context, Result};
 
-use crate::prelude::Error;
+use commands_robbb::prelude::Error;
 use serenity::model::prelude::*;
 
 use serenity::client;

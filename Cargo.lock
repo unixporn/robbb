@@ -196,6 +196,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "commands_robbb"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "byte-unit",
+ "chrono",
+ "chrono-humanize",
+ "db_robbb",
+ "futures",
+ "humantime",
+ "indoc",
+ "itertools 0.10.3",
+ "lazy_static",
+ "maplit",
+ "parking_lot 0.12.0",
+ "poise",
+ "rand 0.8.5",
+ "regex",
+ "reqwest 0.11.10",
+ "serde",
+ "serde_json",
+ "serenity",
+ "shared_robbb",
+ "thiserror",
+ "tokio 1.18.1",
+ "tokio-util 0.7.1",
+ "tracing",
+ "tracing-futures",
+ "tracing-log",
+ "tracing-subscriber",
+ "unicase",
+ "url",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1677,6 +1712,7 @@ dependencies = [
  "byte-unit",
  "chrono",
  "chrono-humanize",
+ "commands_robbb",
  "cpu-monitor",
  "db_robbb",
  "futures",

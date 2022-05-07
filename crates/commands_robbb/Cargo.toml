@@ -1,12 +1,11 @@
 [package]
-name = "robbb"
+name = "commands_robbb"
 version = "0.1.0"
-authors = ["elkowar <5300871+elkowar@users.noreply.github.com>"]
-edition = "2018"
+edition = "2021"
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#serenity = { git = "https://github.com/serenity-rs/serenity/", branch = "next", features = ["collector"]}
 serenity = { version = "0.11.1", default-features = false, features = ["collector", "builder", "cache", "chrono", "client", "gateway", "model", "http", "utils"]}
 anyhow = "1.0"
 chrono = "0.4"
@@ -34,12 +33,8 @@ tracing = "0.1.31"
 tracing-log = "0.1.2"
 tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.0", features = [ "std", "env-filter" ] }
-tracing-honeycomb = "0.4.3"
-libhoney-rust = "0.1.6"
-cpu-monitor = "0.1.1"
 poise = "0.1.0"
 parking_lot = "0.12.0"
 
 db_robbb = { path = "../db_robbb" }
 shared_robbb = { path = "../shared_robbb" }
-commands_robbb = { path = "../commands_robbb" }

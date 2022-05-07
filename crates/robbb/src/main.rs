@@ -1,83 +1,35 @@
 #![allow(clippy::needless_borrow)]
-use anyhow::Context;
+
+pub use commands_robbb::config::*;
+use commands_robbb::load_up_emotes;
+pub use commands_robbb::prelude::*;
+pub use commands_robbb::{
+    checks, commands, config, extensions, log_error, modlog, prelude, util, UpEmotes,
+};
+pub use db_robbb as db;
+pub use shared_robbb::*;
+
 use db_robbb::Db;
 use extensions::PoiseContextExt;
-use poise::serenity_prelude::{GatewayIntents, TypeMapKey};
+use poise::serenity_prelude::GatewayIntents;
 use prelude::Ctx;
-use rand::prelude::IteratorRandom;
-use serenity::{client, model::prelude::*};
 use std::{ops::DerefMut, sync::Arc};
 use tracing::Level;
 use tracing_futures::Instrument;
 
 pub mod attachment_logging;
-pub mod checks;
-pub mod commands;
-pub mod config;
-pub mod embeds;
 pub mod events;
-pub mod extensions;
 mod logging;
-pub mod modlog;
-pub mod prelude;
-pub mod util;
+//pub mod embeds;
+//pub mod modlog;
+//pub mod checks;
+//pub mod commands;
+//pub mod prelude;
+//pub mod util;
+//pub mod config;
+//pub mod extensions;
+
 use crate::{events::handle_event, logging::*};
-
-pub use config::*;
-
-pub use shared_robbb::*;
-
-pub use db_robbb as db;
-
-#[derive(Debug, Clone)]
-pub struct UpEmotes {
-    pensibe: Emoji,
-    police: Emoji,
-    poggers: Emoji,
-    stares: Vec<Emoji>,
-}
-impl UpEmotes {
-    pub fn random_stare(&self) -> Option<Emoji> {
-        let mut rng = rand::thread_rng();
-        self.stares.iter().choose(&mut rng).cloned()
-    }
-}
-
-async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> anyhow::Result<UpEmotes> {
-    let all_emoji = guild.emojis(&ctx).await?;
-    Ok(UpEmotes {
-        pensibe: all_emoji
-            .iter()
-            .find(|x| x.name == "pensibe")
-            .context("no pensibe emote found")?
-            .clone(),
-        police: all_emoji
-            .iter()
-            .find(|x| x.name == "police")
-            .context("no police emote found")?
-            .clone(),
-        poggers: all_emoji
-            .iter()
-            .find(|x| x.name == "poggersphisch")
-            .context("no police poggers found")?
-            .clone(),
-        stares: all_emoji
-            .into_iter()
-            .filter(|x| x.name.starts_with("stare"))
-            .collect(),
-    })
-}
-
-impl TypeMapKey for UpEmotes {
-    type Value = Arc<UpEmotes>;
-}
-
-#[derive(Debug, Clone)]
-pub struct UserData {
-    config: Arc<Config>,
-    db: Arc<Db>,
-    up_emotes: Option<Arc<UpEmotes>>,
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -206,7 +158,7 @@ async fn before(ctx: Ctx<'_>) -> bool {
 }
 
 fn framework_error_context<'a, 'b>(
-    error: &'a poise::FrameworkError<'b, UserData, prelude::Error>,
+    error: &'a poise::FrameworkError<'b, UserData, anyhow::Error>,
 ) -> Option<Ctx<'b>> {
     use poise::FrameworkError::*;
     match error {
@@ -227,7 +179,7 @@ fn framework_error_context<'a, 'b>(
 }
 
 /// Handler passed to poise
-async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>) {
+async fn on_error(error: poise::FrameworkError<'_, UserData, anyhow::Error>) {
     let ctx = framework_error_context(&error);
     let span: Option<tracing::Span> = if let Some(ctx) = ctx {
         let span = ctx.invocation_data::<tracing::Span>().await;
