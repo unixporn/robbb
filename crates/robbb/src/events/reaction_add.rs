@@ -35,7 +35,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
         // with that emote, it'll error, but we don't really care :/
         for r in &msg.reactions {
             if r.reaction_type != event.emoji {
-                crate::log_error!(
+                log_error!(
                     ctx.http
                         .delete_reaction(
                             msg.channel_id.0,

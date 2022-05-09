@@ -1,9 +1,8 @@
+use robbb_util::log_error;
 use tracing_futures::Instrument;
 use tracing_subscriber::{
     filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, EnvFilter,
 };
-
-use crate::{log_error, util};
 
 pub fn init_tracing(honeycomb_api_key: Option<String>) {
     let log_filter = EnvFilter::try_from_default_env()
@@ -56,7 +55,7 @@ pub async fn send_honeycomb_deploy_marker(api_key: &str) {
             .header("X-Honeycomb-Team", api_key)
             .body(format!(
                 r#"{{"message": "{}", "type": "deploy"}}"#,
-                util::bot_version()
+                robbb_util::util::bot_version()
             ))
             .send()
             .await

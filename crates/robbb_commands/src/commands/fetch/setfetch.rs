@@ -2,11 +2,11 @@ use anyhow::Context;
 use chrono::Utc;
 use futures::StreamExt;
 use poise::serenity_prelude::Attachment;
-use shared_robbb::embeds;
+use robbb_util::embeds;
 
 use super::*;
-use db_robbb::fetch::Fetch;
-use shared_robbb::extensions::StrExt;
+use robbb_db::fetch::Fetch;
+use robbb_util::extensions::StrExt;
 use std::collections::HashMap;
 use std::str::FromStr;
 

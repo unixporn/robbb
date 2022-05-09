@@ -1,13 +1,14 @@
 use crate::{
-    db::Db,
+    config::Config,
     embeds::{self, make_create_embed},
     prelude::{BoxedCreateEmbedBuilder, BoxedCreateMessageBuilder, Ctx},
-    Config, UpEmotes,
+    UpEmotes,
 };
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
 use poise::ReplyHandle;
+use robbb_db::Db;
 use serenity::{
     async_trait,
     builder::CreateEmbed,

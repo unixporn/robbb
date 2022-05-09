@@ -1,17 +1,13 @@
 use std::sync::Arc;
 
-use crate::{db::mute, extensions::*};
 use anyhow::{Context, Result};
 
-use db_robbb::Db;
+use robbb_db::Db;
+use robbb_util::extensions::*;
+use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
 use serenity::model::prelude::*;
-use shared_robbb::log_error;
-use shared_robbb::prelude::Error;
-use shared_robbb::util;
-use shared_robbb::Config;
 
 use serenity::client;
-use shared_robbb::UserData;
 
 mod guild_member_addition;
 mod guild_member_removal;
@@ -108,7 +104,7 @@ async fn unmute(
     ctx: &client::Context,
     config: &Arc<Config>,
     db: &Arc<Db>,
-    mute: &mute::Mute,
+    mute: &robbb_db::mute::Mute,
 ) -> Result<()> {
     db.set_mute_inactive(mute.id).await?;
     let mut member = config.guild.member(&ctx, mute.user).await?;

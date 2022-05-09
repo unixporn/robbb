@@ -1,5 +1,5 @@
 [package]
-name = "db_robbb"
+name = "robbb_db"
 version = "0.1.0"
 edition = "2021"
 

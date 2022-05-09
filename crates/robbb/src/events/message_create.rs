@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use chrono::Utc;
-use commands_robbb::modlog;
-use db_robbb::fetch_field::FetchField;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
+use robbb_commands::modlog;
+use robbb_db::fetch_field::FetchField;
 use tracing::debug;
 use tracing_futures::Instrument;
 
@@ -417,7 +417,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let context = Some(msg.link());
 
-        crate::commands::mute::do_mute(
+        robbb_commands::commands::mute::do_mute(
             &ctx,
             guild,
             bot_id,
@@ -463,7 +463,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
             .context("Error reacting to showcase submission with ❤️")?;
 
         if let Some(attachment) = msg.attachments.first() {
-            if crate::util::is_image_file(&attachment.filename) {
+            if util::is_image_file(&attachment.filename) {
                 let db = ctx.get_db().await;
                 db.update_fetch(
                     msg.author.id,

@@ -1,4 +1,4 @@
-use db_robbb::fetch_field::FetchField;
+use robbb_db::fetch_field::FetchField;
 
 use super::*;
 

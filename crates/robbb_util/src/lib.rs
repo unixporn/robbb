@@ -7,12 +7,9 @@ pub mod util;
 use std::sync::Arc;
 
 use anyhow::Context;
-pub use config::*;
-use db::Db;
-pub use db_robbb as db;
-pub use extensions::*;
 use poise::serenity_prelude::{Emoji, GuildId, TypeMapKey};
 use rand::prelude::IteratorRandom;
+use robbb_db::Db;
 use serenity::client;
 
 #[derive(Debug, Clone)]
@@ -60,7 +57,7 @@ impl TypeMapKey for UpEmotes {
 
 #[derive(Debug, Clone)]
 pub struct UserData {
-    pub config: Arc<Config>,
+    pub config: Arc<config::Config>,
     pub db: Arc<Db>,
     pub up_emotes: Option<Arc<UpEmotes>>,
 }

@@ -196,37 +196,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "commands_robbb"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "byte-unit",
- "chrono",
- "chrono-humanize",
- "db_robbb",
- "futures",
- "humantime",
- "indoc",
- "itertools 0.10.3",
- "lazy_static",
- "maplit",
- "parking_lot 0.12.0",
- "poise",
- "regex",
- "reqwest 0.11.10",
- "serde",
- "serde_json",
- "serenity",
- "shared_robbb",
- "thiserror",
- "tokio 1.18.1",
- "tokio-util 0.7.1",
- "tracing",
- "tracing-futures",
- "unicase",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -370,25 +339,6 @@ dependencies = [
  "hashbrown 0.12.1",
  "lock_api",
  "serde",
-]
-
-[[package]]
-name = "db_robbb"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "itertools 0.10.3",
- "lazy_static",
- "poise",
- "regex",
- "serde",
- "serde_json",
- "serenity",
- "sqlx",
- "thiserror",
- "tracing",
- "unicase",
 ]
 
 [[package]]
@@ -1707,9 +1657,7 @@ dependencies = [
  "byte-unit",
  "chrono",
  "chrono-humanize",
- "commands_robbb",
  "cpu-monitor",
- "db_robbb",
  "futures",
  "humantime",
  "indoc",
@@ -1722,10 +1670,12 @@ dependencies = [
  "rand 0.8.5",
  "regex",
  "reqwest 0.11.10",
+ "robbb_commands",
+ "robbb_db",
+ "robbb_util",
  "serde",
  "serde_json",
  "serenity",
- "shared_robbb",
  "thiserror",
  "tokio 1.18.1",
  "tokio-util 0.7.1",
@@ -1735,6 +1685,81 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "unicase",
+ "url",
+]
+
+[[package]]
+name = "robbb_commands"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "byte-unit",
+ "chrono",
+ "chrono-humanize",
+ "futures",
+ "humantime",
+ "indoc",
+ "itertools 0.10.3",
+ "lazy_static",
+ "maplit",
+ "parking_lot 0.12.0",
+ "poise",
+ "regex",
+ "reqwest 0.11.10",
+ "robbb_db",
+ "robbb_util",
+ "serde",
+ "serde_json",
+ "serenity",
+ "thiserror",
+ "tokio 1.18.1",
+ "tokio-util 0.7.1",
+ "tracing",
+ "tracing-futures",
+ "unicase",
+]
+
+[[package]]
+name = "robbb_db"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "itertools 0.10.3",
+ "lazy_static",
+ "poise",
+ "regex",
+ "serde",
+ "serde_json",
+ "serenity",
+ "sqlx",
+ "thiserror",
+ "tracing",
+ "unicase",
+]
+
+[[package]]
+name = "robbb_util"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "chrono-humanize",
+ "futures",
+ "itertools 0.10.3",
+ "lazy_static",
+ "poise",
+ "rand 0.8.5",
+ "regex",
+ "robbb_db",
+ "serde",
+ "serde_json",
+ "serenity",
+ "thiserror",
+ "tokio 1.18.1",
+ "tokio-util 0.7.1",
+ "tracing",
+ "tracing-futures",
  "url",
 ]
 
@@ -1976,31 +2001,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "shared_robbb"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "chrono-humanize",
- "db_robbb",
- "futures",
- "itertools 0.10.3",
- "lazy_static",
- "poise",
- "rand 0.8.5",
- "regex",
- "serde",
- "serde_json",
- "serenity",
- "thiserror",
- "tokio 1.18.1",
- "tokio-util 0.7.1",
- "tracing",
- "tracing-futures",
- "url",
 ]
 
 [[package]]

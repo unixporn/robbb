@@ -1,9 +1,9 @@
 [workspace]
 members = [
     "crates/robbb",
-    "crates/db_robbb",
-    "crates/commands_robbb",
-    "crates/shared_robbb"
+    "crates/robbb_db",
+    "crates/robbb_commands",
+    "crates/robbb_util"
 ]
 [profile.dev]
 split-debuginfo = "unpacked"

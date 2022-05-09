@@ -1,11 +1,11 @@
+use super::*;
+
 use std::collections::hash_map::HashMap;
 
 use anyhow::Context;
 use poise::serenity_prelude::{Emoji, EmojiId};
 
-use super::*;
-
-use db_robbb::emoji_logging::{EmojiStats, Ordering};
+use robbb_db::emoji_logging::{EmojiStats, Ordering};
 
 /// Get statistics about the usage of emotes
 #[poise::command(

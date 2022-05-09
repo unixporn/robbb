@@ -1,12 +1,12 @@
-use db_robbb::db::mute::Mute;
 use itertools::Itertools;
 use poise::serenity_prelude::Message;
-use serenity::{client, model::prelude::User, prelude::Mentionable};
-use shared_robbb::{
+use robbb_db::db::mute::Mute;
+use robbb_util::{
     extensions::{ClientContextExt, CreateEmbedExt, MessageExt, PoiseContextExt, UserExt},
     prelude::Ctx,
     util,
 };
+use serenity::{client, model::prelude::User, prelude::Mentionable};
 
 pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
     let config = ctx.data().config.clone();

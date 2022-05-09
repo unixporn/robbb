@@ -1,5 +1,5 @@
-use crate::db::note::NoteType;
 use chrono::Utc;
+use robbb_db::note::NoteType;
 use tracing_futures::Instrument;
 
 use super::*;

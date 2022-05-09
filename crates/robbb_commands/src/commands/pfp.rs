@@ -1,4 +1,4 @@
-use crate::embeds;
+use robbb_util::embeds;
 
 use super::*;
 

@@ -1,6 +1,5 @@
 use poise::serenity_prelude::Message;
-
-use crate::embeds::{self, PaginatedEmbed};
+use robbb_util::embeds;
 
 use super::*;
 
@@ -90,7 +89,7 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
         (name, description)
     });
 
-    Ok(PaginatedEmbed::create_from_fields(
+    Ok(embeds::PaginatedEmbed::create_from_fields(
         fields,
         embeds::make_create_embed(&ctx.discord(), |e| e.title("Help")).await,
     )

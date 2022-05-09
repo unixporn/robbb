@@ -1,10 +1,7 @@
 use poise::serenity_prelude::CreateEmbed;
 
 use super::*;
-use crate::{
-    abort_with,
-    checks::{self, PermissionLevel},
-};
+use crate::checks::{self, PermissionLevel};
 
 pub fn highlights_commands() -> Command<UserData, Error> {
     Command {

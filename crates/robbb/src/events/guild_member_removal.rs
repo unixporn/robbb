@@ -1,4 +1,4 @@
-use db_robbb::Db;
+use robbb_db::Db;
 
 use super::*;
 

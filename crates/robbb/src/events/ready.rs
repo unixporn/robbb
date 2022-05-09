@@ -1,4 +1,4 @@
-use commands_robbb::modlog;
+use robbb_commands::modlog;
 use serenity::futures::StreamExt;
 
 use super::*;

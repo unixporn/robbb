@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use shared_robbb::Config;
+use robbb_util::config::Config;
 use std::{
     os::unix::prelude::MetadataExt,
     path::{Path, PathBuf},

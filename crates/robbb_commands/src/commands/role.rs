@@ -1,7 +1,6 @@
 use futures::StreamExt;
 use poise::serenity_prelude::RoleId;
-
-use crate::embeds;
+use robbb_util::embeds;
 
 use super::*;
 

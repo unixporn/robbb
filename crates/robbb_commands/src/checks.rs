@@ -1,8 +1,8 @@
 use anyhow::bail;
 use poise::serenity_prelude::RoleId;
-use shared_robbb::{
+use robbb_util::{
+    extensions::PoiseContextExt,
     prelude::{Ctx, Res},
-    PoiseContextExt,
 };
 
 pub async fn check_channel_allows_commands(ctx: Ctx<'_>) -> Res<bool> {

@@ -1,15 +1,15 @@
 #![allow(clippy::needless_borrow)]
 
-pub use commands_robbb::{checks, commands};
-pub use db_robbb as db;
-pub use shared_robbb::prelude::*;
-pub use shared_robbb::{config, extensions, log_error, prelude, util, UpEmotes};
-use shared_robbb::{load_up_emotes, Config};
-
-use db_robbb::Db;
-use extensions::PoiseContextExt;
 use poise::serenity_prelude::GatewayIntents;
-use prelude::Ctx;
+use robbb_commands::{checks, commands};
+use robbb_db::Db;
+use robbb_util::{
+    config::Config,
+    extensions::PoiseContextExt,
+    log_error,
+    prelude::{self, Ctx},
+    util, UpEmotes, UserData,
+};
 use std::{ops::DerefMut, sync::Arc};
 use tracing::Level;
 use tracing_futures::Instrument;
@@ -17,14 +17,6 @@ use tracing_futures::Instrument;
 pub mod attachment_logging;
 pub mod events;
 mod logging;
-//pub mod embeds;
-//pub mod modlog;
-//pub mod checks;
-//pub mod commands;
-//pub mod prelude;
-//pub mod util;
-//pub mod config;
-//pub mod extensions;
 
 use crate::{events::handle_event, logging::*};
 
@@ -59,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
                 let db = Arc::new(db);
                 ctx.data.write().await.insert::<Config>(config.clone());
                 ctx.data.write().await.insert::<Db>(db.clone());
-                let up_emotes = match load_up_emotes(&ctx, config.guild).await {
+                let up_emotes = match robbb_util::load_up_emotes(&ctx, config.guild).await {
                     Ok(emotes) => {
                         let emotes = Arc::new(emotes.clone());
                         ctx.data.write().await.insert::<UpEmotes>(emotes.clone());
