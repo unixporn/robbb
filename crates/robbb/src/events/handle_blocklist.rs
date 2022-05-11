@@ -17,8 +17,8 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
 
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     if let Some(word) = blocklist_regex.find(&normalized_msg) {
-        // TODORW
-        //if checks::get_permission_level(&ctx, &msg).await == PermissionLevel::Mod {
+        // TODORW make blocklist also work for slash commands, and make mods not get affected by it again
+        //if checks::get_permission_level(ctx.clone()).await == PermissionLevel::Mod {
         //tracing::info!("Moderator sent blocked word. Ignoring...");
         //return Ok(false);
         //}

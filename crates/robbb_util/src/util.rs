@@ -5,7 +5,6 @@ use serenity::{
 };
 use std::env;
 
-// TODORW support UserErr stuff with actual error reporting to the user
 /// return with an error value immediately.
 #[macro_export]
 macro_rules! abort_with {

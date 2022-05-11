@@ -196,7 +196,7 @@ async fn handle_single_ban(
         user.id,
         reason.to_string(),
         Utc::now(),
-        Some(ctx_message.link()), //TODORW
+        Some(ctx_message.link()),
     )
     .await?;
 

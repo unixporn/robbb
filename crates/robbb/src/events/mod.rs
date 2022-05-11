@@ -65,7 +65,7 @@ impl Handler {
     async fn dispatch_poise_event(&self, ctx: &client::Context, event: &poise::Event<'_>) {
         let shard_manager = (*self.shard_manager.read()).clone().unwrap();
         let framework_data = poise::FrameworkContext {
-            bot_id: self.bot_id.read().unwrap_or_else(|| UserId(0)), //TODORW figure out if this is ugly
+            bot_id: self.bot_id.read().unwrap_or_else(|| UserId(0)),
             options: &self.options,
             user_data: &self.user_data,
             shard_manager: &shard_manager,

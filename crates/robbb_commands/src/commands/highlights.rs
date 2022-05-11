@@ -158,8 +158,6 @@ pub async fn highlights_clear(ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
-// TODORW this should possibly be an extension to Ctx in extensions.rs
-
 /// When in an `ApplicationContext`, send the reply as a ephemeral message.
 /// When in a `PrefixContext`, attempt to send the message in DMs,
 /// and give a generic error message when the user doesn't allow for that.

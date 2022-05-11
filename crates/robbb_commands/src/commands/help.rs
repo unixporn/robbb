@@ -11,15 +11,17 @@ pub async fn help(
     #[autocomplete = "poise::builtins::autocomplete_command"]
     command: Option<String>,
 ) -> Res<()> {
-    let mut commands = ctx
+    let commands: Vec<_> = ctx
         .framework()
         .options()
         .commands
         .iter()
-        .filter(|x| !x.hide_in_help && (x.slash_action.is_some() || x.prefix_action.is_some()));
+        .filter(|x| !x.hide_in_help && (x.slash_action.is_some() || x.prefix_action.is_some()))
+        .collect();
 
     if let Some(desired_command) = command {
         let command = commands
+            .iter()
             .find(|c| {
                 c.name == desired_command.as_str() || c.aliases.contains(&desired_command.as_str())
             })
@@ -27,26 +29,28 @@ pub async fn help(
         reply_help_single(ctx, &command).await?;
     } else {
         // find commands that the user has access to
-        let mut available_commands = Vec::new();
-        for cmd in commands {
-            let check_success = if let Some(check) = cmd.check {
-                check(ctx.clone()).await?
+        // TODORW parallelizing this doesn't seem to help at all :thonk:
+        let available_commands = commands.into_iter().map(|cmd| async move {
+            if let Some(check) = cmd.check {
+                match check(ctx.clone()).await {
+                    Ok(true) => Some(cmd),
+                    Ok(false) => None,
+                    Err(e) => {
+                        tracing::error!(error = %e, "Error while running check");
+                        Some(cmd)
+                    }
+                }
             } else {
-                true
-            };
-
-            if check_success {
-                available_commands.push(cmd);
+                Some(cmd)
             }
+        });
+        let available_commands: Vec<Option<&Command<_, _>>> =
+            futures::future::join_all(available_commands).await;
+        let available_commands = available_commands
+            .into_iter()
+            .filter_map(|x| x)
+            .collect_vec();
 
-            // TODORW
-
-            //if help_commands::has_all_requirements(&ctx, cmd.options, msg)
-            //&& passes_all_checks(cmd.check, &ctx, &msg, &mut args, cmd.options).await
-            //{
-            //commands.push(cmd.options)
-            //}
-        }
         reply_help_full(ctx, &available_commands).await?;
     }
     Ok(())

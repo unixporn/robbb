@@ -26,13 +26,17 @@ pub async fn check_is_helper(ctx: Ctx<'_>) -> Res<bool> {
 
 pub async fn check_is_helper_or_mod(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
-    dbg!(if check_role(ctx, config.role_mod).await.is_ok()
-        || check_role(ctx, config.role_helper).await.is_ok()
-    {
+
+    let (mod_check, helper_check) = tokio::join!(
+        check_role(ctx.clone(), config.role_mod),
+        check_role(ctx.clone(), config.role_helper),
+    );
+
+    if mod_check.is_ok() || helper_check.is_ok() {
         Ok(true)
     } else {
         Ok(false)
-    })
+    }
 }
 
 pub async fn check_is_not_muted(ctx: Ctx<'_>) -> Res<bool> {
@@ -59,10 +63,14 @@ pub enum PermissionLevel {
 #[tracing::instrument(skip_all)]
 pub async fn get_permission_level(ctx: Ctx<'_>) -> PermissionLevel {
     let config = ctx.get_config();
+    let (mod_check, helper_check) = tokio::join!(
+        check_role(ctx.clone(), config.role_mod),
+        check_role(ctx.clone(), config.role_helper),
+    );
 
-    if check_role(ctx.clone(), config.role_mod).await.is_ok() {
+    if mod_check.is_ok() {
         PermissionLevel::Mod
-    } else if check_role(ctx.clone(), config.role_helper).await.is_ok() {
+    } else if helper_check.is_ok() {
         PermissionLevel::Helper
     } else {
         PermissionLevel::User
