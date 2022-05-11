@@ -1,0 +1,190 @@
+use poise::serenity_prelude::{MemberParseError, UserParseError};
+use robbb_commands::commands;
+
+use robbb_util::{
+    extensions::PoiseContextExt,
+    log_error,
+    prelude::{self, Ctx},
+    util, UserData,
+};
+
+/// Handler passed to poise
+pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>) {
+    use poise::FrameworkError::*;
+    match error {
+        Command { error, ctx } => {
+            handle_command_error(ctx, error).await;
+        }
+        Setup { error } => {
+            tracing::error!(error = %error, "Error during setup: {}", error)
+        }
+        Listener {
+            error,
+            event,
+            ctx: _,
+            framework: _,
+        } => {
+            tracing::error!(event = ?event, error = %error, "Error in event listener: {}", error);
+        }
+        ArgumentParse { input, ctx, error } => {
+            log_error!(handle_argument_parse_error(ctx, error, input).await);
+        }
+        CommandStructureMismatch { description, ctx } => {
+            log_error!(
+                poise::Context::Application(ctx)
+                    .say_error("Something went wrong")
+                    .await
+            );
+            tracing::error!(error="CommandStructureMismach", error.description=%description, "Error in command structure: {}", description);
+        }
+        CooldownHit {
+            remaining_cooldown,
+            ctx,
+        } => log_error!(
+            ctx.say_error(format!(
+                "You're doing this too much. Try again {}",
+                util::format_date_ago(util::time_after_duration(remaining_cooldown))
+            ))
+            .await
+        ),
+        MissingBotPermissions {
+            missing_permissions,
+            ctx,
+        } => {
+            log_error!(
+                ctx.say_error(format!(
+                    "It seems like I am lacking the {} permission",
+                    missing_permissions
+                ))
+                .await
+            );
+            tracing::error!(
+                error = "Missing permissions",
+                "Bot missing permissions: {}",
+                missing_permissions
+            )
+        }
+        MissingUserPermissions {
+            missing_permissions,
+            ctx,
+        } => {
+            log_error!(ctx.say_error("Missing permissions").await);
+            tracing::error!(
+                error = "User missing permissions",
+                error.missing_permissions = ?missing_permissions,
+                "User missing permissions: {:?}",
+                missing_permissions
+            )
+        }
+        NotAnOwner { ctx } => {
+            log_error!(ctx.say_error("You need to be an owner to do this").await);
+        }
+        GuildOnly { ctx } => {
+            log_error!(ctx.say_error("This can only be ran in a server").await);
+        }
+        DmOnly { ctx } => {
+            log_error!(ctx.say_error("This can only be used in DMs").await);
+        }
+        NsfwOnly { ctx } => {
+            log_error!(
+                ctx.say_error("This can only be used in NSFW channels")
+                    .await
+            );
+        }
+        CommandCheckFailed { error, ctx } => {
+            if let Some(error) = error {
+                log_error!(
+                    ctx.say_error("Something went wrong while checking your permissions")
+                        .await
+                );
+                tracing::error!(
+                    error = %error,
+                    command_name = %ctx.command().name,
+                    "Error while running command check: {}", error
+                );
+            } else {
+                log_error!(ctx.say_error("Insufficient permissions").await);
+            }
+        }
+        DynamicPrefix { error } => {
+            tracing::error!(error = %error, "Error in dynamic prefix");
+        }
+        other => {
+            tracing::error!(error = ?other, "unhandled error received from poise");
+        }
+    }
+}
+
+async fn handle_argument_parse_error(
+    ctx: Ctx<'_>,
+    error: Box<dyn std::error::Error + Send + Sync>,
+    input: Option<String>,
+) -> anyhow::Result<()> {
+    let input = input.unwrap_or_default();
+    let msg = if let Some(_) = error.downcast_ref::<humantime::DurationError>() {
+        format!("'{}' is not a valid duration", input)
+    } else if let Some(_) = error.downcast_ref::<UserParseError>() {
+        format!("I couldn't find any user '{}'", input)
+    } else if let Some(_) = error.downcast_ref::<MemberParseError>() {
+        format!("I couldn't find any member '{}'", input)
+    } else {
+        format!("Malformed argument '{}'", input)
+    };
+    ctx.say_error(msg).await?;
+    Ok(())
+}
+
+async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
+    match err.downcast_ref::<commands::UserErr>() {
+        Some(err) => match err {
+            commands::UserErr::MentionedUserNotFound => {
+                let _ = ctx.say_error("No user found with that name").await;
+            }
+            commands::UserErr::Other(issue) => {
+                let _ = ctx.say_error(format!("Error: {}", issue)).await;
+            }
+        },
+        None => match err.downcast::<serenity::Error>() {
+            Ok(err) => {
+                tracing::warn!(
+                    error.command_name = %ctx.command().name,
+                    error.message = %err,
+                    "Serenity error [handling {}]: {} ({:?})",
+                    ctx.command().name,
+                    &err,
+                    &err
+                );
+                match err {
+                    serenity::Error::Http(err) => {
+                        if let serenity::http::error::Error::UnsuccessfulRequest(res) = *err {
+                            if res.status_code == serenity::http::StatusCode::NOT_FOUND
+                                && res.error.message.to_lowercase().contains("unknown user")
+                            {
+                                let _ = ctx.say_error("User not found").await;
+                            } else {
+                                let _ = ctx.say_error("Something went wrong").await;
+                            }
+                        }
+                    }
+                    serenity::Error::Model(err) => {
+                        let _ = ctx.say_error(format!("{}", err)).await;
+                    }
+                    _ => {
+                        let _ = ctx.say_error("Something went wrong").await;
+                    }
+                }
+            }
+            Err(err) => {
+                let _ = ctx.say_error("Something went wrong").await;
+                tracing::warn!(
+                    error.command_name = %ctx.command().name,
+                    error.message = %err,
+                    "Internal error [handling {}]: {} ({:#?})",
+                    ctx.command().name,
+                    &err,
+                    &err
+                );
+            }
+        },
+    }
+}

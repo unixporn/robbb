@@ -67,7 +67,6 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
     let guild = ctx.guild().context("Failed to load guild")?;
 
     let mut disallowed_bans = Vec::new();
-    let mut not_found_users = Vec::new();
     let mut successful_bans = Vec::new();
 
     let permission_level = checks::get_permission_level(ctx).await;
@@ -89,9 +88,6 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
             std::result::Result::Err(BanFailedReason::HelperRestriction(user)) => {
                 disallowed_bans.push(user);
             }
-            std::result::Result::Err(BanFailedReason::UserNotFound) => {
-                not_found_users.push(user);
-            }
             std::result::Result::Err(BanFailedReason::Other(err)) => {
                 tracing::error!("{}", err);
                 let _ = ctx
@@ -103,18 +99,6 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
                     .await;
             }
         }
-    }
-
-    if !not_found_users.is_empty() {
-        let _ = ctx
-            .say_error(format!(
-                "The following users don't seem to exist:\n{}",
-                not_found_users
-                    .into_iter()
-                    .map(|x| format!("- {}", x.mention()))
-                    .join("\n")
-            ))
-            .await;
     }
 
     if !disallowed_bans.is_empty() {
@@ -147,7 +131,6 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
 
 enum BanFailedReason {
     HelperRestriction(User),
-    UserNotFound, //TODORW
     Other(anyhow::Error),
 }
 impl From<anyhow::Error> for BanFailedReason {
