@@ -1,4 +1,7 @@
-use poise::serenity_prelude::{MemberParseError, UserParseError};
+use poise::{
+    serenity_prelude::{MemberParseError, UserParseError},
+    TooFewArguments, TooManyArguments,
+};
 use robbb_commands::commands;
 
 use robbb_util::{
@@ -120,15 +123,20 @@ async fn handle_argument_parse_error(
     error: Box<dyn std::error::Error + Send + Sync>,
     input: Option<String>,
 ) -> anyhow::Result<()> {
-    let input = input.unwrap_or_default();
     let msg = if let Some(_) = error.downcast_ref::<humantime::DurationError>() {
-        format!("'{}' is not a valid duration", input)
+        format!("'{}' is not a valid duration", input.unwrap_or_default())
     } else if let Some(_) = error.downcast_ref::<UserParseError>() {
-        format!("I couldn't find any user '{}'", input)
+        format!("I couldn't find any user '{}'", input.unwrap_or_default())
     } else if let Some(_) = error.downcast_ref::<MemberParseError>() {
-        format!("I couldn't find any member '{}'", input)
-    } else {
+        format!("I couldn't find any member '{}'", input.unwrap_or_default())
+    } else if let Some(_) = error.downcast_ref::<TooManyArguments>() {
+        format!("Too many arguments")
+    } else if let Some(_) = error.downcast_ref::<TooFewArguments>() {
+        format!("Too few arguments")
+    } else if let Some(input) = input {
         format!("Malformed argument '{}'", input)
+    } else {
+        format!("Command used incorrectly")
     };
     ctx.say_error(msg).await?;
     Ok(())

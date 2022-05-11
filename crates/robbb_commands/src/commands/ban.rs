@@ -1,6 +1,7 @@
 use anyhow::Context;
 use chrono::{Duration, Utc};
-use poise::serenity_prelude::User;
+use poise::serenity_prelude::{Message, User};
+use robbb_util::embeds;
 
 use crate::checks::{self, PermissionLevel};
 
@@ -71,6 +72,12 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
 
     let permission_level = checks::get_permission_level(ctx).await;
 
+    let mut main_response = ctx
+        .say_success_mod_action("Banning...")
+        .await?
+        .message()
+        .await?;
+
     for user in users {
         match handle_single_ban(
             ctx,
@@ -79,6 +86,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
             user.clone(),
             &reason,
             delete_days,
+            &main_response,
         )
         .await
         {
@@ -93,7 +101,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
                 let _ = ctx
                     .say_error(format!(
                         "Something went wrong banning {} ({})",
-                        user,
+                        user.tag(),
                         user.mention()
                     ))
                     .await;
@@ -111,19 +119,23 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
     }
 
     if !successful_bans.is_empty() {
-        let success_msg = ctx
-            .say_success_mod_action(format!(
+        let embed = embeds::make_success_mod_action_embed(
+            &ctx.discord(),
+            &format!(
                 "successfully yote\n{}",
                 successful_bans
                     .iter()
                     .map(|x| format!("- {} ({})", x.tag(), x.id))
                     .join("\n")
-            ))
-            .await?
-            .message()
+            ),
+        )
+        .await;
+
+        main_response
+            .edit(&ctx.discord(), |e| e.set_embed(embed))
             .await?;
 
-        crate::modlog::log_ban(ctx, &success_msg, &successful_bans, &reason).await;
+        crate::modlog::log_ban(ctx, &main_response, &successful_bans, &reason).await;
     }
 
     Ok(())
@@ -146,6 +158,7 @@ async fn handle_single_ban(
     user: User,
     reason: &str,
     delete_days: u8,
+    ctx_message: &Message,
 ) -> Result<User, BanFailedReason> {
     let ban_allowed = if permission_level == PermissionLevel::Helper {
         let member = guild.member(&ctx.discord(), user.id).await;
@@ -162,29 +175,14 @@ async fn handle_single_ban(
         return Err(BanFailedReason::HelperRestriction(user));
     }
 
-    if reason.to_string().contains("ice") {
-        let _ = user
-            .dm(&ctx.discord(), |m| -> &mut serenity::builder::CreateMessage {
-               m.content(indoc::formatdoc!(
-                   "{}
-
-                   Hey ice, you were banned once again. 
-                   Instead of wasting your time spamming here, please consider seeking help regarding your mental health.
-                   https://www.nimh.nih.gov/health/find-help/index.shtml",
-                   reason.replacen("ice", "", 1),
-               ))
-           })
-            .await;
-    } else {
-        let _ = user
-            .dm(&ctx.discord(), |m| {
-                m.embed(|e| {
-                    e.title(format!("You were banned from {}", guild.name));
-                    e.field("Reason", reason, false)
-                })
+    let _ = user
+        .dm(&ctx.discord(), |m| {
+            m.embed(|e| {
+                e.title(format!("You were banned from {}", guild.name));
+                e.field("Reason", reason, false)
             })
-            .await;
-    }
+        })
+        .await;
 
     let db = ctx.get_db();
     guild
@@ -198,7 +196,7 @@ async fn handle_single_ban(
         user.id,
         reason.to_string(),
         Utc::now(),
-        None, // Some(msg.link()), //TODORW
+        Some(ctx_message.link()), //TODORW
     )
     .await?;
 
