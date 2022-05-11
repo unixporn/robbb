@@ -8,3 +8,7 @@ members = [
 [profile.dev]
 split-debuginfo = "unpacked"
 
+
+[patch.crates-io]
+# develop branch, pinned commit to avoid unexpected breaking changes
+poise = { git = "https://github.com/kangalioo/poise", rev = "aa8f42962f1b4493bd8035ede2c27529cacc644c" }

@@ -3,12 +3,13 @@
 use poise::serenity_prelude::GatewayIntents;
 use robbb_commands::{checks, commands};
 use robbb_db::Db;
+
 use robbb_util::{
     config::Config,
     extensions::PoiseContextExt,
     log_error,
     prelude::{self, Ctx},
-    util, UpEmotes, UserData,
+    util, UserData,
 };
 use std::{ops::DerefMut, sync::Arc};
 use tracing::Level;
@@ -18,7 +19,7 @@ pub mod attachment_logging;
 pub mod events;
 mod logging;
 
-use crate::{events::handle_event, logging::*};
+use crate::logging::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
     let span = tracing::span!(Level::DEBUG, "main");
     let _enter = span.enter();
 
-    init_cpu_logging().await;
+    //init_cpu_logging().await;
 
     tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
 
@@ -42,97 +43,92 @@ async fn main() -> anyhow::Result<()> {
     db.run_migrations().await.unwrap();
     db.remove_forbidden_highlights().await.unwrap();
 
-    poise::Framework::build()
-        .token(config.discord_token.to_string())
-        .client_settings(|client| client.cache_settings(|cache| cache.max_messages(500)))
-        .user_data_setup(|ctx, _ready, _framework| {
+    let framework_options = poise::FrameworkOptions {
+        commands: commands::all_commands(),
+        on_error: |err| Box::pin(on_error(err)),
+        pre_command: |ctx| {
             Box::pin(async move {
-                let config = Arc::new(config);
-                let db = Arc::new(db);
-                ctx.data.write().await.insert::<Config>(config.clone());
-                ctx.data.write().await.insert::<Db>(db.clone());
-                let up_emotes = match robbb_util::load_up_emotes(&ctx, config.guild).await {
-                    Ok(emotes) => {
-                        let emotes = Arc::new(emotes.clone());
-                        ctx.data.write().await.insert::<UpEmotes>(emotes.clone());
-                        Some(emotes)
-                    }
-                    Err(err) => {
-                        tracing::warn!("Error loading emotes: {}", err);
-                        None
-                    }
-                };
-
-                Ok(UserData {
-                    config,
-                    db,
-                    up_emotes,
-                })
+                println!("Executing command {}...", ctx.command().qualified_name);
+                before(ctx).await;
             })
-        })
-        .intents(GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT)
-        .options(poise::FrameworkOptions {
-            commands: commands::all_commands(),
-            on_error: |err| Box::pin(on_error(err)),
-            pre_command: |ctx| {
-                Box::pin(async move {
-                    println!("Executing command {}...", ctx.command().qualified_name);
-                    before(ctx).await;
-                })
-            },
-            post_command: |ctx| {
-                Box::pin(async move {
-                    println!("Executed command {}!", ctx.command().qualified_name);
-                })
-            },
-            command_check: Some(|ctx| {
-                Box::pin(async move {
-                    println!("checking...");
-                    Ok(checks::check_channel_allows_commands(ctx.clone()).await?
-                        && checks::check_is_not_muted(ctx.clone()).await?)
-                })
-            }),
-
-            listener: |ctx, event, framework, data| {
-                Box::pin(async move {
-                    println!("Got an event in listener: {:?}", event.name());
-                    handle_event(ctx, event, framework, data.clone()).await;
-                    Ok(())
-                })
-            },
-            prefix_options: poise::PrefixFrameworkOptions {
-                prefix: Some("!".into()),
-                edit_tracker: Some(poise::EditTracker::for_timespan(
-                    std::time::Duration::from_secs(10),
-                )),
-                execute_untracked_edits: true,
-                execute_self_messages: false,
-                case_insensitive_commands: true,
-                ..Default::default()
-            },
+        },
+        post_command: |ctx| {
+            Box::pin(async move {
+                println!("Executed command {}!", ctx.command().qualified_name);
+            })
+        },
+        command_check: Some(|ctx| {
+            Box::pin(async move {
+                println!("checking...");
+                Ok(checks::check_channel_allows_commands(ctx.clone()).await?
+                    && checks::check_is_not_muted(ctx.clone()).await?)
+            })
+        }),
+        prefix_options: poise::PrefixFrameworkOptions {
+            prefix: Some("!".into()),
+            edit_tracker: Some(poise::EditTracker::for_timespan(
+                std::time::Duration::from_secs(10),
+            )),
+            execute_untracked_edits: true,
+            execute_self_messages: false,
+            case_insensitive_commands: true,
             ..Default::default()
-        })
-        .run()
-        .await?;
+        },
+        ..Default::default()
+    };
+
+    let gateway_intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
+
+    let config = Arc::new(config);
+    let db = Arc::new(db);
+
+    let event_handler = Arc::new(events::Handler::new(
+        framework_options,
+        UserData {
+            config: config.clone(),
+            db: db.clone(),
+            up_emotes: Arc::new(parking_lot::RwLock::new(None)),
+        },
+    ));
+
+    let mut client = serenity::Client::builder(&config.discord_token, gateway_intents)
+        .event_handler_arc(event_handler.clone())
+        .cache_settings(|c| c.max_messages(500))
+        .await
+        .expect("Error creating client");
+
+    {
+        let mut client_data = client.data.write().await;
+        client_data.insert::<Config>(config);
+        client_data.insert::<Db>(db);
+    }
+
+    event_handler.set_shard_manager(client.shard_manager.clone());
+
+    client.start().await?;
 
     Ok(())
 }
 
-#[tracing::instrument(skip_all, fields(
-    command_name = %ctx.command().name,
-    msg.author = %ctx.author(),
-    msg.id = %ctx.id(),
-    msg.channel_id = %ctx.channel_id(),
-))]
 async fn before(ctx: Ctx<'_>) -> bool {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
-    let span = tracing::Span::current();
-    ctx.set_invocation_data(span).await;
-
     let content = match ctx {
         poise::Context::Application(_) => "<slash command>".to_string(),
         poise::Context::Prefix(prefix) => prefix.msg.content.to_string(),
     };
+    let channel_name = ctx
+        .channel_id()
+        .to_channel_cached(&ctx.discord())
+        .and_then(|x| x.guild())
+        .map(|x| x.name);
+
+    let span = tracing::Span::current();
+    span.record("command_name", &ctx.command().qualified_name.as_str());
+    span.record("msg.content", &content.as_str());
+    span.record("msg.author", &ctx.author().tag().as_str());
+    span.record("msg.id", &ctx.id());
+    span.record("msg.channel_id", &ctx.channel_id().0);
+    span.record("msg.channel", &channel_name.unwrap_or_default().as_str());
+
     tracing::info!(
         command_name = ctx.command().name,
         msg.content = %content,
@@ -161,9 +157,7 @@ fn framework_error_context<'a, 'b>(
         | DmOnly { ctx }
         | NsfwOnly { ctx }
         | CommandCheckFailed { ctx, .. } => Some(ctx.clone()),
-        DynamicPrefix { .. } | Setup { .. } | CommandStructureMismatch { .. } | Listener { .. } => {
-            None
-        }
+        _ => None,
     }
 }
 
@@ -286,6 +280,9 @@ async fn handle_poise_error(error: poise::FrameworkError<'_, UserData, prelude::
         }
         DynamicPrefix { error } => {
             tracing::error!(error = %error, "Error in dynamic prefix");
+        }
+        other => {
+            tracing::error!(error = ?other, "unhandled error received from poise");
         }
     }
 }

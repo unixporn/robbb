@@ -1,14 +1,11 @@
 use super::*;
 
-#[tracing::instrument(skip_all, fields(msg.id = %event.id, msg.channel_id = %event.channel_id, ?event))]
 pub async fn message_update(
     ctx: client::Context,
-    _data: UserData,
     old_if_available: Option<Message>,
     _new: Option<Message>,
     event: MessageUpdateEvent,
 ) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let config = ctx.get_config().await;
 
     if Some(config.guild) != event.guild_id

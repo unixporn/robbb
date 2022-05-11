@@ -3,10 +3,9 @@ use serenity::futures::StreamExt;
 
 use super::*;
 
-#[tracing::instrument(skip_all)]
-pub async fn ready(ctx: client::Context, data: UserData, _data_about_bot: Ready) -> Result<()> {
+pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
     tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
-    let config = data.config.clone();
+    let config = ctx.get_config().await;
 
     let bot_version = util::bot_version();
     tracing::info!("Robbb is ready! Running version {}", &bot_version);
@@ -26,8 +25,8 @@ pub async fn ready(ctx: client::Context, data: UserData, _data_about_bot: Ready)
 
     dehoist_everyone(ctx.clone(), config.guild).await;
 
-    start_mute_handler(ctx.clone(), data.clone()).await;
-    start_attachment_log_handler(ctx, data.clone()).await;
+    start_mute_handler(ctx.clone()).await;
+    start_attachment_log_handler(ctx).await;
     Ok(())
 }
 
@@ -45,13 +44,14 @@ async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
         .await;
 }
 
-async fn start_mute_handler(ctx: client::Context, data: UserData) {
+async fn start_mute_handler(ctx: client::Context) {
+    let (config, db) = ctx.get_config_and_db().await;
     tokio::spawn(async move {
         let _ =
             tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
-            let mutes = match data.db.get_newly_expired_mutes().await {
+            let mutes = match db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {
                     tracing::error!(error.message = %err, "Failed to request expired mutes: {}", err);
@@ -59,7 +59,7 @@ async fn start_mute_handler(ctx: client::Context, data: UserData) {
                 }
             };
             for mute in mutes {
-                if let Err(err) = unmute(&ctx, &data.config, &data.db, &mute).await {
+                if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
                     tracing::error!(error.message = %err, "Error handling mute removal: {}", err);
                 } else {
                     modlog::log_user_mute_ended(&ctx, &mute).await;
@@ -69,7 +69,8 @@ async fn start_mute_handler(ctx: client::Context, data: UserData) {
     });
 }
 
-async fn start_attachment_log_handler(_ctx: client::Context, data: UserData) {
+async fn start_attachment_log_handler(ctx: client::Context) {
+    let config = ctx.get_config().await;
     tokio::spawn(async move {
         let _ =
             tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
@@ -78,7 +79,7 @@ async fn start_attachment_log_handler(_ctx: client::Context, data: UserData) {
 
             log_error!(
                 "Failed to clean up attachments",
-                crate::attachment_logging::cleanup(&data.config).await
+                crate::attachment_logging::cleanup(&config).await
             );
         }
     });

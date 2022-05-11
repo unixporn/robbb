@@ -2,14 +2,12 @@ use itertools::Itertools;
 
 use super::*;
 
-#[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
 pub async fn message_delete(
     ctx: client::Context,
     channel_id: ChannelId,
     deleted_message_id: MessageId,
     guild_id: Option<GuildId>,
 ) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let config = ctx.get_config().await;
     if Some(config.guild) != guild_id {
         return Ok(());
@@ -86,14 +84,12 @@ pub async fn message_delete(
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn message_delete_bulk(
     ctx: client::Context,
     channel_id: ChannelId,
     deleted_message_ids: Vec<MessageId>,
     guild_id: Option<GuildId>,
 ) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let config = ctx.get_config().await;
     if Some(config.guild) != guild_id {
         return Ok(());

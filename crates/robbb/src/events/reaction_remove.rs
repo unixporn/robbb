@@ -2,17 +2,7 @@ use super::*;
 
 use serenity::model::channel::ReactionType::Custom;
 
-#[tracing::instrument(
-    skip_all,
-    fields(
-        reaction.emoji = %event.emoji,
-        reaction.channel_id = %event.channel_id,
-        reaction.user_id = ?event.user_id,
-        reaction.message_id = ?event.message_id
-    )
-)]
 pub async fn reaction_remove(ctx: client::Context, event: Reaction) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let user = event.user(&ctx).await?;
     if user.bot {
         return Ok(());

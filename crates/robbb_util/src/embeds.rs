@@ -1,5 +1,6 @@
 use crate::{
     extensions::{ClientContextExt, PoiseContextExt},
+    log_error,
     prelude::Ctx,
     UpEmotes,
 };
@@ -7,8 +8,8 @@ use crate::{
 use anyhow::Result;
 use chrono::Utc;
 use itertools::Itertools;
+use poise::serenity_prelude::{CreateActionRow, CreateComponents, UserId};
 use serenity::{builder::CreateEmbed, client, futures::StreamExt, model::channel::Message};
-use tracing_futures::Instrument;
 
 const PAGINATION_LEFT: &str = "LEFT";
 const PAGINATION_RIGHT: &str = "RIGHT";
@@ -59,76 +60,97 @@ impl PaginatedEmbed {
                 .await?;
             Ok(handle.message().await?)
         } else {
-            let mut current_page_idx = 0;
             let created_msg_handle = ctx
-                .send(|e| {
-                    e.embed(|e| {
-                        e.clone_from(&self.pages.get(current_page_idx).unwrap());
+                .send(|m| {
+                    m.embed(|e| {
+                        e.clone_from(&self.pages.get(0).unwrap());
                         e
                     });
-                    e.components(|c| {
-                        c.create_action_row(|r| {
-                            r.create_button(|b| b.label("←").custom_id(PAGINATION_LEFT));
-                            r.create_button(|b| b.label("→").custom_id(PAGINATION_RIGHT))
-                        })
+                    m.components(|c| {
+                        *c = Self::make_pagination_components(0, pages.len());
+                        c
                     })
                 })
                 .await?;
             let created_msg = created_msg_handle.message().await?;
 
-            let serenity_ctx = ctx.discord().clone();
-            let user_id = ctx.author().id;
-
             tokio::spawn({
-                let mut created_msg = created_msg.clone();
-                let created_msg_id = created_msg.id;
+                let serenity_ctx = ctx.discord().clone();
+                let user_id = ctx.author().id;
+                let created_msg = created_msg.clone();
                 async move {
-                    let res: Result<()> =
-                        async move {
-                            let mut interaction_stream = created_msg
-                                .await_component_interactions(&serenity_ctx)
-                                .collect_limit(10)
-                                .timeout(std::time::Duration::from_secs(30))
-                                .author_id(user_id)
-                                .build();
-
-                            while let Some(interaction) = interaction_stream.next().await {
-                                let direction = interaction.data.clone().custom_id;
-                                if direction == PAGINATION_LEFT && current_page_idx > 0 {
-                                    current_page_idx -= 1;
-                                } else if direction == PAGINATION_RIGHT
-                                    && current_page_idx < pages.len() - 1
-                                {
-                                    current_page_idx += 1;
-                                }
-                                interaction.create_interaction_response(&serenity_ctx, |ir| {
-                                    ir.kind(poise::serenity_prelude::InteractionResponseType::UpdateMessage);
-                                    ir.interaction_response_data(|d| {
-                                        d.set_embed(pages.get(current_page_idx).unwrap().clone())
-                                    })
-                                }).await?;
-
-                            }
+                    log_error!(
+                        Self::handle_pagination_interactions(
+                            &serenity_ctx,
+                            pages,
+                            user_id,
                             created_msg
-                                .edit(&serenity_ctx, |e| e.components(|c| c))
-                                .await?;
-                            Ok(())
-                        }
-                        .instrument(
-                            tracing::info_span!("paginate-embed", embed_msg.id = %created_msg_id),
                         )
-                        .await;
-                    if let Err(err) = res {
-                        tracing::error!("{}", err);
-                    }
+                        .await
+                    )
                 }
-                .instrument(
-                    tracing::info_span!("paginate-embed-outer", embed_msg.id = %created_msg_id),
-                )
             });
 
             Ok(created_msg)
         }
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn handle_pagination_interactions(
+        serenity_ctx: &client::Context,
+        pages: Vec<CreateEmbed>,
+        user_id: UserId,
+        mut created_msg: Message,
+    ) -> Result<()> {
+        let mut current_page_idx = 0;
+        let mut interaction_stream = created_msg
+            .await_component_interactions(&serenity_ctx)
+            .collect_limit(10)
+            .timeout(std::time::Duration::from_secs(30))
+            .author_id(user_id)
+            .build();
+
+        while let Some(interaction) = interaction_stream.next().await {
+            let direction = interaction.data.clone().custom_id;
+            if direction == PAGINATION_LEFT && current_page_idx > 0 {
+                current_page_idx -= 1;
+            } else if direction == PAGINATION_RIGHT && current_page_idx < pages.len() - 1 {
+                current_page_idx += 1;
+            }
+            interaction
+                .create_interaction_response(&serenity_ctx, |ir| {
+                    ir.kind(poise::serenity_prelude::InteractionResponseType::UpdateMessage);
+                    ir.interaction_response_data(|d| {
+                        d.set_embed(pages.get(current_page_idx).unwrap().clone());
+                        d.set_components(Self::make_pagination_components(
+                            current_page_idx,
+                            pages.len(),
+                        ))
+                    })
+                })
+                .await?;
+        }
+        created_msg
+            .edit(&serenity_ctx, |e| e.components(|c| c))
+            .await?;
+        Ok(())
+    }
+
+    fn make_pagination_components(page_idx: usize, page_cnt: usize) -> CreateComponents {
+        let mut row = CreateActionRow::default();
+        row.create_button(|b| {
+            b.label("←")
+                .disabled(page_idx == 0)
+                .custom_id(PAGINATION_LEFT)
+        });
+        row.create_button(|b| {
+            b.label("→")
+                .disabled(page_idx >= page_cnt - 1)
+                .custom_id(PAGINATION_RIGHT)
+        });
+        let mut components = CreateComponents::default();
+        components.set_action_row(row);
+        components
     }
 }
 

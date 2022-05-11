@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 #serenity = { git = "https://github.com/serenity-rs/serenity/", branch = "next", features = ["collector"]}
-serenity = { version = "0.11.1", default-features = false, features = ["collector", "builder", "cache", "chrono", "client", "gateway", "model", "http", "utils"]}
+serenity = { version = "0.11.2", default-features = false, features = ["collector", "builder", "cache", "chrono", "client", "gateway", "model", "http", "utils"]}
 anyhow = "1.0"
 chrono = "0.4"
 chrono-humanize = "0.2"
@@ -38,7 +38,7 @@ tracing-honeycomb = "0.4.3"
 libhoney-rust = "0.1.6"
 cpu-monitor = "0.1.1"
 poise = "0.1.0"
-parking_lot = "0.12.0"
+parking_lot = "0.12"
 
 robbb_db = { path = "../robbb_db" }
 robbb_util = { path = "../robbb_util" }

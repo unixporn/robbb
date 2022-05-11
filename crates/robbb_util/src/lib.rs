@@ -59,5 +59,5 @@ impl TypeMapKey for UpEmotes {
 pub struct UserData {
     pub config: Arc<config::Config>,
     pub db: Arc<Db>,
-    pub up_emotes: Option<Arc<UpEmotes>>,
+    pub up_emotes: Arc<parking_lot::RwLock<Option<Arc<UpEmotes>>>>,
 }

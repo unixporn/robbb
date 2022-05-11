@@ -43,7 +43,8 @@ async fn send_ask_in_tech_support(
     let police_emote = ctx
         .data()
         .up_emotes
-        .clone()
+        .read()
+        .as_ref()
         .map(|emotes| emotes.police.to_string())
         .unwrap_or_default();
 
@@ -95,6 +96,7 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
     let police_emote = ctx
         .data()
         .up_emotes
+        .read()
         .as_ref()
         .map(|emotes| emotes.police.to_string())
         .unwrap_or_default();

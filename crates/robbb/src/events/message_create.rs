@@ -13,20 +13,14 @@ use crate::attachment_logging;
 
 use super::*;
 
-#[tracing::instrument(
-        skip_all,
-        fields(
-            command_name, message_create.notified_user_cnt, message_create.stopped_at_spam_protect,
-            message_create.stopped_at_blocklist, message_create.stopped_at_quote, message_create.emoji_used,
-            %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
-            )
-    )]
-pub async fn message_create(ctx: client::Context, _data: UserData, msg: Message) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
+/// Handle a message-create event. If this returns `Ok(true)`,
+/// the message should _not_ be forwarded to the command framework.
+/// Otherwise, it should be forwarded.
+pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> {
     let config = ctx.get_config().await;
 
     if msg.author.bot {
-        return Ok(());
+        return Ok(true);
     }
 
     handle_attachment_logging(&ctx, &msg).await;
@@ -52,7 +46,7 @@ pub async fn message_create(ctx: client::Context, _data: UserData, msg: Message)
         Ok(stop) => {
             tracing::Span::current().record("message_create.stopped_at_spam_protect", &stop);
             if stop {
-                return Ok(());
+                return Ok(true);
             }
         }
         err => log_error!("error while handling spam-protection", err),
@@ -61,7 +55,7 @@ pub async fn message_create(ctx: client::Context, _data: UserData, msg: Message)
         Ok(stop) => {
             tracing::Span::current().record("message_create.stopped_at_blocklist", &stop);
             if stop {
-                return Ok(());
+                return Ok(true);
             }
         }
         err => log_error!("error while handling blocklist", err),
@@ -78,24 +72,14 @@ pub async fn message_create(ctx: client::Context, _data: UserData, msg: Message)
         Ok(stop) => {
             tracing::Span::current().record("message_create.stopped_at_quote", &stop);
             if stop {
-                return Ok(());
+                return Ok(true);
             }
         }
         err => log_error!("error while Handling a quoted message", err),
     };
 
-    // TODORW
-    //if msg.channel_id != config.channel_showcase || msg.is_private() {
-    //let framework = ctx
-    //.data
-    //.read()
-    //.await
-    //.get::<crate::FrameworkKey>()
-    //.unwrap()
-    //.clone();
-    //framework.dispatch(ctx, msg).await;
-    //}
-    Ok(())
+    // If the message is in showcase, don't forward to the command framework
+    Ok(msg.channel_id == config.channel_showcase)
 }
 
 #[tracing::instrument(skip_all)]

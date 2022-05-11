@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 
+use poise::async_trait;
+use poise::serenity_prelude::ShardManager;
 use robbb_db::Db;
 use robbb_util::extensions::*;
 use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
@@ -20,84 +22,233 @@ mod reaction_add;
 mod reaction_remove;
 pub mod ready;
 
-pub async fn handle_event(
-    ctx: &client::Context,
-    event: &poise::Event<'_>,
-    _framework: &poise::Framework<UserData, Error>,
-    data: UserData,
-) {
-    use poise::Event::*;
-    let result = match event.clone() {
-        Ready { data_about_bot } => ready::ready(ctx.clone(), data, data_about_bot).await,
-        GuildMemberUpdate {
-            old_if_available,
-            new,
-        } => {
-            guild_member_update::guild_member_update(
-                ctx.clone(),
-                old_if_available.clone(),
-                new.clone(),
-            )
-            .await
-        }
-        GuildMemberAddition { new_member } => {
-            guild_member_addition::guild_member_addition(ctx.clone(), new_member).await
-        }
-        GuildMemberRemoval {
-            guild_id,
-            user,
-            member_data_if_available,
-        } => {
-            guild_member_removal::guild_member_removal(
-                ctx.clone(),
-                guild_id,
-                user,
-                member_data_if_available,
-            )
-            .await
-        }
-        Message { new_message } => {
-            message_create::message_create(ctx.clone(), data, new_message).await
-        }
-        MessageUpdate {
-            old_if_available,
-            new,
-            event,
-        } => message_update::message_update(ctx.clone(), data, old_if_available, new, event).await,
-        MessageDelete {
-            channel_id,
-            deleted_message_id,
-            guild_id,
-        } => {
-            message_delete::message_delete(ctx.clone(), channel_id, deleted_message_id, guild_id)
-                .await
-        }
+pub struct Handler {
+    pub options: poise::FrameworkOptions<UserData, Error>,
+    pub shard_manager: parking_lot::RwLock<Option<Arc<tokio::sync::Mutex<ShardManager>>>>,
+    pub bot_id: parking_lot::RwLock<Option<UserId>>,
+    pub user_data: UserData,
+}
 
-        MessageDeleteBulk {
-            multiple_deleted_messages_ids,
-            channel_id,
-            guild_id,
-        } => {
+impl Handler {
+    pub fn new(options: poise::FrameworkOptions<UserData, Error>, user_data: UserData) -> Self {
+        Self {
+            options,
+            user_data,
+            shard_manager: parking_lot::RwLock::new(None),
+            bot_id: parking_lot::RwLock::new(None),
+        }
+    }
+
+    pub fn set_shard_manager(&self, manager: Arc<tokio::sync::Mutex<ShardManager>>) {
+        *self.shard_manager.write() = Some(manager);
+    }
+
+    async fn init_ready_data(&self, ctx: &client::Context, user_id: UserId) {
+        let _ = self.bot_id.write().insert(user_id);
+        match robbb_util::load_up_emotes(&ctx, self.user_data.config.guild).await {
+            Ok(up_emotes) => {
+                let _ = self.user_data.up_emotes.write().insert(Arc::new(up_emotes));
+            }
+            Err(error) => tracing::error!(%error, "Failed to load up-emotes"),
+        }
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        event.name = %event.name(),
+        command_name,
+        msg.content,
+        msg.author,
+        msg.id,
+        msg.channel_id,
+        msg.channel,
+    ))]
+    async fn dispatch_poise_event(&self, ctx: &client::Context, event: &poise::Event<'_>) {
+        let shard_manager = (*self.shard_manager.read()).clone().unwrap();
+        let framework_data = poise::FrameworkContext {
+            bot_id: self.bot_id.read().unwrap_or_else(|| UserId(0)), //TODORW figure out if this is ugly
+            options: &self.options,
+            user_data: &self.user_data,
+            shard_manager: &shard_manager,
+        };
+        poise::dispatch_event(framework_data, ctx, event).await;
+    }
+}
+
+#[async_trait]
+impl client::EventHandler for Handler {
+    #[tracing::instrument(skip_all)]
+    async fn ready(&self, ctx: client::Context, data_about_bot: Ready) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+
+        self.init_ready_data(&ctx, data_about_bot.user.id).await;
+
+        log_error!(
+            "Error while handling ready event",
+            ready::ready(ctx, data_about_bot).await
+        );
+    }
+
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            command_name, message_create.notified_user_cnt, message_create.stopped_at_spam_protect,
+            message_create.stopped_at_blocklist, message_create.stopped_at_quote, message_create.emoji_used,
+            %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
+        )
+    )]
+    async fn message(&self, ctx: client::Context, msg: Message) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        let stop_event_handler =
+            match message_create::message_create(ctx.clone(), msg.clone()).await {
+                Ok(stop_event_handler) => stop_event_handler,
+                Err(e) => {
+                    tracing::error!(error.message = %format!("{}", &e), "{:?}", e);
+                    false
+                }
+            };
+        if !stop_event_handler {
+            self.dispatch_poise_event(&ctx, &poise::Event::Message { new_message: msg })
+                .await;
+        }
+    }
+
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            interaction_create.kind = ?interaction.kind(),
+        )
+    )]
+    async fn interaction_create(&self, ctx: client::Context, interaction: Interaction) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction })
+            .await;
+    }
+
+    #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %new.user.tag()))]
+    async fn guild_member_update(&self, ctx: client::Context, old: Option<Member>, new: Member) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling guild member update event",
+            guild_member_update::guild_member_update(ctx, old, new).await
+        );
+    }
+
+    #[tracing::instrument(skip_all, fields(msg.id = %event.id, msg.channel_id = %event.channel_id, ?event))]
+    async fn message_update(
+        &self,
+        ctx: client::Context,
+        old_if_available: Option<Message>,
+        _new: Option<Message>,
+        event: MessageUpdateEvent,
+    ) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling message_update event",
+            message_update::message_update(ctx, old_if_available, _new, event).await
+        );
+    }
+
+    #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
+    async fn message_delete(
+        &self,
+        ctx: client::Context,
+        channel_id: ChannelId,
+        deleted_message_id: MessageId,
+        guild_id: Option<GuildId>,
+    ) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling message_delete event",
+            message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id).await
+        );
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn message_delete_bulk(
+        &self,
+        ctx: client::Context,
+        channel_id: ChannelId,
+        multiple_deleted_messages_ids: Vec<MessageId>,
+        guild_id: Option<GuildId>,
+    ) {
+        log_error!(
+            "Error while handling message_delete event",
             message_delete::message_delete_bulk(
-                ctx.clone(),
+                ctx,
                 channel_id,
                 multiple_deleted_messages_ids,
                 guild_id,
             )
             .await
-        }
-        ReactionAdd { add_reaction } => reaction_add::reaction_add(ctx.clone(), add_reaction).await,
-        ReactionRemove { removed_reaction } => {
-            reaction_remove::reaction_remove(ctx.clone(), removed_reaction).await
-        }
+        );
+    }
 
-        _ => Ok(()),
-    };
+    #[tracing::instrument(skip_all, fields(member.tag = %new_member.user.tag()))]
+    async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling guild_member_addition event",
+            guild_member_addition::guild_member_addition(ctx, new_member).await
+        );
+    }
 
-    log_error!(
-        format!("Error while handling {} event", event.name(),),
-        result
-    );
+    #[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]
+    async fn guild_member_removal(
+        &self,
+        ctx: client::Context,
+        guild_id: GuildId,
+        user: User,
+        _member: Option<Member>,
+    ) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling guild_member_removal event",
+            guild_member_removal::guild_member_removal(ctx, guild_id, user, _member).await
+        );
+    }
+
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            reaction.emoji = %event.emoji,
+            reaction.channel_id = %event.channel_id,
+            reaction.user_id = ?event.user_id,
+            reaction.message_id = ?event.message_id
+        )
+    )]
+    async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling reaction_add event",
+            reaction_add::reaction_add(ctx, event).await
+        );
+    }
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            reaction.emoji = %event.emoji,
+            reaction.channel_id = %event.channel_id,
+            reaction.user_id = ?event.user_id,
+            reaction.message_id = ?event.message_id
+        )
+    )]
+    async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling reaction_remove event",
+            reaction_remove::reaction_remove(ctx, event).await
+        );
+    }
 }
 
 async fn unmute(

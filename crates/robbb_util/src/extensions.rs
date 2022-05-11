@@ -153,7 +153,8 @@ impl<'a> PoiseContextExt for Ctx<'a> {
     fn get_random_stare(&self) -> Option<Emoji> {
         self.data()
             .up_emotes
-            .as_ref()
+            .read()
+            .clone()
             .and_then(|x| x.random_stare())
     }
 }

@@ -44,9 +44,7 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
     Ok(())
 }
 
-#[tracing::instrument(skip_all, fields(member.tag = %new_member.user.tag()))]
 pub async fn guild_member_addition(ctx: client::Context, new_member: Member) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let config = ctx.get_config().await;
     if config.guild != new_member.guild_id {
         return Ok(());

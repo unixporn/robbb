@@ -2,14 +2,12 @@ use robbb_db::Db;
 
 use super::*;
 
-#[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]
 pub async fn guild_member_removal(
     ctx: client::Context,
     guild_id: GuildId,
     user: User,
     _member: Option<Member>,
 ) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let db: Arc<Db> = ctx.get_db().await;
     let config = ctx.get_config().await;
     if config.guild != guild_id {
