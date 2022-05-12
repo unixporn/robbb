@@ -1,7 +1,11 @@
 use anyhow::Context;
 use chrono::Utc;
 use futures::StreamExt;
-use poise::serenity_prelude::Attachment;
+use poise::serenity_prelude::{
+    Attachment, CollectModalInteraction, Interaction, InteractionResponseType,
+    MessageComponentInteraction,
+};
+use poise::Modal;
 use robbb_util::embeds;
 
 use super::*;
@@ -32,6 +36,14 @@ pub async fn set_fetch(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
+#[derive(Debug, poise::Modal)]
+struct SetfetchModal {
+    #[paragraph]
+    #[placeholder = "Distro: MyCoolDistro\nKernel: Linux\nTerminal: Alacritty\nDE/WM: Kiwmi\n..."]
+    #[name = "Setfetch data"]
+    content: String,
+}
+
 /// Overwrite your fetch data
 #[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "set")]
 pub async fn set_fetch_set(app_ctx: AppCtx<'_>) -> Res<()> {
@@ -60,58 +72,50 @@ pub async fn set_fetch_set(app_ctx: AppCtx<'_>) -> Res<()> {
         .next()
         .await
     {
+        let modal_defaults = SetfetchModal {
+            content: old_fetch_data
+                .map(|x| fetch_to_setfetch_string(x))
+                .unwrap_or_default(),
+        };
         interaction
             .create_interaction_response(ctx.discord(), |ir| {
-                ir.kind(poise::serenity_prelude::InteractionResponseType::Modal);
-                ir.interaction_response_data(|d| {
-                    d.custom_id("text_field_modal");
-                    d.title("Setfetch");
-                    d.components(|c| {
-                        c.create_action_row(|r| {
-                            r.create_input_text(|t| {
-                                t.custom_id("content");
-                                t.label("Paste your fetch data here");
-                                t.style(poise::serenity_prelude::InputTextStyle::Paragraph);
-                                t.required(true);
-                                if let Some(old_fetch_data) = old_fetch_data {
-                                    t.value(fetch_to_setfetch_string(old_fetch_data));
-                                }
-                                t.placeholder("Your fetch data")
-                            })
-                        })
-                    })
-                })
+                *ir = SetfetchModal::create(Some(modal_defaults));
+                ir
+            })
+            .await?;
+
+        app_ctx
+            .has_sent_initial_response
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+
+        // Wait for user to submit
+        let response = CollectModalInteraction::new(&app_ctx.discord.shard)
+            .author_id(interaction.user.id)
+            .await
+            .unwrap();
+
+        // Send acknowledgement so that the pop-up is closed
+        response
+            .create_interaction_response(app_ctx.discord, |b| {
+                b.kind(InteractionResponseType::DeferredUpdateMessage)
             })
             .await?;
 
         let response =
-            poise::serenity_prelude::CollectModalInteraction::new(&app_ctx.discord.shard)
-                .author_id(interaction.user.id)
-                .await
-                .unwrap();
+            SetfetchModal::parse(response.data.clone()).map_err(serenity::Error::Other)?;
 
         let success_embed = embeds::make_create_embed(&ctx.discord(), |e| {
             e.description("Updating your fetch data...")
         })
         .await;
 
-        response
-            .create_interaction_response(app_ctx.discord, |b| {
-                b.kind(poise::serenity_prelude::InteractionResponseType::UpdateMessage)
-                    .interaction_response_data(|d| {
-                        d.embed(|e| {
-                            e.clone_from(&success_embed);
-                            e
-                        })
-                        .components(|c| c)
-                    })
+        instructions_msg
+            .edit(app_ctx.discord, |e| {
+                e.set_embed(success_embed).components(|c| c)
             })
             .await?;
 
-        let setfetch_data = poise::find_modal_text(&mut response.data.clone(), "content")
-            .context("Missing data from modal")?;
-
-        let setfetch_data = parse_setfetch(setfetch_data.lines().collect_vec())
+        let setfetch_data = parse_setfetch(response.content.lines().collect_vec())
             .user_error("Illegal format, please use `field: value` syntax.")
             .and_then(sanitize_fetch);
         let result_embed = match setfetch_data {
