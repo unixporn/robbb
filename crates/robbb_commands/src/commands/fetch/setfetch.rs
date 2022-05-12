@@ -20,19 +20,13 @@ const SETFETCH_USAGE: &str = indoc::indoc!("
     **NOTE**: !git, !dotfiles, and !desc are different commands"
 );
 
-pub fn setfetch_commands() -> Command<UserData, Error> {
-    Command {
-        subcommands: vec![set_fetch_set(), set_fetch_update(), set_fetch_clear()],
-        ..set_fetch()
-    }
-}
-
 /// Set your fetch data
 #[poise::command(
     slash_command,
     guild_only,
     category = "Miscellaneous",
-    rename = "setfetch"
+    rename = "setfetch",
+    subcommands("set_fetch_set", "set_fetch_update", "set_fetch_clear")
 )]
 pub async fn set_fetch(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())

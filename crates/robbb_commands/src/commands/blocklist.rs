@@ -2,19 +2,13 @@ use regex::Regex;
 
 use super::*;
 
-pub fn blocklist_commands() -> Command<UserData, Error> {
-    Command {
-        subcommands: vec![blocklist_add(), blocklist_remove(), blocklist_list()],
-        ..blocklist()
-    }
-}
-
 /// Control the blocklist
 #[poise::command(
     slash_command,
     guild_only,
     category = "Moderation",
-    check = "crate::checks::check_is_moderator"
+    check = "crate::checks::check_is_moderator",
+    subcommands("blocklist_add", "blocklist_remove", "blocklist_list",)
 )]
 pub async fn blocklist(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())

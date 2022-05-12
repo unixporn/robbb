@@ -6,15 +6,14 @@ lazy_static::lazy_static! {
     static ref POLL_OPTION_START_OF_LINE_PATTERN: Regex = Regex::new(r#"^\s*-|^\s*\d\.|^\s*\*"#).unwrap();
 }
 
-pub fn poll_commands() -> Command<UserData, Error> {
-    Command {
-        subcommands: vec![poll_vote(), poll_multi()],
-        ..poll()
-    }
-}
-
 /// Get people to vote on your question
-#[poise::command(slash_command, guild_only, category = "Miscellaneous", track_edits)]
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Miscellaneous",
+    track_edits,
+    subcommands("poll_vote", "poll_multi")
+)]
 pub async fn poll(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }

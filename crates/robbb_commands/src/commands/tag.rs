@@ -1,4 +1,5 @@
 use chrono::Utc;
+use poise::Modal;
 
 use super::*;
 
@@ -23,15 +24,13 @@ async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterat
         .map(|tag| tag.to_string())
 }
 
-pub fn tag_commands() -> Command<UserData, Error> {
-    Command {
-        subcommands: vec![tag_get(), tag_list(), tag_set(), tag_delete()],
-        ..tag()
-    }
-}
-
 /// Get the text stored in a tag
-#[poise::command(slash_command, guild_only, category = "Miscellaneous")]
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Miscellaneous",
+    subcommands("tag_get", "tag_set", "tag_list", "tag_delete")
+)]
 pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
@@ -91,8 +90,7 @@ pub async fn tag_list(ctx: Ctx<'_>) -> Res<()> {
     let tags = db.list_tags().await?;
 
     ctx.send_embed(|e| {
-        e.title("Tags");
-        e.description(&tags.join(", "));
+        e.title("Tags").description(&tags.join(", "));
     })
     .await?;
 
@@ -120,6 +118,14 @@ pub async fn tag_delete(
     Ok(())
 }
 
+#[derive(Debug, poise::Modal)]
+struct TagModal {
+    #[name = "Content"]
+    #[placeholder = "Content of your tag"]
+    #[paragraph]
+    content: String,
+}
+
 /// Save a new tag or update an old one.
 #[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "set")]
 pub async fn tag_set(
@@ -133,79 +139,27 @@ pub async fn tag_set(
     let db = ctx.get_db();
 
     let existing_tag = db.get_tag(&tag_name).await?;
+    // Content to pre-fill into the modal text field
+    let default_content = existing_tag
+        .map(|x| x.content.to_string())
+        .unwrap_or_default();
 
-    let new_content = run_text_field_modal(
+    let result = TagModal::execute_with_defaults(
         app_ctx,
-        "Set your tag",
-        "Content",
-        "Your tag content",
-        &existing_tag.map(|x| x.content).unwrap_or_default(),
+        TagModal {
+            content: default_content,
+        },
     )
     .await?;
 
     db.set_tag(
         ctx.author().id,
         tag_name,
-        new_content,
+        result.content,
         true,
         Some(Utc::now()),
     )
     .await?;
     ctx.say_success("Succesfully set!").await?;
     Ok(())
-}
-
-pub async fn run_text_field_modal(
-    app_ctx: AppCtx<'_>,
-    title: &str,
-    label: &str,
-    placeholder: &str,
-    default_content: &str,
-) -> Res<String> {
-    // For now we must do this manually rather than using the poise macro solution
-    // as we want to set a default value for the modal content.
-
-    let interaction = app_ctx.interaction.unwrap();
-    interaction
-        .create_interaction_response(app_ctx.discord, |ir| {
-            ir.kind(poise::serenity_prelude::InteractionResponseType::Modal);
-            ir.interaction_response_data(|d| {
-                d.custom_id("text_field_modal");
-                d.title(title);
-                d.components(|c| {
-                    c.create_action_row(|r| {
-                        r.create_input_text(|t| {
-                            t.custom_id("content");
-                            t.label(label);
-                            t.style(poise::serenity_prelude::InputTextStyle::Paragraph);
-                            t.required(true);
-                            t.value(default_content);
-                            t.placeholder(placeholder)
-                        })
-                    })
-                })
-            })
-        })
-        .await?;
-
-    app_ctx
-        .has_sent_initial_response
-        .store(true, std::sync::atomic::Ordering::SeqCst);
-
-    // Wait for user to submit
-    let response = poise::serenity_prelude::CollectModalInteraction::new(&app_ctx.discord.shard)
-        .author_id(interaction.user.id)
-        .await
-        .unwrap();
-
-    // Send acknowledgement so that the pop-up is closed
-    response
-        .create_interaction_response(app_ctx.discord, |b| {
-            b.kind(poise::serenity_prelude::InteractionResponseType::DeferredUpdateMessage)
-        })
-        .await?;
-
-    let content = poise::find_modal_text(&mut response.data.clone(), "content")
-        .user_error("Missing tag content data from modal")?;
-    Ok(content)
 }

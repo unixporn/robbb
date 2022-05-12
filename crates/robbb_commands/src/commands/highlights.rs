@@ -3,24 +3,18 @@ use poise::serenity_prelude::CreateEmbed;
 use super::*;
 use crate::checks::{self, PermissionLevel};
 
-pub fn highlights_commands() -> Command<UserData, Error> {
-    Command {
-        subcommands: vec![
-            highlights_add(),
-            highlights_list(),
-            highlights_clear(),
-            highlights_remove(),
-        ],
-        ..highlights()
-    }
-}
-
 /// Get notified when someone mentions a word you care about.
 #[poise::command(
     slash_command,
     category = "Miscellaneous",
     rename = "highlight",
-    aliases("highlights", "hl")
+    aliases("highlights", "hl"),
+    subcommands(
+        "highlights_add",
+        "highlights_list",
+        "highlights_clear",
+        "highlights_remove",
+    )
 )]
 pub async fn highlights(_: Ctx<'_>) -> Res<()> {
     Ok(())

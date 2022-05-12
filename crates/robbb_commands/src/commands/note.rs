@@ -7,19 +7,13 @@ use crate::modlog;
 
 use super::*;
 
-pub fn note_commands() -> Command<UserData, Error> {
-    Command {
-        subcommands: vec![note_add(), note_undo(), note_list()],
-        ..note()
-    }
-}
-
 /// Write a note about a user.
 #[poise::command(
     slash_command,
     guild_only,
     category = "Moderation",
-    check = "crate::checks::check_is_moderator"
+    check = "crate::checks::check_is_moderator",
+    subcommands("note_add", "note_undo", "note_list")
 )]
 pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
