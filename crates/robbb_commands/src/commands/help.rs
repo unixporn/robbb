@@ -28,6 +28,8 @@ pub async fn help(
             .user_error(&format!("Unknown command `{}`", desired_command))?;
         reply_help_single(ctx, &command).await?;
     } else {
+        // Defer, because running these checks currently takes,... longer than it should.
+        ctx.defer().await?;
         // find commands that the user has access to
         // TODORW parallelizing this doesn't seem to help at all :thonk:
         let available_commands = commands.into_iter().map(|cmd| async move {

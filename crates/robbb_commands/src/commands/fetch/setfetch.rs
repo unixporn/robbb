@@ -1,10 +1,7 @@
 use anyhow::Context;
 use chrono::Utc;
 use futures::StreamExt;
-use poise::serenity_prelude::{
-    Attachment, CollectModalInteraction, Interaction, InteractionResponseType,
-    MessageComponentInteraction,
-};
+use poise::serenity_prelude::{Attachment, CollectModalInteraction, InteractionResponseType};
 use poise::Modal;
 use robbb_util::embeds;
 
