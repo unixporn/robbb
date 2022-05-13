@@ -87,6 +87,11 @@ impl<'a> PoiseContextExt for Ctx<'a> {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
+        let embed = embeds::make_create_embed(&self.discord(), |e| {
+            build(e);
+            e
+        })
+        .await;
         self.send(|f| {
             match self {
                 poise::Context::Application(_) => {}
@@ -95,7 +100,7 @@ impl<'a> PoiseContextExt for Ctx<'a> {
                 }
             }
             f.embed(|e| {
-                build(e);
+                *e = embed;
                 e
             })
             .ephemeral(ephemeral)

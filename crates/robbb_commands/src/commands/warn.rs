@@ -30,7 +30,7 @@ pub async fn warn(
             "{} has been warned by {} for the {} time for reason: {}",
             user.mention(),
             ctx.author().id.mention(),
-            util::format_count(warn_count),
+            util::format_count(warn_count + 1),
             reason,
         ))
         .await?

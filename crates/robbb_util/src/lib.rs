@@ -26,6 +26,7 @@ impl UpEmotes {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> anyhow::Result<UpEmotes> {
     let all_emoji = guild.emojis(&ctx).await?;
     Ok(UpEmotes {

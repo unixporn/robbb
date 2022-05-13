@@ -6,9 +6,15 @@ use super::*;
 /// Autocomplete all tags, but also provide whatever the user has already typed as one of the options.
 /// Used in /tag set, to provide completion for edits, but also allow adding new tags
 async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
+    let last = if partial.is_empty() {
+        vec![]
+    } else {
+        vec![partial.clone()]
+    };
     tag_autocomplete_existing(ctx, partial.clone())
         .await
-        .chain(std::iter::once(partial))
+        .chain(last)
+        .dedup() // when the partial fully matches a value, we otherwise get a duplicate
 }
 
 /// Autocomplete all tags

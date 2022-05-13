@@ -42,20 +42,20 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         pfp::pfp(),
         info::info(),
         help::help(),
-        mute::mute(),
+        //mute::mute(),
         role::role(),
         version::version(),
-        note::note(),
+        //note::note(),
         poll::poll(),
         tag::tag(),
         ask::ask(),
         modping::modping(),
-        warn::warn(),
-        kick::kick(),
-        ban::ban(),
-        unban::unban(),
+        //warn::warn(),
+        //kick::kick(),
+        //ban::ban(),
+        //unban::unban(),
         highlights::highlights(),
-        blocklist::blocklist(),
+        //blocklist::blocklist(),
         small::restart(),
         small::say(),
         small::latency(),
@@ -65,13 +65,34 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         small::desc(),
         small::git(),
         small::dotfiles(),
-        emojistats::emojistats(),
-        purge::purge(),
-        move_users::move_users(),
+        //emojistats::emojistats(),
+        //purge::purge(),
+        //move_users::move_users(),
         fetch::fetch(),
         fetch::set_fetch(),
         top::top(),
+        mod_command(),
     ]
+}
+
+/// Moderation-related commands
+#[poise::command(
+    rename = "mod",
+    slash_command,
+    subcommands(
+        "warn::warn",
+        "ban::ban",
+        "kick::kick",
+        "unban::unban",
+        "emojistats::emojistats",
+        "blocklist::blocklist",
+        "note::note",
+        "mute::mute",
+        "purge::purge"
+    )
+)]
+async fn mod_command(_ctx: Ctx<'_>) -> Res<()> {
+    Ok(())
 }
 
 pub static SELECTION_EMOJI: [&str; 19] = [

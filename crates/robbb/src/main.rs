@@ -40,6 +40,7 @@ async fn main() -> anyhow::Result<()> {
     db.remove_forbidden_highlights().await.unwrap();
 
     let framework_options = poise::FrameworkOptions {
+        owners: maplit::hashset! { poise::serenity_prelude::UserId(402100892444262432) },
         commands: commands::all_commands(),
         on_error: |err| Box::pin(error_handling::on_error(err)),
         pre_command: |ctx| {
@@ -49,8 +50,9 @@ async fn main() -> anyhow::Result<()> {
         },
         command_check: Some(|ctx| {
             Box::pin(async move {
-                Ok(checks::check_channel_allows_commands(ctx.clone()).await?
-                    && checks::check_is_not_muted(ctx.clone()).await?)
+                Ok(is_autocomplete_interaction(&ctx)
+                    || (checks::check_channel_allows_commands(ctx.clone()).await?
+                        && checks::check_is_not_muted(ctx.clone()).await?))
             })
         }),
         prefix_options: poise::PrefixFrameworkOptions {
@@ -129,4 +131,14 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
         ctx.author().tag()
     );
     true
+}
+
+fn is_autocomplete_interaction(ctx: &Ctx<'_>) -> bool {
+    match ctx {
+        poise::Context::Application(ctx) => matches!(
+            ctx.interaction,
+            poise::ApplicationCommandOrAutocompleteInteraction::Autocomplete(_)
+        ),
+        _ => false,
+    }
 }

@@ -4,7 +4,6 @@ use serenity::futures::StreamExt;
 use super::*;
 
 pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
     let config = ctx.get_config().await;
 
     let bot_version = util::bot_version();

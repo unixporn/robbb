@@ -5,8 +5,8 @@ use anyhow::{Context, Result};
 use poise::async_trait;
 use poise::serenity_prelude::ShardManager;
 use robbb_db::Db;
-use robbb_util::extensions::*;
 use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
+use robbb_util::{extensions::*, UpEmotes};
 use serenity::model::prelude::*;
 
 use serenity::client;
@@ -47,7 +47,9 @@ impl Handler {
         let _ = self.bot_id.write().insert(user_id);
         match robbb_util::load_up_emotes(&ctx, self.user_data.config.guild).await {
             Ok(up_emotes) => {
-                let _ = self.user_data.up_emotes.write().insert(Arc::new(up_emotes));
+                let up_emotes = Arc::new(up_emotes);
+                let _ = self.user_data.up_emotes.write().insert(up_emotes.clone());
+                ctx.data.write().await.insert::<UpEmotes>(up_emotes);
             }
             Err(error) => tracing::error!(%error, "Failed to load up-emotes"),
         }

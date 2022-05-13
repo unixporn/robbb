@@ -46,9 +46,6 @@ pub async fn message_delete(
         }
     }
 
-    // TODO do we want this?
-    //handle_ghostping(&ctx, &msg).await;
-
     let deletor = find_deletor(&ctx, &config, &msg).await?;
     let channel_name = util::channel_name(&ctx, channel_id)
         .await
@@ -75,7 +72,7 @@ pub async fn message_delete(
                     f.text(format!(
                         "#{}{}",
                         channel_name,
-                        deletor.map_or(Default::default(), |x| format!(", deleted by {}", x.tag()))
+                        deletor.map_or_else(String::new, |x| format!(", deleted by {}", x.tag()))
                     ))
                 })
             })
@@ -107,35 +104,52 @@ pub async fn message_delete_bulk(
         return Ok(());
     }
 
-    let msgs: Vec<Message> = deleted_message_ids
-        .iter()
-        .filter_map(|id| ctx.cache.message(channel_id, id))
-        .collect();
-
+    // Channel the messages where in
     let channel_name = channel_id
         .name(&ctx)
         .await
         .unwrap_or_else(|| "unknown".to_string());
 
-    let msg_author = msgs
-        .first()
-        .context("Could not load any messages from bulk-deletion event")?
-        .author
-        .clone();
+    // Look through the cache to try to find the messages that where just deleted
+    let msgs: Vec<Message> = deleted_message_ids
+        .iter()
+        .filter_map(|id| ctx.cache.message(channel_id, id))
+        .collect();
 
-    config
-        .channel_bot_messages
-        .send_embed(&ctx, |e| {
-            e.author(|a| a.name("Message Bulk-deletion").icon_url(msg_author.face()));
-            e.title(msg_author.name_with_disc_and_id());
-            e.description(
-                msgs.into_iter()
-                    .map(|m| format!("[{}]\n{}\n", util::format_date(*m.timestamp), m.content))
-                    .join("\n"),
-            );
-            e.footer(|f| f.text(format!("#{}", channel_name)));
-        })
-        .await?;
+    if msgs.is_empty() {
+        config
+            .channel_bot_messages
+            .send_embed(&ctx, |e| {
+                e.title("Message bulk-deletion");
+                e.description(format!(
+                    "Messages where bulk-deleted in {}. Sadly, I don't remember any of these messages :(",
+                    channel_id.mention()
+                ));
+                e.footer(|f| f.text(format!("#{}", channel_name)));
+            })
+            .await?;
+    } else {
+        // Author of the deleted messages
+        let msg_author = msgs
+            .first()
+            .context("Could not find any messages from bulk-deletion event in cache")?
+            .author
+            .clone();
+
+        config
+            .channel_bot_messages
+            .send_embed(&ctx, |e| {
+                e.author(|a| a.name("Message Bulk-deletion").icon_url(msg_author.face()));
+                e.title(msg_author.name_with_disc_and_id());
+                e.description(
+                    msgs.into_iter()
+                        .map(|m| format!("[{}]\n{}\n", util::format_date(*m.timestamp), m.content))
+                        .join("\n"),
+                );
+                e.footer(|f| f.text(format!("#{}", channel_name)));
+            })
+            .await?;
+    }
     Ok(())
 }
 
@@ -165,8 +179,7 @@ async fn find_deletor(
                 && entry
                     .options
                     .as_ref()
-                    .map(|opt| opt.channel_id == Some(msg.channel_id))
-                    .unwrap_or(false)
+                    .map_or(false, |opt| opt.channel_id == Some(msg.channel_id))
         })
         .map(|entry| entry.user_id)
         .and_then(|deletor| {
@@ -177,22 +190,4 @@ async fn find_deletor(
                 .map(|(_, usr)| usr)
         })
         .cloned())
-}
-
-/// if the deleted message was a ghostping, send a message to the pinged user.
-#[allow(unused)]
-async fn handle_ghostping(ctx: &client::Context, msg: &Message) {
-    // TODO make this not fire in showcase etc
-    if !msg.mentions.is_empty() {
-        let _ = msg
-            .channel_id
-            .send_message(&ctx, |m| {
-                m.content(format!(
-                    "REEEEEEEEEEEEEEEEEEEE {} got 👻-pinged by {}",
-                    msg.mentions.iter().map(|x| x.mention()).join(", "),
-                    msg.author.id.mention()
-                ))
-            })
-            .await;
-    }
 }
