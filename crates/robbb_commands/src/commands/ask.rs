@@ -45,6 +45,21 @@ pub async fn ask(prefix_ctx: PrefixCtx<'_>, #[rest] question: String) -> Res<()>
 }
 
 /*
+#[poise::command(guild_only, slash_command, category = "Miscellaneous", rename = "ask")]
+pub async fn ask_slash(ctx: Ctx<'_>) -> Res<()> {
+    let config = ctx.get_config();
+    ctx.send_embed_full(true, |e| {
+        e.description(format!(
+            "Please ask questions in {} using !ask instead:\n!ask <title>\n<more details>",
+            config.channel_tech_support.mention()
+        ));
+    })
+    .await?;
+    Ok(())
+}
+*/
+
+/*
 use poise::Modal;
 
 /// Ask a question in tech-support

@@ -106,7 +106,12 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                     "Error while running command check: {}", error
                 );
             } else {
-                log_error!(ctx.say_error("Insufficient permissions").await);
+                if matches!(ctx, poise::Context::Application(_)) {
+                    log_error!(
+                        ctx.send(|m| m.ephemeral(true).content("Insufficient permissions"))
+                            .await
+                    );
+                }
             }
         }
         DynamicPrefix { error } => {

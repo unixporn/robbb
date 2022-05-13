@@ -125,6 +125,7 @@ impl client::EventHandler for Handler {
     async fn interaction_create(&self, ctx: client::Context, interaction: Interaction) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
+        // TODORW verify blocklist, command-allowing channel, etc
         self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction })
             .await;
     }

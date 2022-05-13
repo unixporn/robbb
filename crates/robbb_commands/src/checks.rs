@@ -5,9 +5,15 @@ use robbb_util::{
     prelude::{Ctx, Res},
 };
 
+/// Check if the channel allows the use of the given command.
+/// This includes specifically checking for !ask in #tech-support
 pub async fn check_channel_allows_commands(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
-    if ctx.channel_id() == config.channel_showcase || ctx.channel_id() == config.channel_feedback {
+    let channel_id = ctx.channel_id();
+    if channel_id == config.channel_showcase
+        || channel_id == config.channel_feedback
+        || (channel_id == config.channel_tech_support && ctx.command().name != "ask")
+    {
         Ok(false)
     } else {
         Ok(true)
