@@ -7,7 +7,7 @@ use tracing_subscriber::{
 pub fn init_tracing(honeycomb_api_key: Option<String>) {
     let log_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
-            EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off")
+            EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off")
                 .unwrap()
         })
         .add_directive("robbb=trace".parse().unwrap());

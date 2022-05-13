@@ -43,7 +43,7 @@ impl PaginatedEmbed {
         PaginatedEmbed { pages, base_embed }
     }
 
-    #[tracing::instrument(skip_all, fields(paginated_embed.page_cnt = %self.pages.len()))]
+    #[tracing::instrument(name = "send_paginated_embed", skip_all, fields(paginated_embed.page_cnt = %self.pages.len()))]
     pub async fn reply_to(&self, ctx: Ctx<'_>) -> Result<Message> {
         let pages = self.pages.clone();
         match pages.len() {

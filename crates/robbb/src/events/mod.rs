@@ -139,7 +139,13 @@ impl client::EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all, fields(msg.id = %event.id, msg.channel_id = %event.channel_id, ?event))]
+    #[tracing::instrument(skip_all,
+        fields(
+            msg.id = %event.id,
+            msg.channel_id = %event.channel_id,
+            msg.author = %event.author.as_ref().map_or(String::new(), |x|x.tag())
+        )
+    )]
     async fn message_update(
         &self,
         ctx: client::Context,
