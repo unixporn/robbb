@@ -80,7 +80,11 @@ async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> 
 
 async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -> Res<Message> {
     let fields = commands.iter().map(|command| {
-        let name = format!("**/{}**", command.name);
+        let name = if command.slash_action.is_some() {
+            format!("**/{}**", command.name)
+        } else {
+            format!("**!{}**", command.name)
+        };
         let description = command.inline_help.unwrap_or("No description").to_string();
         (name, description)
     });
