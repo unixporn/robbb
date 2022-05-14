@@ -13,6 +13,7 @@ use super::*;
     guild_only,
     category = "Moderation",
     check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR",
     subcommands("note_add", "note_undo", "note_list")
 )]
 pub async fn note(_ctx: Ctx<'_>) -> Res<()> {

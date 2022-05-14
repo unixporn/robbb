@@ -13,7 +13,8 @@ use super::*;
     prefix_command,
     guild_only,
     category = "Moderation",
-    check = "crate::checks::check_is_moderator"
+    check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR"
 )]
 pub async fn ban(
     ctx: Ctx<'_>,

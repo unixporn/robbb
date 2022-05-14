@@ -37,6 +37,7 @@ pub mod warn;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
+        // General
         pfp::pfp(),
         info::info(),
         help::help(),
@@ -57,33 +58,21 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         fetch::fetch(),
         fetch::set_fetch(),
         top::top(),
-        mod_command(),
+        // Mod-only
+        small::restart(),
+        small::say(),
+        warn::warn(),
+        ban::ban(),
+        kick::kick(),
+        unban::unban(),
+        emojistats::emojistats(),
+        blocklist::blocklist(),
+        note::note(),
+        mute::mute(),
+        purge::purge(),
+        poise_commands::register(),
+        poise_commands::delete(),
     ]
-}
-
-/// Moderation-related commands
-#[poise::command(
-    rename = "mod",
-    slash_command,
-    default_member_permissions = "BAN_MEMBERS",
-    subcommands(
-        "small::restart",
-        "small::say",
-        "warn::warn",
-        "ban::ban",
-        "kick::kick",
-        "unban::unban",
-        "emojistats::emojistats",
-        "blocklist::blocklist",
-        "note::note",
-        "mute::mute",
-        "purge::purge",
-        "poise_commands::register",
-        "poise_commands::delete",
-    )
-)]
-async fn mod_command(_ctx: Ctx<'_>) -> Res<()> {
-    Ok(())
 }
 
 pub static SELECTION_EMOJI: [&str; 19] = [

@@ -8,6 +8,7 @@ use super::*;
     prefix_command,
     category = "Administration",
     check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR",
     hide_in_help
 )]
 pub async fn delete(
@@ -20,6 +21,7 @@ pub async fn delete(
         let global_commands =
             ApplicationCommand::get_global_application_commands(ctx.discord()).await?;
         for command in &global_commands {
+            tracing::debug!(deleted_command_name = %command.name, "Deleting global application command {}", command.name);
             ApplicationCommand::delete_global_application_command(ctx.discord(), command.id)
                 .await?;
         }
@@ -57,6 +59,7 @@ pub async fn delete(
     prefix_command,
     category = "Administration",
     check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR",
     hide_in_help
 )]
 pub async fn register(

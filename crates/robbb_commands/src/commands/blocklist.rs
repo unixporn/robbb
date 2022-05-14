@@ -8,6 +8,7 @@ use super::*;
     guild_only,
     category = "Moderation",
     check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR",
     subcommands("blocklist_add", "blocklist_remove", "blocklist_list",)
 )]
 pub async fn blocklist(_ctx: Ctx<'_>) -> Res<()> {

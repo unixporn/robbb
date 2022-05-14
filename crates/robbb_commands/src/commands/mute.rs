@@ -14,7 +14,8 @@ const TIMEOUT_MAX_DAYS: i64 = 28;
     guild_only,
     prefix_command,
     track_edits,
-    check = "crate::checks::check_is_helper_or_mod"
+    check = "crate::checks::check_is_helper_or_mod",
+    default_member_permissions = "ADMINISTRATOR"
 )]
 pub async fn mute(
     ctx: Ctx<'_>,

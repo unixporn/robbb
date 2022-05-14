@@ -7,7 +7,8 @@ use super::*;
     slash_command,
     guild_only,
     prefix_command,
-    check = "crate::checks::check_is_moderator"
+    check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR"
 )]
 pub async fn restart(ctx: Ctx<'_>) -> Res<()> {
     let _ = ctx.say_success("Shutting down").await;
@@ -16,7 +17,12 @@ pub async fn restart(ctx: Ctx<'_>) -> Res<()> {
 }
 
 /// Make the bot say something. Please don't actually use this :/
-#[poise::command(slash_command, guild_only, check = "crate::checks::check_is_moderator")]
+#[poise::command(
+    slash_command,
+    guild_only,
+    check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR"
+)]
 pub async fn say(
     ctx: Ctx<'_>,
     #[description = "What you,.. ummmm. I mean _I_ should say"] message: String,
@@ -29,7 +35,11 @@ pub async fn say(
 
 // TODORW this should become a slash command, and also,... it kinda doesn't make much sense rn
 /// Print bot's latency to discord.
-#[poise::command(prefix_command, check = "crate::checks::check_is_moderator")]
+#[poise::command(
+    prefix_command,
+    check = "crate::checks::check_is_moderator",
+    default_member_permissions = "ADMINISTRATOR"
+)]
 pub async fn latency(prefix_ctx: PrefixCtx<'_>) -> Res<()> {
     let msg_time = prefix_ctx.msg.timestamp;
     let now = Utc::now();
