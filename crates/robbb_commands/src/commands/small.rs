@@ -21,6 +21,8 @@ pub async fn say(
     ctx: Ctx<'_>,
     #[description = "What you,.. ummmm. I mean _I_ should say"] message: String,
 ) -> Res<()> {
+    ctx.send(|m| m.content("Sure thing!").ephemeral(true))
+        .await?;
     ctx.channel_id().say(&ctx.discord(), message).await?;
     Ok(())
 }

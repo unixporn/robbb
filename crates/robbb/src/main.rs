@@ -40,7 +40,6 @@ async fn main() -> anyhow::Result<()> {
     db.remove_forbidden_highlights().await.unwrap();
 
     let framework_options = poise::FrameworkOptions {
-        owners: maplit::hashset! { poise::serenity_prelude::UserId(402100892444262432) },
         commands: commands::all_commands(),
         on_error: |err| Box::pin(error_handling::on_error(err)),
         pre_command: |ctx| {

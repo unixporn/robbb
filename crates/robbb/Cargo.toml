@@ -37,7 +37,7 @@ tracing-subscriber = { version = "0.3.0", features = [ "std", "env-filter" ] }
 tracing-honeycomb = "0.4.3"
 libhoney-rust = "0.1.6"
 cpu-monitor = "0.1.1"
-poise = "0.1.0"
+poise = "0.2.0"
 parking_lot = "0.12"
 
 robbb_db = { path = "../robbb_db" }

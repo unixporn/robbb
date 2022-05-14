@@ -65,28 +65,31 @@ pub async fn register(
     #[flag]
     global: bool,
 ) -> Res<()> {
+    let new_commands = &ctx.framework().options().commands;
+    let commands_builder = poise::builtins::create_application_commands(new_commands);
+    println!("{:?}", new_commands);
     if global {
-        poise::builtins::register_application_commands(ctx, true).await?;
+        ApplicationCommand::set_global_application_commands(ctx.discord(), |b| {
+            *b = commands_builder;
+            b
+        })
+        .await?;
     } else {
         if let Some(guild) = ctx.guild() {
-            let new_commands = &ctx.framework().options().commands;
-            let commands_builder = poise::builtins::create_application_commands(new_commands);
-            println!("{:?}", new_commands);
-
             guild
                 .set_application_commands(ctx.discord(), |b| {
                     *b = commands_builder;
                     b
                 })
                 .await?;
-
-            ctx.say_success(format!(
-                "Registered commands: {}",
-                new_commands.iter().map(|x| x.name).join(", ")
-            ))
-            .await?;
         }
     }
+
+    ctx.say_success(format!(
+        "Registered commands: {}",
+        new_commands.iter().map(|x| x.name).join(", ")
+    ))
+    .await?;
 
     Ok(())
 }

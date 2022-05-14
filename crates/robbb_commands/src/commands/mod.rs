@@ -37,27 +37,16 @@ pub mod warn;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     vec![
-        poise_commands::register(),
-        poise_commands::delete(),
         pfp::pfp(),
         info::info(),
         help::help(),
-        //mute::mute(),
         role::role(),
         version::version(),
-        //note::note(),
         poll::poll(),
         tag::tag(),
         ask::ask(),
         modping::modping(),
-        //warn::warn(),
-        //kick::kick(),
-        //ban::ban(),
-        //unban::unban(),
         highlights::highlights(),
-        //blocklist::blocklist(),
-        small::restart(),
-        small::say(),
         small::latency(),
         small::uptime(),
         small::repo(),
@@ -65,9 +54,6 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         small::desc(),
         small::git(),
         small::dotfiles(),
-        //emojistats::emojistats(),
-        //purge::purge(),
-        //move_users::move_users(),
         fetch::fetch(),
         fetch::set_fetch(),
         top::top(),
@@ -79,7 +65,10 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
 #[poise::command(
     rename = "mod",
     slash_command,
+    default_member_permissions = "BAN_MEMBERS",
     subcommands(
+        "small::restart",
+        "small::say",
         "warn::warn",
         "ban::ban",
         "kick::kick",
@@ -88,7 +77,9 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         "blocklist::blocklist",
         "note::note",
         "mute::mute",
-        "purge::purge"
+        "purge::purge",
+        "poise_commands::register",
+        "poise_commands::delete",
     )
 )]
 async fn mod_command(_ctx: Ctx<'_>) -> Res<()> {
