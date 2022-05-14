@@ -25,5 +25,6 @@ rand = "0.8"
 regex = "1"
 url = "2"
 parking_lot = "0.12"
+extend = "1.1"
 
 robbb_db = { path = "../robbb_db" }

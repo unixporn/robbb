@@ -1,4 +1,4 @@
-use poise::serenity_prelude::ApplicationCommand;
+use poise::serenity_prelude::{ApplicationCommand, CreateMessage};
 
 use super::*;
 
