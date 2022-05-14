@@ -1,57 +1,47 @@
 use poise::serenity_prelude::Message;
 use robbb_util::embeds;
 
+use crate::checks;
+
 use super::*;
 
 /// Show this list
-#[poise::command(slash_command, guild_only, track_edits, prefix_command)]
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    custom_data = "CmdMeta { perms: PermissionLevel::User }"
+)]
 pub async fn help(
     ctx: Ctx<'_>,
     #[description = "The command to get help for."]
     #[autocomplete = "poise::builtins::autocomplete_command"]
     command: Option<String>,
 ) -> Res<()> {
-    let commands: Vec<_> = ctx
+    let mut commands = ctx
         .framework()
         .options()
         .commands
         .iter()
-        .filter(|x| !x.hide_in_help && (x.slash_action.is_some() || x.prefix_action.is_some()))
-        .collect();
+        .filter(|x| !x.hide_in_help && (x.slash_action.is_some() || x.prefix_action.is_some()));
 
     if let Some(desired_command) = command {
         let command = commands
-            .iter()
             .find(|c| {
                 c.name == desired_command.as_str() || c.aliases.contains(&desired_command.as_str())
             })
             .user_error(&format!("Unknown command `{}`", desired_command))?;
         reply_help_single(ctx, &command).await?;
     } else {
-        // Defer, because running these checks currently takes,... longer than it should.
-        ctx.defer().await?;
-        // find commands that the user has access to
-        // TODORW parallelizing this doesn't seem to help at all :thonk:
-        let available_commands = commands.into_iter().map(|cmd| async move {
-            if let Some(check) = cmd.check {
-                match check(ctx.clone()).await {
-                    Ok(true) => Some(cmd),
-                    Ok(false) => None,
-                    Err(e) => {
-                        tracing::error!(error = %e, "Error while running check");
-                        Some(cmd)
-                    }
-                }
-            } else {
-                Some(cmd)
-            }
-        });
-        let available_commands: Vec<Option<&Command<_, _>>> =
-            futures::future::join_all(available_commands).await;
-        let available_commands = available_commands
-            .into_iter()
-            .filter_map(|x| x)
-            .collect_vec();
+        let permission_level = checks::get_permission_level(ctx).await;
+        let available_commands: Vec<_> = commands
+            .filter(|command| {
+                command
+                    .custom_data
+                    .downcast_ref::<CmdMeta>()
+                    .map_or(true, |meta| permission_level >= meta.perms)
+            })
+            .collect();
 
         reply_help_full(ctx, &available_commands).await?;
     }

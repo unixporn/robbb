@@ -9,8 +9,7 @@ use super::*;
     slash_command,
     guild_only,
     prefix_command,
-    category = "Miscellaneous",
-    track_edits
+    custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn role(ctx: Ctx<'_>) -> Res<()> {
     const ROLE_OPTION_NONE: &str = "NONE";

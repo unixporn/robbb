@@ -7,8 +7,7 @@ use super::*;
     slash_command,
     guild_only,
     prefix_command,
-    category = "Miscellaneous",
-    track_edits
+    custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;

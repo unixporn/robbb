@@ -9,7 +9,12 @@ use super::{fetch::format_fetch_field_value, *};
 use std::collections::HashMap;
 
 /// Get statistics about what the community uses.
-#[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "top")]
+#[poise::command(
+    slash_command,
+    guild_only,
+    custom_data = "CmdMeta { perms: PermissionLevel::User }",
+    rename = "top"
+)]
 pub async fn top(
     ctx: Ctx<'_>,
     #[description = "What do you care about?"] field: Option<FetchField>,

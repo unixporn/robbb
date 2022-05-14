@@ -59,11 +59,11 @@ async fn check_role(ctx: Ctx<'_>, role: RoleId) -> Res<bool> {
     })
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PermissionLevel {
-    Mod,
-    Helper,
     User,
+    Helper,
+    Mod,
 }
 
 #[tracing::instrument(skip_all)]

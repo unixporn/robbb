@@ -34,7 +34,7 @@ async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterat
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Miscellaneous",
+    custom_data = "CmdMeta { perms: PermissionLevel::User }",
     subcommands("tag_get", "tag_set", "tag_list", "tag_delete")
 )]
 pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
@@ -46,7 +46,7 @@ pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
     slash_command,
     guild_only,
     prefix_command,
-    category = "Miscellaneous",
+    custom_data = "CmdMeta { perms: PermissionLevel::User }",
     rename = "get"
 )]
 pub async fn tag_get(
@@ -87,7 +87,7 @@ pub async fn tag_get(
     slash_command,
     guild_only,
     prefix_command,
-    category = "Miscellaneous",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "list"
 )]
 pub async fn tag_list(ctx: Ctx<'_>) -> Res<()> {
@@ -108,7 +108,7 @@ pub async fn tag_list(ctx: Ctx<'_>) -> Res<()> {
     slash_command,
     guild_only,
     prefix_command,
-    category = "Miscellaneous",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "delete"
 )]
 pub async fn tag_delete(
@@ -133,7 +133,12 @@ struct TagModal {
 }
 
 /// Save a new tag or update an old one.
-#[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "set")]
+#[poise::command(
+    slash_command,
+    guild_only,
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    rename = "set"
+)]
 pub async fn tag_set(
     app_ctx: AppCtx<'_>,
     #[rename = "name"]

@@ -4,7 +4,11 @@ use tracing_futures::Instrument;
 use super::*;
 
 /// Ask a question in tech-support
-#[poise::command(guild_only, prefix_command, category = "Miscellaneous")]
+#[poise::command(
+    guild_only,
+    prefix_command,
+    custom_data = "CmdMeta { perms: PermissionLevel::User }"
+)]
 pub async fn ask(prefix_ctx: PrefixCtx<'_>, #[rest] question: String) -> Res<()> {
     let ctx = Ctx::Prefix(prefix_ctx.clone());
     let config = ctx.get_config();

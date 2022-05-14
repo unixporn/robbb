@@ -12,9 +12,7 @@ use super::*;
     slash_command,
     prefix_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR"
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn kick(
     ctx: Ctx<'_>,

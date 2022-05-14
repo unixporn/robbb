@@ -1,4 +1,4 @@
-use poise::serenity_prelude::{ApplicationCommand, CreateMessage};
+use poise::serenity_prelude::ApplicationCommand;
 
 use super::*;
 
@@ -6,9 +6,7 @@ use super::*;
 #[poise::command(
     slash_command,
     prefix_command,
-    category = "Administration",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     hide_in_help
 )]
 pub async fn delete(
@@ -57,9 +55,7 @@ pub async fn delete(
 #[poise::command(
     slash_command,
     prefix_command,
-    category = "Administration",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     hide_in_help
 )]
 pub async fn register(
@@ -96,25 +92,3 @@ pub async fn register(
 
     Ok(())
 }
-/*
-
-            for command in guild.get_application_commands(&ctx.discord()).await? {
-                guild
-                    .edit_application_command(&ctx.discord(), command.id, |e| {
-                        if ctx
-                            .framework()
-                            .options()
-                            .commands
-                            .iter()
-                            .find(|x| x.name == command.name)
-                            .map_or(false, |x| x.category == Some("Moderation"))
-                        {
-                            e.default_permission(false)
-                        } else {
-                            e
-                        }
-                    })
-                    .await?;
-            }
-
-*/

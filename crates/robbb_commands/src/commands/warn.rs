@@ -10,9 +10,7 @@ use super::*;
     slash_command,
     prefix_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR"
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn warn(
     ctx: Ctx<'_>,
@@ -56,8 +54,7 @@ pub async fn warn(
     slash_command,
     prefix_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator"
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn undo_warn(
     ctx: Ctx<'_>,

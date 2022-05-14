@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use poise::serenity_prelude::Member;
 use poise::serenity_prelude::{Guild, Mentionable, UserId};
+use poise::serenity_prelude::{Member, Permissions};
 use poise::Command;
 use robbb_util::abort_with;
 use robbb_util::extensions::*;
@@ -9,6 +9,8 @@ use robbb_util::util;
 
 pub mod errors;
 pub use errors::*;
+
+use crate::checks::PermissionLevel;
 
 pub mod ask;
 pub mod ban;
@@ -36,7 +38,7 @@ pub mod version;
 pub mod warn;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
-    vec![
+    let mut all_commands = vec![
         // General
         pfp::pfp(),
         info::info(),
@@ -72,7 +74,33 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         purge::purge(),
         poise_commands::register(),
         poise_commands::delete(),
-    ]
+    ];
+    for command in all_commands.iter_mut() {
+        preprocess_command(command);
+    }
+    all_commands
+}
+
+pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
+    if let Some(meta) = command.custom_data.downcast_ref::<CmdMeta>() {
+        command.check = match meta.perms {
+            PermissionLevel::Mod => Some(|ctx| Box::pin(crate::checks::check_is_moderator(ctx))),
+            PermissionLevel::Helper => Some(|ctx| Box::pin(crate::checks::check_is_helper(ctx))),
+            PermissionLevel::User => None,
+        };
+        command.default_member_permissions = match meta.perms {
+            PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
+            PermissionLevel::User => Permissions::empty(),
+        };
+        command.category = Some(command.category.unwrap_or_else(|| match meta.perms {
+            PermissionLevel::Mod | PermissionLevel::Helper => "Moderation",
+            PermissionLevel::User => "Member",
+        }));
+    }
+
+    for subcommand in command.subcommands.iter_mut() {
+        preprocess_command(subcommand);
+    }
 }
 
 pub static SELECTION_EMOJI: [&str; 19] = [
@@ -106,4 +134,8 @@ pub async fn member_or_self(ctx: Ctx<'_>, member: Option<Member>) -> Res<Member>
             .await
             .user_error("failed to fetch message author")?)
     }
+}
+
+pub struct CmdMeta {
+    perms: PermissionLevel,
 }

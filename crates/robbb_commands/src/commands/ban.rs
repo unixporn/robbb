@@ -12,9 +12,7 @@ use super::*;
     slash_command,
     prefix_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR"
+    custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]
 pub async fn ban(
     ctx: Ctx<'_>,
@@ -33,11 +31,11 @@ pub async fn ban(
 
 /// Ban multiple users from the server.
 #[poise::command(
+    rename = "banmany",
     slash_command,
     prefix_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator"
+    custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]
 pub async fn ban_many(
     ctx: Ctx<'_>,

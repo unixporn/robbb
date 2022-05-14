@@ -10,8 +10,7 @@ lazy_static::lazy_static! {
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Miscellaneous",
-    track_edits,
+    custom_data = "CmdMeta { perms: PermissionLevel::User }",
     subcommands("poll_vote", "poll_multi")
 )]
 pub async fn poll(_ctx: Ctx<'_>) -> Res<()> {
@@ -23,8 +22,7 @@ pub async fn poll(_ctx: Ctx<'_>) -> Res<()> {
     slash_command,
     guild_only,
     prefix_command,
-    track_edits,
-    category = "Miscellaneous",
+    custom_data = "CmdMeta { perms: PermissionLevel::User }",
     rename = "vote"
 )]
 pub async fn poll_vote(
@@ -82,8 +80,7 @@ struct MultiPollModal {
 #[poise::command(
     slash_command,
     guild_only,
-    track_edits,
-    category = "Miscellaneous",
+    custom_data = "CmdMeta { perms: PermissionLevel::User }",
     rename = "multi"
 )]
 pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {

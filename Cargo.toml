@@ -8,3 +8,6 @@ members = [
 [profile.dev]
 split-debuginfo = "unpacked"
 
+
+[patch.crates-io]
+poise = { git = "https://github.com/kangalioo/poise", rev = "8f49befaa34e9c38b003ee64ea95d727a9bcaff9" }

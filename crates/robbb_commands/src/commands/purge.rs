@@ -12,9 +12,7 @@ const MAX_BULK_DELETE_AGO_SECS: i64 = 60 * 60 * 24 * 14;
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR"
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn purge(
     ctx: Ctx<'_>,

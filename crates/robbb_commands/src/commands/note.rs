@@ -11,9 +11,7 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     subcommands("note_add", "note_undo", "note_list")
 )]
 pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
@@ -25,8 +23,7 @@ pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
     slash_command,
     guild_only,
     prefix_command,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "add"
 )]
 pub async fn note_add(
@@ -59,9 +56,8 @@ pub async fn note_add(
     slash_command,
     guild_only,
     prefix_command,
-    category = "Moderation",
-    rename = "undo",
-    check = "crate::checks::check_is_moderator"
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    rename = "undo"
 )]
 pub async fn note_undo(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
     let db = ctx.get_db();
@@ -87,9 +83,8 @@ pub enum NoteFilterParam {
     slash_command,
     guild_only,
     prefix_command,
-    category = "Moderation",
-    rename = "list",
-    check = "crate::checks::check_is_moderator"
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    rename = "list"
 )]
 pub async fn note_list(
     ctx: Ctx<'_>,

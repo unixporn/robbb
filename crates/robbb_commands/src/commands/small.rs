@@ -7,8 +7,8 @@ use super::*;
     slash_command,
     guild_only,
     prefix_command,
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR"
+    category = "Bot-Administration",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn restart(ctx: Ctx<'_>) -> Res<()> {
     let _ = ctx.say_success("Shutting down").await;
@@ -20,8 +20,8 @@ pub async fn restart(ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR"
+    category = "Bot-Administration",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn say(
     ctx: Ctx<'_>,
@@ -37,8 +37,8 @@ pub async fn say(
 /// Print bot's latency to discord.
 #[poise::command(
     prefix_command,
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR"
+    category = "Bot-Administration",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn latency(prefix_ctx: PrefixCtx<'_>) -> Res<()> {
     let msg_time = prefix_ctx.msg.timestamp;
@@ -53,7 +53,7 @@ pub async fn latency(prefix_ctx: PrefixCtx<'_>) -> Res<()> {
 }
 
 /// I'm tired,... >.<
-#[poise::command(prefix_command, slash_command)]
+#[poise::command(prefix_command, slash_command, category = "Bot-Administration")]
 pub async fn uptime(ctx: Ctx<'_>) -> Res<()> {
     let config = ctx.get_config();
     ctx.send_embed(|e| {

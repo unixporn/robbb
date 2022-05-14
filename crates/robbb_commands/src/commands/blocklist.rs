@@ -6,9 +6,7 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
-    default_member_permissions = "ADMINISTRATOR",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     subcommands("blocklist_add", "blocklist_remove", "blocklist_list",)
 )]
 pub async fn blocklist(_ctx: Ctx<'_>) -> Res<()> {
@@ -19,8 +17,7 @@ pub async fn blocklist(_ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "add"
 )]
 pub async fn blocklist_add(
@@ -43,8 +40,7 @@ pub async fn blocklist_add(
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "remove"
 )]
 pub async fn blocklist_remove(
@@ -66,8 +62,7 @@ pub async fn blocklist_remove(
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Moderation",
-    check = "crate::checks::check_is_moderator",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "list"
 )]
 pub async fn blocklist_list(ctx: Ctx<'_>) -> Res<()> {
