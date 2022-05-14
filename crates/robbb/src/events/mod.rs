@@ -268,7 +268,8 @@ async fn unmute(
 ) -> Result<()> {
     db.set_mute_inactive(mute.id).await?;
     let mut member = config.guild.member(&ctx, mute.user).await?;
-    member.remove_roles(&ctx, &[config.role_mute]).await?;
+    log_error!(member.remove_roles(&ctx, &[config.role_mute]).await);
+    log_error!(member.enable_communication(&ctx).await);
 
     Ok(())
 }

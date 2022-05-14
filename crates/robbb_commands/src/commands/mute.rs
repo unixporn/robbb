@@ -1,9 +1,12 @@
+use anyhow::Context;
 use chrono::Utc;
 use serenity::client;
 
 use crate::modlog;
 
 use super::*;
+
+const TIMEOUT_MAX_DAYS: i64 = 28;
 
 /// Mute a user for a given amount of time.
 #[poise::command(
@@ -48,7 +51,7 @@ pub async fn do_mute(
     ctx: &client::Context,
     guild: Guild,
     moderator: UserId,
-    member: Member,
+    mut member: Member,
     duration: std::time::Duration,
     reason: Option<String>,
     context: Option<String>,
@@ -71,6 +74,19 @@ pub async fn do_mute(
         context,
     )
     .await?;
+
+    // TODORW possibly make this actually work for longer timeouts, via re-adding the timeout
+    // Also set a discord timeout when possible
+    let latest_possible_timeout = Utc::now()
+        .checked_add_signed(chrono::Duration::days(TIMEOUT_MAX_DAYS))
+        .context("Overflow calculating max date")?
+        .date();
+
+    if end_time.date() <= latest_possible_timeout {
+        member
+            .disable_communication_until_datetime(&ctx, end_time.into())
+            .await?;
+    }
 
     set_mute_role(&ctx, member).await?;
     Ok(())

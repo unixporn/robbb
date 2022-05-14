@@ -153,41 +153,50 @@ pub async fn message_delete_bulk(
     Ok(())
 }
 
-/// waits a second, then looks through the audit log, trying to find who deleted the given message.
+/// Polls the audit log a few times, trying to figure out who deleted the given message
 async fn find_deletor(
     ctx: &client::Context,
     config: &Config,
     msg: &Message,
 ) -> Result<Option<User>> {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    let audit_logs = config
-        .guild
-        .audit_logs(
-            &ctx,
-            Some(guild::Action::Message(MessageAction::Delete).num()),
-            None,
-            None,
-            Some(10),
-        )
-        .await?;
-
-    Ok(audit_logs
-        .entries
-        .iter()
-        .find(|entry| {
+    let result = await_audit_log(
+        ctx,
+        &config.guild,
+        guild::Action::Message(MessageAction::Delete).num(),
+        None,
+        |entry| {
             entry.target_id == Some(msg.author.id.0)
                 && entry
                     .options
                     .as_ref()
                     .map_or(false, |opt| opt.channel_id == Some(msg.channel_id))
-        })
-        .map(|entry| entry.user_id)
-        .and_then(|deletor| {
-            audit_logs
-                .users
-                .iter()
-                .find(|(id, _)| **id == deletor)
-                .map(|(_, usr)| usr)
-        })
-        .cloned())
+        },
+    )
+    .await?;
+    if let Some((entry, users)) = result {
+        Ok(users.get(&entry.user_id).cloned())
+    } else {
+        Ok(None)
+    }
+}
+
+async fn await_audit_log(
+    ctx: &client::Context,
+    guild: &GuildId,
+    action_type: u8,
+    user_id: Option<UserId>,
+    filter: impl Fn(&AuditLogEntry) -> bool,
+) -> Result<Option<(AuditLogEntry, std::collections::HashMap<UserId, User>)>> {
+    for _ in 0..3 {
+        let results = guild
+            .audit_logs(&ctx, Some(action_type), user_id, None, None)
+            .await?;
+        let matching_value = results.entries.into_iter().find(|x| filter(x));
+        if let Some(matching_value) = matching_value {
+            return Ok(Some((matching_value, results.users)));
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    Ok(None)
 }
