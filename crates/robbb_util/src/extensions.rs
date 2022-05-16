@@ -80,7 +80,13 @@ pub impl<'a> Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let create_embed = embeds::make_success_embed(&self.discord(), &format!("{}", text)).await;
+        tracing::info!(
+            msg.ephemeral = true,
+            msg.content = %text,
+            msg.responding_to_user = %self.author().tag(),
+            "Sending success message to user"
+        );
+        let create_embed = embeds::make_success_embed(&self.discord(), &text.to_string()).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
@@ -91,7 +97,13 @@ pub impl<'a> Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let create_embed = embeds::make_error_embed(&self.discord(), &format!("{}", text)).await;
+        tracing::info!(
+            msg.ephemeral = true,
+            msg.content = %text,
+            msg.responding_to_user = %self.author().tag(),
+            "Sending error message to user"
+        );
+        let create_embed = embeds::make_error_embed(&self.discord(), &text.to_string()).await;
         self.send_embed_full(true, |e| {
             e.clone_from(&create_embed);
         })
@@ -101,8 +113,14 @@ pub impl<'a> Ctx<'a> {
         &self,
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        tracing::info!(
+            msg.ephemeral = false,
+            msg.content = %text,
+            msg.responding_to_user = %self.author().tag(),
+            "Sending success_mod_action message to user"
+        );
         let create_embed =
-            embeds::make_success_mod_action_embed(&self.discord(), &format!("{}", text)).await;
+            embeds::make_success_mod_action_embed(&self.discord(), &text.to_string()).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
