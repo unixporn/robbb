@@ -3,53 +3,14 @@ use poise::Modal;
 
 use super::*;
 
-/// Autocomplete all tags, but also provide whatever the user has already typed as one of the options.
-/// Used in /tag set, to provide completion for edits, but also allow adding new tags
-async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
-    let last = if partial.is_empty() {
-        vec![]
-    } else {
-        vec![partial.clone()]
-    };
-    tag_autocomplete_existing(ctx, partial.clone())
-        .await
-        .chain(last)
-        .dedup() // when the partial fully matches a value, we otherwise get a duplicate
-}
-
-/// Autocomplete all tags
-async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
-    let db = ctx.get_db();
-    let tags = match db.list_tags().await {
-        Ok(tags) => tags,
-        Err(_) => Vec::new(),
-    };
-
-    tags.into_iter()
-        .filter(move |tag| tag.starts_with(&partial))
-        .map(|tag| tag.to_string())
-}
-
-/// Get the text stored in a tag
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }",
-    subcommands("tag_get", "tag_set", "tag_list", "tag_delete")
-)]
-pub async fn tag(_ctx: Ctx<'_>) -> Res<()> {
-    Ok(())
-}
-
 /// Get the text stored in a tag
 #[poise::command(
     slash_command,
     guild_only,
     prefix_command,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }",
-    rename = "get"
+    custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
-pub async fn tag_get(
+pub async fn tag(
     ctx: Ctx<'_>,
     #[description = "The tag to show"]
     #[autocomplete = "tag_autocomplete_existing"]
@@ -79,6 +40,17 @@ pub async fn tag_get(
         .await?;
     }
 
+    Ok(())
+}
+
+/// Manage tags
+#[poise::command(
+    slash_command,
+    guild_only,
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    subcommands("tag_set", "tag_list", "tag_delete")
+)]
+pub async fn settag(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
@@ -173,4 +145,31 @@ pub async fn tag_set(
     .await?;
     ctx.say_success("Succesfully set!").await?;
     Ok(())
+}
+
+/// Autocomplete all tags, but also provide whatever the user has already typed as one of the options.
+/// Used in /tag set, to provide completion for edits, but also allow adding new tags
+async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
+    let last = if partial.is_empty() {
+        vec![]
+    } else {
+        vec![partial.clone()]
+    };
+    tag_autocomplete_existing(ctx, partial.clone())
+        .await
+        .chain(last)
+        .dedup() // when the partial fully matches a value, we otherwise get a duplicate
+}
+
+/// Autocomplete all tags
+async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
+    let db = ctx.get_db();
+    let tags = match db.list_tags().await {
+        Ok(tags) => tags,
+        Err(_) => Vec::new(),
+    };
+
+    tags.into_iter()
+        .filter(move |tag| tag.starts_with(&partial))
+        .map(|tag| tag.to_string())
 }

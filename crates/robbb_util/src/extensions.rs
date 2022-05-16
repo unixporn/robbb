@@ -92,7 +92,7 @@ pub impl<'a> Ctx<'a> {
         text: impl Display + Send + Sync + 'static,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
         let create_embed = embeds::make_error_embed(&self.discord(), &format!("{}", text)).await;
-        self.send_embed(|e| {
+        self.send_embed_full(true, |e| {
             e.clone_from(&create_embed);
         })
         .await

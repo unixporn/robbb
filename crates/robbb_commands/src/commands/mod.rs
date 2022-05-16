@@ -61,6 +61,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         fetch::set_fetch(),
         top::top(),
         // Mod-only
+        tag::settag(),
         small::restart(),
         small::say(),
         warn::warn(),
