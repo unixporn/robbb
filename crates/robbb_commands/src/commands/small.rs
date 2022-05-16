@@ -33,21 +33,49 @@ pub async fn say(
     Ok(())
 }
 
-// TODORW this should become a slash command, and also,... it kinda doesn't make much sense rn
-/// Print bot's latency to discord.
+/// Get some latency information
 #[poise::command(
     prefix_command,
+    slash_command,
     category = "Bot-Administration",
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
-pub async fn latency(prefix_ctx: PrefixCtx<'_>) -> Res<()> {
-    let msg_time = prefix_ctx.msg.timestamp;
-    let now = Utc::now();
-    let latency = now.timestamp_millis() - msg_time.timestamp_millis();
-    prefix_ctx
-        .msg
-        .reply(&prefix_ctx.discord, format!("Latency is **{}ms**", latency))
-        .await?;
+pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
+    let shard_latency = {
+        let shard_manager = ctx.framework().shard_manager.as_ref().lock().await;
+        let shard_runners = shard_manager.runners.lock().await;
+        shard_runners.values().find_map(|runner| runner.latency)
+    };
+
+    let msg_latency = match ctx {
+        poise::Context::Application(_) => None,
+        poise::Context::Prefix(prefix_ctx) => {
+            let msg_time = prefix_ctx.msg.timestamp;
+            let now = Utc::now();
+            Some(std::time::Duration::from_millis(
+                (now.timestamp_millis() - msg_time.timestamp_millis()).abs() as u64,
+            ))
+        }
+    };
+
+    ctx.send_embed(|e| {
+        e.title("Latency information");
+        if let Some(latency) = shard_latency {
+            e.field(
+                "Shard latency (last heartbeat send → ACK receive)",
+                humantime::Duration::from(latency),
+                false,
+            );
+        }
+        if let Some(latency) = msg_latency {
+            e.field(
+                "Message latency (message timestamp → message received)",
+                humantime::Duration::from(latency),
+                false,
+            );
+        }
+    })
+    .await?;
 
     Ok(())
 }
