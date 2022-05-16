@@ -35,7 +35,7 @@ pub async fn poll_vote(
 
     let poll_msg = ctx
         .send_embed(|e| {
-            e.author_user(ctx.author().clone());
+            e.author_user(ctx.author());
             e.title("Poll");
             e.description(question.clone());
             e.footer(|f| f.text(format!("From: {}", ctx.author().tag())));

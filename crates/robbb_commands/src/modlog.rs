@@ -14,7 +14,7 @@ pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
     config
         .log_bot_action(&ctx.discord(), |e| {
             e.title("Note");
-            e.author_user(ctx.author().clone());
+            e.author_user(ctx.author());
             e.thumbnail(user.face());
             e.description(format!(
                 "{} took a note about {}",
@@ -36,7 +36,7 @@ pub async fn log_warn(
     config
         .log_bot_action(&ctx.discord(), |e| {
             e.title("Warn");
-            e.author_user(ctx.author().clone());
+            e.author_user(ctx.author());
             e.thumbnail(user.face());
             e.description(format!(
                 "{} was warned by {} _({} warn)_\n{}",
@@ -56,7 +56,7 @@ pub async fn log_kick(ctx: Ctx<'_>, context_msg: &Message, user: User, reason: &
         .log_bot_action(&ctx.discord(), |e| {
             e.title("Kick");
             e.thumbnail(user.face());
-            e.author_user(ctx.author().clone());
+            e.author_user(ctx.author());
             e.description(format!(
                 "User {} was kicked by {}\n{}",
                 user.mention_and_tag(),
@@ -73,7 +73,7 @@ pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[Use
     config
         .log_bot_action(&ctx.discord(), |e| {
             e.title("Ban");
-            e.author_user(ctx.author().clone());
+            e.author_user(ctx.author());
             e.description(format!(
                 "yote user(s):\n{}\n{}",
                 successful_bans
@@ -92,7 +92,7 @@ pub async fn log_unban(ctx: Ctx<'_>, user: User) {
     config
         .log_bot_action(&ctx.discord(), |e| {
             e.title("Unban");
-            e.author_user(ctx.author().clone());
+            e.author_user(ctx.author());
             e.thumbnail(user.face());
             e.description(format!("{} has been deyote", user.mention_and_tag()));
         })
@@ -116,7 +116,7 @@ pub async fn log_mute(
     config
         .log_bot_action(ctx.discord(), |e| {
             e.title("Mute");
-            e.author_user(ctx.author().clone());
+            e.author_user(ctx.author());
             e.thumbnail(user.face());
             e.description(format!(
                 "User {} ({}) was muted by {}\n{}",

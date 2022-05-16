@@ -42,14 +42,10 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         };
 
         let bot_log_future = config.log_automod_action(&ctx, |e| {
-            e.author(|a| a.name("Message Autodelete"));
-            e.title(format!(
-                "{} ({}) - deleted because of `{}`",
-                msg.author.tag(),
-                msg.author.id,
-                word,
-            ));
-            e.description(format!("{} {}", msg.content, msg.to_context_link()));
+            e.author_user(&msg.author);
+            e.title("Message Autodelete");
+            e.field("Deleted because of", word, false);
+            e.description(format!("{}\n{}", msg.content, msg.to_context_link()));
         });
 
         let note_future = async {
@@ -111,14 +107,10 @@ pub async fn handle_blocklist_in_interaction(
             tracing::Span::current().record("interaction.user", &values.user.tag().as_str());
 
             let bot_log_future = config.log_automod_action(&ctx, |e| {
-                e.author(|a| a.name("Command Autodelete"));
-                e.title(format!(
-                    "{} ({}) - `{}` aborted because of `{}`",
-                    values.user.tag(),
-                    values.user.id,
-                    values.title,
-                    word,
-                ));
+                e.author_user(&values.user);
+                e.title("Interaction aborted because of blocked word");
+                e.field("Aborted because of", word, false);
+                e.field("Interaction", values.title, false);
             });
 
             let note_future = async {

@@ -290,7 +290,7 @@ pub impl CreateEmbed {
         self
     }
 
-    fn author_user(&mut self, u: User) -> &mut Self {
+    fn author_user(&mut self, u: &User) -> &mut Self {
         self.author(|a| {
             a.name(u.tag())
                 .icon_url(u.face())
