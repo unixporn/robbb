@@ -97,6 +97,7 @@ pub async fn tag_delete(
 }
 
 #[derive(Debug, poise::Modal)]
+#[name = "Tag"]
 struct TagModal {
     #[name = "Content"]
     #[placeholder = "Content of your tag"]

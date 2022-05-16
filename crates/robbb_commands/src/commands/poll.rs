@@ -17,7 +17,7 @@ pub async fn poll(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
-/// Get people to vote on your question
+/// Get people to vote on your yes/no question
 #[poise::command(
     slash_command,
     guild_only,

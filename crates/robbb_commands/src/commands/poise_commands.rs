@@ -2,7 +2,11 @@ use poise::serenity_prelude::ApplicationCommand;
 
 use super::*;
 
-/// Unregister all slash commands
+/// Unregister all slash commands (be careful)
+///
+/// Slash commands have to be explicitly registered with discord.
+/// To remove them again, you can use this command.
+/// Please only run this when absolutely necessary, as setting up the permissions for the commands again is pain.
 #[poise::command(
     slash_command,
     prefix_command,
@@ -51,7 +55,9 @@ pub async fn delete(
     Ok(())
 }
 
-/// Register all slash commands
+/// Register all slash commands with discords API
+///
+/// Slash commands have to be explicitly registered with discord, which you can do via this command.
 #[poise::command(
     slash_command,
     prefix_command,

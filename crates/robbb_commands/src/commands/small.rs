@@ -109,6 +109,8 @@ pub async fn invite(ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
+// TODORW definitely don't clear when no description is provided, that's super weird
+
 /// Set your profiles description.
 #[poise::command(prefix_command, guild_only, slash_command)]
 pub async fn desc(
