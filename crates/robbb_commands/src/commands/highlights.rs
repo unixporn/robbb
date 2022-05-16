@@ -37,7 +37,8 @@ pub async fn highlights_add(
     }
 
     let db = ctx.get_db();
-    let max_highlight_cnt = match checks::get_permission_level(ctx).await {
+    let max_highlight_cnt = match checks::get_permission_level(&ctx.discord(), ctx.author()).await?
+    {
         PermissionLevel::Mod => 20,
         _ => 4,
     };

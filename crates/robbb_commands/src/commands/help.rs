@@ -33,7 +33,7 @@ pub async fn help(
             .user_error(&format!("Unknown command `{}`", desired_command))?;
         reply_help_single(ctx, &command).await?;
     } else {
-        let permission_level = checks::get_permission_level(ctx).await;
+        let permission_level = checks::get_permission_level(&ctx.discord(), ctx.author()).await?;
         let available_commands: Vec<_> = commands
             .filter(|command| {
                 command

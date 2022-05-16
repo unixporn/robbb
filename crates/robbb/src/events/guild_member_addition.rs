@@ -1,20 +1,11 @@
 use super::*;
 use chrono::{DateTime, Utc};
+use robbb_commands::commands;
 use robbb_util::{
     extensions::{ChannelIdExt, ClientContextExt, UserExt},
     log_error, util,
 };
 use std::time::SystemTime;
-
-// TODORW this belongs in crate::commands::mute
-/// Adds the mute role to the user, but does _not_ add any database entry.
-/// This should only be used if we know that an active database entry for the mute already exists,
-/// or else we run the risk of accidentally muting someone forever.
-pub async fn set_mute_role(ctx: &client::Context, mut member: Member) -> Result<()> {
-    let config = ctx.get_config().await;
-    member.add_role(&ctx, config.role_mute).await?;
-    Ok(())
-}
 
 /// check if there's an active mute of a user that just joined.
 /// if so, reapply the mute and log their mute-evasion attempt in modlog
@@ -22,7 +13,7 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
     let (config, db) = ctx.get_config_and_db().await;
     let active_mute = db.get_active_mute(new_member.user.id).await?;
     if let Some(mute) = active_mute {
-        set_mute_role(&ctx, new_member.clone()).await?;
+        commands::mute::set_mute_role(&ctx, new_member.clone()).await?;
         config
             .channel_modlog
             .send_embed(&ctx, |e| {

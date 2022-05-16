@@ -69,7 +69,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
     let mut disallowed_bans = Vec::new();
     let mut successful_bans = Vec::new();
 
-    let permission_level = checks::get_permission_level(ctx).await;
+    let permission_level = checks::get_permission_level(&ctx.discord(), ctx.author()).await?;
 
     let mut main_response = ctx
         .say_success_mod_action("Banning...")

@@ -125,9 +125,20 @@ impl client::EventHandler for Handler {
     async fn interaction_create(&self, ctx: client::Context, interaction: Interaction) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
-        // TODORW verify blocklist, command-allowing channel, etc
-        self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction })
-            .await;
+
+        let stop_event_handler =
+            match handle_blocklist::handle_blocklist_in_interaction(&ctx, &interaction).await {
+                Ok(stop_event_handler) => stop_event_handler,
+                Err(e) => {
+                    tracing::error!(error.message = %format!("{}", &e), "{:?}", e);
+                    false
+                }
+            };
+
+        if !stop_event_handler {
+            self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction })
+                .await;
+        }
     }
 
     #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %new.user.tag()))]
