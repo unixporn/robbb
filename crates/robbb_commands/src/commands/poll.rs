@@ -69,9 +69,12 @@ pub async fn poll_vote(
 #[name = "Set up a poll"]
 struct MultiPollModal {
     #[name = "Title"]
+    #[min_length = 2]
+    #[max_length = 100]
+    #[placeholder = "Which color has the best personality?"]
     title: String,
     #[name = "Options"]
-    #[placeholder = "- option 1\n- option 2\n- option 3"]
+    #[placeholder = "- Red\n- Green\n- Blue\n- Yellow-ish Turquoise"]
     #[paragraph]
     options: String,
 }

@@ -1,4 +1,6 @@
-use robbb_db::fetch_field::FetchField;
+use std::collections::HashMap;
+
+use robbb_db::{fetch::Fetch, fetch_field::FetchField};
 
 use super::*;
 
@@ -19,10 +21,11 @@ pub async fn fetch(
     let user = member_or_self(ctx, user).await?;
 
     // Query the database
-    let fetch_info = db
-        .get_fetch(user.user.id)
-        .await?
-        .user_error("This user has not set their fetch.")?;
+    let fetch_info: Fetch = db.get_fetch(user.user.id).await?.unwrap_or_else(|| Fetch {
+        user: user.user.id,
+        info: HashMap::new(),
+        create_date: None,
+    });
 
     let create_date = fetch_info.create_date;
     let fetch_data: Vec<(FetchField, String)> = fetch_info.get_values_ordered();

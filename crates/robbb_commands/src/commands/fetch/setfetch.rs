@@ -17,8 +17,8 @@ const SETFETCH_USAGE: &str = indoc::indoc!("
     and follow the instructions. It's recommended that you download and read the script before running it, 
     as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
 
-    **NOTE**: use `!setfetch update` to update individual values (including the image!) without overwriting everything.
-    **NOTE**: !git, !dotfiles, and !desc are different commands"
+    **NOTE**: use `/setfetch update` to manually update your fetch (including the image!).
+    **NOTE**: /git, /dotfiles, and /description are different commands"
 );
 
 /// Set your fetch data

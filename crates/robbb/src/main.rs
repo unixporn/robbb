@@ -120,7 +120,7 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
     span.record("msg.channel", &channel_name.unwrap_or_default().as_str());
 
     tracing::info!(
-        command_name = ctx.command().name,
+        command_name = ctx.command().qualified_name.as_str(),
         msg.content = %content,
         msg.author = %ctx.author(),
         msg.id = %ctx.id(),

@@ -43,26 +43,15 @@ pub async fn tag(
     Ok(())
 }
 
-/// Manage tags
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
-    subcommands("tag_set", "tag_list", "tag_delete")
-)]
-pub async fn settag(_ctx: Ctx<'_>) -> Res<()> {
-    Ok(())
-}
-
 /// Get the names of all tags
 #[poise::command(
     slash_command,
     guild_only,
     prefix_command,
-    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
-    rename = "list"
+    custom_data = "CmdMeta { perms: PermissionLevel::User }",
+    rename = "taglist"
 )]
-pub async fn tag_list(ctx: Ctx<'_>) -> Res<()> {
+pub async fn taglist(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
 
     let tags = db.list_tags().await?;
@@ -72,6 +61,17 @@ pub async fn tag_list(ctx: Ctx<'_>) -> Res<()> {
     })
     .await?;
 
+    Ok(())
+}
+
+/// Manage tags
+#[poise::command(
+    slash_command,
+    guild_only,
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    subcommands("tag_set", "tag_delete")
+)]
+pub async fn settag(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 

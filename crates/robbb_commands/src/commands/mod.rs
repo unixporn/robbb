@@ -47,6 +47,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         version::version(),
         poll::poll(),
         tag::tag(),
+        tag::taglist(),
         ask::ask(),
         modping::modping(),
         highlights::highlights(),

@@ -1,4 +1,4 @@
-use crate::{extensions::PoiseContextExt, log_error, prelude::Ctx};
+use crate::{extensions::PoiseContextExt, log_error, prelude::Ctx, util::ellipsis_text};
 
 use anyhow::Result;
 use itertools::Itertools;
@@ -35,7 +35,11 @@ impl PaginatedEmbed {
             .into_iter()
             .map(|fields| {
                 let mut e = base_embed.clone();
-                e.fields(fields.map(|(k, v)| (k, v, false)).collect_vec());
+                e.fields(
+                    fields
+                        .map(|(k, v)| (k, ellipsis_text(&v, 500), false))
+                        .collect_vec(),
+                );
                 e
             })
             .collect_vec();

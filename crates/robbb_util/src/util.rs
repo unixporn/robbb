@@ -32,21 +32,25 @@ macro_rules! log_error {
     };
 }
 
+pub fn ellipsis_text(text: &str, max_len: usize) -> String {
+    if text.len() + 3 > max_len {
+        let mut cutoff = max_len - 3;
+        while !text.is_char_boundary(cutoff) {
+            cutoff -= 1;
+        }
+        format!("{}...", text.split_at(cutoff).0)
+    } else {
+        text.to_string()
+    }
+}
+
 pub fn thread_title_from_text(text: &str) -> Result<String> {
     let title = text
         .lines()
         .find(|x| !x.trim().is_empty())
         .context("Text was empty")?;
 
-    if title.len() >= 97 {
-        let mut cutoff = 97;
-        while !title.is_char_boundary(cutoff) {
-            cutoff -= 1;
-        }
-        Ok(format!("{}...", title.split_at(cutoff).0))
-    } else {
-        Ok(title.to_string())
-    }
+    Ok(ellipsis_text(title, 96))
 }
 
 /// Get an environment variable, returning an Err with a

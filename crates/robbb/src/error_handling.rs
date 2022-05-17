@@ -102,7 +102,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 );
                 tracing::error!(
                     error = %error,
-                    command_name = %ctx.command().name,
+                    command_name = %ctx.command().qualified_name.as_str(),
                     "Error while running command check: {}", error
                 );
             } else {
@@ -160,7 +160,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
         None => match err.downcast::<serenity::Error>() {
             Ok(err) => {
                 tracing::warn!(
-                    error.command_name = %ctx.command().name,
+                    error.command_name = %ctx.command().qualified_name.as_str(),
                     error.message = %err,
                     "Serenity error [handling {}]: {} ({:?})",
                     ctx.command().name,
@@ -190,7 +190,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
             Err(err) => {
                 let _ = ctx.say_error("Something went wrong").await;
                 tracing::warn!(
-                    error.command_name = %ctx.command().name,
+                    error.command_name = %ctx.command().qualified_name.as_str(),
                     error.message = %err,
                     "Internal error [handling {}]: {} ({:#?})",
                     ctx.command().name,
