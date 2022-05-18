@@ -98,7 +98,7 @@ pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
         };
         command.default_member_permissions = match meta.perms {
             PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
-            PermissionLevel::User => Permissions::empty(),
+            PermissionLevel::User => Permissions::USE_SLASH_COMMANDS,
         };
         command.category = Some(command.category.unwrap_or(match meta.perms {
             PermissionLevel::Mod | PermissionLevel::Helper => "Moderation",
