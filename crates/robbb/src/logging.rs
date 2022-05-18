@@ -36,7 +36,7 @@ pub fn init_tracing(honeycomb_api_key: Option<String>) {
             transmission_options: libhoney::transmission::Options::default(),
         };
 
-        let honeycomb_layer = tracing_honeycomb::new_honeycomb_telemetry_layer("robbb", config);
+        let honeycomb_layer = tracing_honeycomb::Builder::new_libhoney("robbb", config).build();
 
         let sub = sub.with(honeycomb_layer);
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
