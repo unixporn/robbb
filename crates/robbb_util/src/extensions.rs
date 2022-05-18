@@ -55,7 +55,7 @@ pub impl<'a> Ctx<'a> {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let embed = embeds::make_create_embed(&self.discord(), |e| {
+        let embed = embeds::make_create_embed(self.discord(), |e| {
             build(e);
             e
         })
@@ -86,7 +86,7 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending success message to user"
         );
-        let create_embed = embeds::make_success_embed(&self.discord(), &text.to_string()).await;
+        let create_embed = embeds::make_success_embed(self.discord(), &text.to_string()).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
@@ -103,7 +103,7 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending error message to user"
         );
-        let create_embed = embeds::make_error_embed(&self.discord(), &text.to_string()).await;
+        let create_embed = embeds::make_error_embed(self.discord(), &text.to_string()).await;
         self.send_embed_full(true, |e| {
             e.clone_from(&create_embed);
         })
@@ -120,7 +120,7 @@ pub impl<'a> Ctx<'a> {
             "Sending success_mod_action message to user"
         );
         let create_embed =
-            embeds::make_success_mod_action_embed(&self.discord(), &text.to_string()).await;
+            embeds::make_success_mod_action_embed(self.discord(), &text.to_string()).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
@@ -285,7 +285,7 @@ pub impl ChannelId {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let create_embed = make_create_embed(&ctx, |e| {
+        let create_embed = make_create_embed(ctx, |e| {
             build(e);
             e
         })

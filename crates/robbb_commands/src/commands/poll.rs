@@ -57,7 +57,7 @@ pub async fn poll_vote(
     if ctx.channel_id() == config.channel_mod_polls {
         poll_msg
             .create_thread(
-                &ctx.discord(),
+                ctx.discord(),
                 util::thread_title_from_text(&question).unwrap_or_else(|_| "Poll".to_string()),
             )
             .await?;
@@ -135,7 +135,7 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     if ctx.channel_id() == config.channel_mod_polls {
         poll_msg
             .create_thread(
-                &ctx.discord(),
+                ctx.discord(),
                 util::thread_title_from_text(&modal_result.title)
                     .unwrap_or_else(|_| "Poll".to_string()),
             )

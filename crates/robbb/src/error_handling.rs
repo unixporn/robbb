@@ -105,13 +105,11 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                     command_name = %ctx.command().qualified_name.as_str(),
                     "Error while running command check: {}", error
                 );
-            } else {
-                if matches!(ctx, poise::Context::Application(_)) {
-                    log_error!(
-                        ctx.send(|m| m.ephemeral(true).content("Insufficient permissions"))
-                            .await
-                    );
-                }
+            } else if matches!(ctx, poise::Context::Application(_)) {
+                log_error!(
+                    ctx.send(|m| m.ephemeral(true).content("Insufficient permissions"))
+                        .await
+                );
             }
         }
         DynamicPrefix { error } => {
@@ -128,20 +126,20 @@ async fn handle_argument_parse_error(
     error: Box<dyn std::error::Error + Send + Sync>,
     input: Option<String>,
 ) -> anyhow::Result<()> {
-    let msg = if let Some(_) = error.downcast_ref::<humantime::DurationError>() {
+    let msg = if error.downcast_ref::<humantime::DurationError>().is_some() {
         format!("'{}' is not a valid duration", input.unwrap_or_default())
-    } else if let Some(_) = error.downcast_ref::<UserParseError>() {
+    } else if error.downcast_ref::<UserParseError>().is_some() {
         format!("I couldn't find any user '{}'", input.unwrap_or_default())
-    } else if let Some(_) = error.downcast_ref::<MemberParseError>() {
+    } else if error.downcast_ref::<MemberParseError>().is_some() {
         format!("I couldn't find any member '{}'", input.unwrap_or_default())
-    } else if let Some(_) = error.downcast_ref::<TooManyArguments>() {
-        format!("Too many arguments")
-    } else if let Some(_) = error.downcast_ref::<TooFewArguments>() {
-        format!("Too few arguments")
+    } else if error.downcast_ref::<TooManyArguments>().is_some() {
+        "Too many arguments".to_string()
+    } else if error.downcast_ref::<TooFewArguments>().is_some() {
+        "Too few arguments".to_string()
     } else if let Some(input) = input {
         format!("Malformed argument '{}'", input)
     } else {
-        format!("Command used incorrectly")
+        "Command used incorrectly".to_string()
     };
     ctx.say_error(msg).await?;
     Ok(())

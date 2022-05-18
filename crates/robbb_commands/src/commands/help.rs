@@ -31,9 +31,9 @@ pub async fn help(
                 c.name == desired_command.as_str() || c.aliases.contains(&desired_command.as_str())
             })
             .user_error(&format!("Unknown command `{}`", desired_command))?;
-        reply_help_single(ctx, &command).await?;
+        reply_help_single(ctx, command).await?;
     } else {
-        let permission_level = checks::get_permission_level(&ctx.discord(), ctx.author()).await?;
+        let permission_level = checks::get_permission_level(ctx.discord(), ctx.author()).await?;
         let available_commands: Vec<_> = commands
             .filter(|command| {
                 command
@@ -89,11 +89,11 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
         (name, description)
     });
 
-    Ok(embeds::PaginatedEmbed::create_from_fields(
+    embeds::PaginatedEmbed::create_from_fields(
         fields,
-        embeds::make_create_embed(&ctx.discord(), |e| e.title("Help")).await,
+        embeds::make_create_embed(ctx.discord(), |e| e.title("Help")).await,
     )
     .await
     .reply_to(ctx)
-    .await?)
+    .await
 }

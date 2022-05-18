@@ -36,21 +36,19 @@ pub async fn delete(
                 .join(", ")
         ))
         .await?;
-    } else {
-        if let Some(guild) = ctx.guild() {
-            let commands = guild.get_application_commands(ctx.discord()).await?;
-            for command in &commands {
-                tracing::debug!(deleted_command_name = %command.name, "Deleting application command {}", command.name);
-                guild
-                    .delete_application_command(ctx.discord(), command.id)
-                    .await?;
-            }
-            ctx.say_success(format!(
-                "Deleted application commands: {}",
-                commands.iter().map(|x| x.name.to_string()).join(", ")
-            ))
-            .await?;
+    } else if let Some(guild) = ctx.guild() {
+        let commands = guild.get_application_commands(ctx.discord()).await?;
+        for command in &commands {
+            tracing::debug!(deleted_command_name = %command.name, "Deleting application command {}", command.name);
+            guild
+                .delete_application_command(ctx.discord(), command.id)
+                .await?;
         }
+        ctx.say_success(format!(
+            "Deleted application commands: {}",
+            commands.iter().map(|x| x.name.to_string()).join(", ")
+        ))
+        .await?;
     }
     Ok(())
 }
@@ -79,15 +77,13 @@ pub async fn register(
             b
         })
         .await?;
-    } else {
-        if let Some(guild) = ctx.guild() {
-            guild
-                .set_application_commands(ctx.discord(), |b| {
-                    *b = commands_builder;
-                    b
-                })
-                .await?;
-        }
+    } else if let Some(guild) = ctx.guild() {
+        guild
+            .set_application_commands(ctx.discord(), |b| {
+                *b = commands_builder;
+                b
+            })
+            .await?;
     }
 
     ctx.say_success(format!(

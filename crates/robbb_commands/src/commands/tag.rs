@@ -124,9 +124,7 @@ pub async fn tag_set(
 
     let existing_tag = db.get_tag(&tag_name).await?;
     // Content to pre-fill into the modal text field
-    let default_content = existing_tag
-        .map(|x| x.content.to_string())
-        .unwrap_or_default();
+    let default_content = existing_tag.map(|x| x.content).unwrap_or_default();
 
     let result = TagModal::execute_with_defaults(
         app_ctx,
@@ -172,5 +170,4 @@ async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterat
 
     tags.into_iter()
         .filter(move |tag| tag.starts_with(&partial))
-        .map(|tag| tag.to_string())
 }

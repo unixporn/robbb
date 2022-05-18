@@ -109,7 +109,7 @@ pub async fn apply_mute(
         guild.id,
         moderator,
         member.user.id,
-        reason.unwrap_or("no reason".to_string()),
+        reason.unwrap_or_else(|| "no reason".to_string()),
         start_time,
         end_time,
         context,
@@ -129,7 +129,7 @@ pub async fn apply_mute(
             .await?;
     }
 
-    set_mute_role(&ctx, member).await?;
+    set_mute_role(ctx, member).await?;
     Ok(())
 }
 

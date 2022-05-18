@@ -98,7 +98,9 @@ impl SlashArgument for FetchField {
     ) -> Result<Self, poise::SlashArgError> {
         let s = value
             .as_str()
-            .ok_or_else(|| poise::SlashArgError::CommandStructureMismatch("Expected String"))?;
+            .ok_or(poise::SlashArgError::CommandStructureMismatch(
+                "Expected String",
+            ))?;
         Ok(
             FetchField::from_str(s).map_err(|e| poise::SlashArgError::Parse {
                 error: Box::new(e),

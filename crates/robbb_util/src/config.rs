@@ -70,7 +70,7 @@ impl Config {
     {
         let result = self
             .guild
-            .send_embed(&ctx, self.channel_modlog, build_embed)
+            .send_embed(ctx, self.channel_modlog, build_embed)
             .await;
 
         log_error!(result);
@@ -81,7 +81,7 @@ impl Config {
     {
         let result = self
             .guild
-            .send_embed(&ctx, self.channel_auto_mod, build_embed)
+            .send_embed(ctx, self.channel_auto_mod, build_embed)
             .await;
         log_error!(result);
     }

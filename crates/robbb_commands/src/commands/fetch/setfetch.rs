@@ -37,6 +37,7 @@ pub async fn set_fetch_script(ctx: Ctx<'_>) -> Res<()> {
 
 /// Update your fetch data
 #[poise::command(slash_command, guild_only, rename = "update")]
+#[allow(clippy::too_many_arguments)]
 pub async fn set_fetch_update(
     ctx: Ctx<'_>,
     #[description = "Image"] image: Option<Attachment>,

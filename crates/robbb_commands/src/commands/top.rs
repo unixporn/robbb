@@ -47,7 +47,7 @@ async fn top_for_regex(
     field_name: FetchField,
     value_pattern: &str,
 ) -> Res<()> {
-    let regex = regex::RegexBuilder::new(&value_pattern)
+    let regex = regex::RegexBuilder::new(value_pattern)
         .case_insensitive(true)
         .build()
         .user_error("Invalid regex")?;

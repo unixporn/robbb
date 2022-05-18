@@ -50,8 +50,8 @@ async fn main() -> anyhow::Result<()> {
         command_check: Some(|ctx| {
             Box::pin(async move {
                 Ok(is_autocomplete_interaction(&ctx)
-                    || (checks::check_channel_allows_commands(ctx.clone()).await?
-                        && checks::check_is_not_muted(ctx.clone()).await?))
+                    || (checks::check_channel_allows_commands(ctx).await?
+                        && checks::check_is_not_muted(ctx).await?))
             })
         }),
         prefix_options: poise::PrefixFrameworkOptions {

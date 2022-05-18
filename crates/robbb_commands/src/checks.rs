@@ -22,16 +22,16 @@ pub async fn check_channel_allows_commands(ctx: Ctx<'_>) -> Res<bool> {
 
 pub async fn check_is_moderator(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
-    check_role(&ctx.discord(), ctx.author(), config.role_mod).await
+    check_role(ctx.discord(), ctx.author(), config.role_mod).await
 }
 
 pub async fn check_is_helper(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
-    check_role(&ctx.discord(), ctx.author(), config.role_helper).await
+    check_role(ctx.discord(), ctx.author(), config.role_helper).await
 }
 
 pub async fn check_is_helper_or_mod(ctx: Ctx<'_>) -> Res<bool> {
-    let permission_level = get_permission_level(&ctx.discord(), ctx.author()).await?;
+    let permission_level = get_permission_level(ctx.discord(), ctx.author()).await?;
     match permission_level {
         PermissionLevel::User => Ok(false),
         PermissionLevel::Helper | PermissionLevel::Mod => Ok(true),
@@ -41,7 +41,7 @@ pub async fn check_is_helper_or_mod(ctx: Ctx<'_>) -> Res<bool> {
 pub async fn check_is_not_muted(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
 
-    check_role(&ctx.discord(), ctx.author(), config.role_mute)
+    check_role(ctx.discord(), ctx.author(), config.role_mute)
         .await
         .map(|x| !x)
 }

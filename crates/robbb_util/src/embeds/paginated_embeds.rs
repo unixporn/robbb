@@ -103,7 +103,7 @@ async fn handle_pagination_interactions(
     let mut current_page_idx = 0;
 
     let mut interactions = crate::collect_interaction::await_component_interactions_by(
-        &serenity_ctx,
+        serenity_ctx,
         &created_msg,
         user_id,
         10,

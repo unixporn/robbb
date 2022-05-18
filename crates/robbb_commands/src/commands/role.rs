@@ -62,12 +62,12 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
                 member.add_role(&ctx.discord(), role_id).await?;
 
                 embeds::make_success_embed(
-                    &ctx.discord(),
+                    ctx.discord(),
                     &format!("Success! You're now {}", role_id.mention()),
                 )
                 .await
             } else {
-                embeds::make_success_embed(&ctx.discord(), "Success! Removed your colorrole").await
+                embeds::make_success_embed(ctx.discord(), "Success! Removed your colorrole").await
             };
 
             interaction
@@ -80,7 +80,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
                 .await?;
         }
     } else {
-        let timed_out_embed = embeds::make_error_embed(&ctx.discord(), "No role chosen").await;
+        let timed_out_embed = embeds::make_error_embed(ctx.discord(), "No role chosen").await;
         roles_msg
             .edit(&ctx.discord(), |e| {
                 e.set_embed(timed_out_embed).components(|c| c)

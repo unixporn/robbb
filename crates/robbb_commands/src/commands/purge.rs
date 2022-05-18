@@ -58,7 +58,7 @@ pub async fn purge(
         .await?;
 
     let success_embed = embeds::make_success_mod_action_embed(
-        &ctx.discord(),
+        ctx.discord(),
         &format!("Successfully deleted {} messages", recent_messages.len()),
     )
     .await;

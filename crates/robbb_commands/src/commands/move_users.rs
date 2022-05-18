@@ -25,7 +25,7 @@ pub async fn move_users(
     }
 
     let mentions = users
-        .split(" ")
+        .split(' ')
         .filter_map(|x| Some(x.trim().parse::<UserId>().ok()?.mention()))
         .join(" ");
 
@@ -50,7 +50,7 @@ async fn send_ask_in_tech_support(
         .unwrap_or_default();
 
     ctx.send_embed(|e| {
-        e.author_user(&ctx.author());
+        e.author_user(ctx.author());
         e.description(indoc::formatdoc!(
             "{police}{police}**Please {} use `/ask` to ask your question in {}**{police}{police}",
             mentions,
@@ -71,7 +71,7 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
         ctx: Ctx<'_>,
         continuation_msg: Option<Message>,
     ) -> CreateEmbed {
-        make_create_embed(&ctx.discord(), |e| {
+        make_create_embed(ctx.discord(), |e| {
             e.author_user(ctx.author());
             e.description(indoc::formatdoc!(
                 "Continuation from {}

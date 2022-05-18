@@ -32,7 +32,7 @@ pub async fn ask(
     app_ctx: AppCtx<'_>,
     #[description = "Your question"] question: Option<String>,
 ) -> Res<()> {
-    let ctx = Ctx::Application(app_ctx.clone());
+    let ctx = Ctx::Application(app_ctx);
     let config = ctx.get_config();
 
     if ctx.channel_id() != config.channel_tech_support {

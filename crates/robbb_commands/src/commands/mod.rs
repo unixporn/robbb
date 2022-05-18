@@ -100,7 +100,7 @@ pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
             PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
             PermissionLevel::User => Permissions::empty(),
         };
-        command.category = Some(command.category.unwrap_or_else(|| match meta.perms {
+        command.category = Some(command.category.unwrap_or(match meta.perms {
             PermissionLevel::Mod | PermissionLevel::Helper => "Moderation",
             PermissionLevel::User => "Member",
         }));

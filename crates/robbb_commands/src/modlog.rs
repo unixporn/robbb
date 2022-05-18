@@ -12,7 +12,7 @@ pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
     let config = ctx.data().config.clone();
 
     config
-        .log_bot_action(&ctx.discord(), |e| {
+        .log_bot_action(ctx.discord(), |e| {
             e.title("Note");
             e.author_user(ctx.author());
             e.thumbnail(user.face());
@@ -34,7 +34,7 @@ pub async fn log_warn(
 ) {
     let config = ctx.get_config();
     config
-        .log_bot_action(&ctx.discord(), |e| {
+        .log_bot_action(ctx.discord(), |e| {
             e.title("Warn");
             e.author_user(ctx.author());
             e.thumbnail(user.face());
@@ -53,7 +53,7 @@ pub async fn log_warn(
 pub async fn log_kick(ctx: Ctx<'_>, context_msg: &Message, user: User, reason: &str) {
     let config = ctx.get_config();
     config
-        .log_bot_action(&ctx.discord(), |e| {
+        .log_bot_action(ctx.discord(), |e| {
             e.title("Kick");
             e.thumbnail(user.face());
             e.author_user(ctx.author());
@@ -71,7 +71,7 @@ pub async fn log_kick(ctx: Ctx<'_>, context_msg: &Message, user: User, reason: &
 pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[User], reason: &str) {
     let config = ctx.get_config();
     config
-        .log_bot_action(&ctx.discord(), |e| {
+        .log_bot_action(ctx.discord(), |e| {
             e.title("Ban");
             e.author_user(ctx.author());
             e.description(format!(
@@ -90,7 +90,7 @@ pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[Use
 pub async fn log_unban(ctx: Ctx<'_>, user: User) {
     let config = ctx.get_config();
     config
-        .log_bot_action(&ctx.discord(), |e| {
+        .log_bot_action(ctx.discord(), |e| {
             e.title("Unban");
             e.author_user(ctx.author());
             e.thumbnail(user.face());
@@ -139,7 +139,7 @@ pub async fn log_mute_for_spamming(
 ) {
     let config = ctx.get_config().await;
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(ctx, |e| {
             e.title("Automute");
             e.thumbnail(spam_msg.author.face());
             e.description(format!(
@@ -160,7 +160,7 @@ pub async fn log_user_mute_ended(ctx: &client::Context, mute: &Mute) {
     let config = ctx.get_config().await;
     let user = mute.user.to_user(&ctx).await;
     config
-        .log_bot_action(&ctx, |e| {
+        .log_bot_action(ctx, |e| {
             e.title("Mute ended");
             if let Ok(user) = user {
                 e.description(format!("{} is now unmuted", user.mention_and_tag()));
