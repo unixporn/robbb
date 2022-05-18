@@ -1,6 +1,6 @@
-use poise::serenity_prelude::{ChannelId, CreateEmbed, Message};
+use poise::serenity_prelude::{Channel, ChannelId, CreateEmbed, Message};
 
-use robbb_util::{abort_with, embeds::make_create_embed, extensions::ChannelIdExt};
+use robbb_util::{abort_with, embeds::make_create_embed};
 
 use super::*;
 
@@ -8,11 +8,12 @@ use super::*;
 #[poise::command(slash_command, prefix_command, guild_only, rename = "move")]
 pub async fn move_users(
     ctx: Ctx<'_>,
-    #[description = "Channel to move to"] target_channel: ChannelId,
+    #[description = "Channel to move to"] target_channel: Channel,
     #[description = "Users to move"]
     #[rest]
     users: Option<String>,
 ) -> Res<()> {
+    let target_channel = target_channel.id();
     let config = ctx.get_config();
     let users = users.unwrap_or_default();
 
@@ -48,17 +49,16 @@ async fn send_ask_in_tech_support(
         .map(|emotes| emotes.police.to_string())
         .unwrap_or_default();
 
-    ctx.channel_id()
-        .send_embed(&ctx.discord(), |e| {
-            e.author(|a| a.name(format!("Moved by {}", ctx.author().tag())));
-            e.description(indoc::formatdoc!(
-                "{police}{police}**Please {} use `!ask <question>` to ask your question in {}**{police}{police}",
-                mentions,
-                target_channel.mention(),
-                police = police_emote,
-            ));
-        })
-        .await?;
+    ctx.send_embed(|e| {
+        e.author_user(&ctx.author());
+        e.description(indoc::formatdoc!(
+            "{police}{police}**Please {} use `/ask` to ask your question in {}**{police}{police}",
+            mentions,
+            target_channel.mention(),
+            police = police_emote,
+        ));
+    })
+    .await?;
     Ok(())
 }
 

@@ -36,7 +36,7 @@ pub async fn ask(
     let config = ctx.get_config();
 
     if ctx.channel_id() != config.channel_tech_support {
-        abort_with!("!ask can only be used in the tech-support channel");
+        abort_with!("/ask can only be used in the tech-support channel");
     }
 
     let AskModal { title, details } = AskModal::execute_with_defaults(

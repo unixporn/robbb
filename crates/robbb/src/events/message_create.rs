@@ -85,10 +85,6 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
 #[tracing::instrument(skip_all)]
 async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<()> {
     let config = ctx.get_config().await;
-    if msg.content.starts_with("!ask") {
-        return Ok(());
-    }
-
     let result = msg.author.dm(&ctx, |m| {
         m.content(format!(
             "Your message in {} has been deleted. Please use `/ask` to ask any questions, and respond in the thread.\nYour messages was:\n\n{}", 
@@ -117,8 +113,8 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
 
 #[tracing::instrument(skip_all, fields(highlights.notified_user_cnt))]
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
-    // don't trigger on bot commands (except !ask)
-    if msg.content.starts_with('!') && !msg.content.starts_with("!ask") {
+    // don't trigger on bot commands
+    if msg.content.starts_with('!') {
         tracing::Span::current().record("highlights.notified_user_cnt", &0i32);
         return Ok(0);
     }

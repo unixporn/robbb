@@ -6,7 +6,7 @@ use robbb_util::{
 use serenity::client;
 
 /// Check if the channel allows the use of the given command.
-/// This includes specifically checking for !ask in #tech-support
+/// This includes specifically checking for /ask in #tech-support
 pub async fn check_channel_allows_commands(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
     let channel_id = ctx.channel_id();
