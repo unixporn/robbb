@@ -1,15 +1,8 @@
-use anyhow::Context;
 use chrono::Utc;
-use futures::StreamExt;
 use poise::serenity_prelude::Attachment;
-use robbb_util::embeds;
-use robbb_util::modal::create_modal_component_ir;
 
 use super::*;
-use robbb_db::fetch::Fetch;
-use robbb_util::extensions::StrExt;
 use std::collections::HashMap;
-use std::str::FromStr;
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
     Run this: 
@@ -25,110 +18,25 @@ const SETFETCH_USAGE: &str = indoc::indoc!("
 #[poise::command(
     slash_command,
     guild_only,
-    category = "Miscellaneous",
     rename = "setfetch",
-    subcommands("set_fetch_set", "set_fetch_update", "set_fetch_clear")
+    subcommands("set_fetch_script", "set_fetch_update", "set_fetch_clear")
 )]
 pub async fn set_fetch(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
-#[derive(Debug, poise::Modal)]
-struct SetfetchModal {
-    #[paragraph]
-    #[placeholder = "Distro: MyCoolDistro\nKernel: Linux\nTerminal: Alacritty\nDE/WM: Kiwmi\n..."]
-    #[name = "Setfetch data"]
-    content: String,
-}
-
-/// Overwrite your fetch data
-#[poise::command(slash_command, guild_only, category = "Miscellaneous", rename = "set")]
-pub async fn set_fetch_set(app_ctx: AppCtx<'_>) -> Res<()> {
-    let ctx = Ctx::Application(app_ctx);
-    let db = ctx.get_db();
-
-    let mut instructions_msg = ctx
-        .send(|m| {
-            m.embed(|e| e.title("Instructions").description(SETFETCH_USAGE));
-            m.components(|c| {
-                c.create_action_row(|c| c.create_button(|c| c.custom_id("done").label("Done!")))
-            })
-        })
-        .await?
-        .message()
-        .await?;
-
-    let old_fetch_data = db.get_fetch(ctx.author().id).await.ok().flatten();
-
-    if let Some(interaction) = instructions_msg
-        .await_component_interactions(&ctx.discord())
-        .author_id(ctx.author().id)
-        .timeout(std::time::Duration::from_secs(60))
-        .collect_limit(1)
-        .build()
-        .next()
-        .await
-    {
-        let modal_defaults = SetfetchModal {
-            content: old_fetch_data
-                .map(|x| fetch_to_setfetch_string(x))
-                .unwrap_or_default(),
-        };
-
-        let response =
-            create_modal_component_ir(app_ctx, &interaction, Some(modal_defaults)).await?;
-
-        let success_embed = embeds::make_create_embed(&ctx.discord(), |e| {
-            e.description("Updating your fetch data...")
-        })
-        .await;
-
-        instructions_msg
-            .edit(app_ctx.discord, |e| {
-                e.set_embed(success_embed).components(|c| c)
-            })
-            .await?;
-
-        let setfetch_data = parse_setfetch(response.content.lines().collect_vec())
-            .user_error("Illegal format, please use `field: value` syntax.")
-            .and_then(sanitize_fetch);
-        let result_embed = match setfetch_data {
-            Ok(setfetch_data) => {
-                db.update_fetch(ctx.author().id, setfetch_data).await?;
-                embeds::make_success_embed(&ctx.discord(), "Successfully updated your fetch").await
-            }
-            Err(user_err) => {
-                embeds::make_error_embed(&ctx.discord(), &format!("{}", user_err)).await
-            }
-        };
-
-        instructions_msg
-            .edit(&ctx.discord(), |m| {
-                m.components(|c| c).embed(|e| {
-                    e.clone_from(&result_embed);
-                    e
-                })
-            })
-            .await?;
-    } else {
-        let timed_out_embed = embeds::make_error_embed(&ctx.discord(), "No data provided").await;
-        instructions_msg
-            .edit(&ctx.discord(), |e| {
-                e.set_embed(timed_out_embed).components(|c| c)
-            })
-            .await?;
-    }
-
+/// Use our custom fetch script to fill in your entire fetch automatically!
+#[poise::command(slash_command, guild_only, rename = "script")]
+pub async fn set_fetch_script(ctx: Ctx<'_>) -> Res<()> {
+    ctx.send_embed(|e| {
+        e.description(SETFETCH_USAGE);
+    })
+    .await?;
     Ok(())
 }
 
 /// Update your fetch data
-#[poise::command(
-    slash_command,
-    guild_only,
-    category = "Miscellaneous",
-    rename = "update"
-)]
+#[poise::command(slash_command, guild_only, rename = "update")]
 pub async fn set_fetch_update(
     ctx: Ctx<'_>,
     #[description = "Image"] image: Option<Attachment>,
@@ -190,13 +98,7 @@ pub async fn set_fetch_update(
 }
 
 /// Clear your fetch data
-#[poise::command(
-    slash_command,
-    guild_only,
-    prefix_command,
-    category = "Miscellaneous",
-    rename = "clear"
-)]
+#[poise::command(slash_command, guild_only, prefix_command, rename = "clear")]
 pub async fn set_fetch_clear(
     ctx: Ctx<'_>,
     #[description = "Field you want to clear"] field: Option<FetchField>,
@@ -221,6 +123,7 @@ pub async fn set_fetch_clear(
     Ok(())
 }
 
+/*
 /// parse key:value formatted lines into a hashmap.
 fn parse_setfetch(lines: Vec<&str>) -> anyhow::Result<HashMap<String, String>> {
     lines
@@ -263,3 +166,4 @@ fn fetch_to_setfetch_string(fetch: Fetch) -> String {
         .map(|(k, v)| format!("{}: {}", k, v))
         .join("\n")
 }
+*/

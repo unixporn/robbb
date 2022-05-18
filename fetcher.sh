@@ -1,26 +1,29 @@
 #!/bin/sh
 
 print() {
+	fields=""
+	[ "$NAME" ]        && fields+=" distro:$NAME $ver"
+	[ "$kernel" ]      && fields+=" kernel:$kernel"
+	[ "$term" ]        && fields+=" terminal:$term"
+	[ "$EDITOR" ]      && fields+=" editor:${EDITOR##*/}"
+	[ "$SHELL" ]       && fields+=" shell:${SHELL##*/}"
+	[ "$wm" ]          && fields+=" de_wm:$wm"
+	[ "$bar" ]         && fields+=" bar:$bar"
+	[ "$resolution" ]  && fields+=" resolution:$resolution"
+	[ "$displayprot" ] && fields+=" display_protocol:$displayprot"
+	[ "$theme" ]       && fields+=" gtk3_theme:$theme"
+	[ "$icons" ]       && fields+=" gtk_icon_theme:$icons"
+	[ "$cpu" ]         && fields+=" cpu:$cpu"
+	[ "$gpu" ]         && fields+=" gpu:$gpu"
+	[ "$ram" ]         && fields+=" memory:$ram"
+
 	cat <<EOF
-Press the "Continue"-button in discord and copy/paste the data below into the popup!
+Please run the following command to set your fetch data!
 
 You can always use /setfetch update to manually update any of these values
 or to add an image to your fetch, be it your screenshot or wallpaper.
 
-Distro: $NAME $ver
-Kernel: $kernel
-Terminal: $term
-Editor: ${EDITOR##*/}
-Shell: ${SHELL##*/}
-DE/WM: $wm
-Bar: $bar
-Resolution: $resolution
-Display Protocol: $displayprot
-GTK3 Theme: $theme
-GTK Icon Theme: $icons
-CPU: $cpu
-GPU: $gpu
-Memory: $ram
+/setfetch update$fields
 EOF
 }
 
