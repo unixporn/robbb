@@ -303,10 +303,17 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .await?
         .guild()
         .context("Message not in a guild-channel")?;
-
     let user_can_see_channel = channel
-        .permissions_for_user(&ctx, msg.author.id)?
+        .guild_id
+        .member(&ctx, msg.author.id)
+        .await?
+        .permissions(&ctx)?
         .read_message_history();
+
+    //let user_can_see_channel = channel
+    //.permissions_for_user(&ctx, msg.author.id)
+    //.context("Failed to get member permissions")?
+    //.read_message_history();
 
     debug!("checked if user can see the channel");
 
