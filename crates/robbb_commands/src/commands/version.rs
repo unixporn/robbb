@@ -5,7 +5,7 @@ use super::*;
     slash_command,
     guild_only,
     prefix_command,
-    category = "Miscellaneous",
+    category = "Bot-Administration",
     hide_in_help
 )]
 pub async fn version(ctx: Ctx<'_>) -> Res<()> {

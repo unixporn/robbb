@@ -1,7 +1,7 @@
 use super::*;
 
 /// Ping all online moderators. Do not abuse!
-#[poise::command(slash_command, guild_only, prefix_command, category = "Miscellaneous")]
+#[poise::command(slash_command, guild_only, prefix_command)]
 pub async fn modping(
     ctx: Ctx<'_>,
     #[description = "Why are you modpinging?"]

@@ -5,13 +5,7 @@ use robbb_db::{fetch::Fetch, fetch_field::FetchField};
 use super::*;
 
 /// Fetch a users system information.
-#[poise::command(
-    slash_command,
-    guild_only,
-    prefix_command,
-    category = "Miscellaneous",
-    rename = "fetch"
-)]
+#[poise::command(slash_command, guild_only, prefix_command, rename = "fetch")]
 pub async fn fetch(
     ctx: Ctx<'_>,
     #[description = "The user"] user: Option<Member>,

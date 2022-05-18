@@ -6,7 +6,6 @@ use crate::checks::{self, PermissionLevel};
 /// Get notified when someone mentions a word you care about.
 #[poise::command(
     slash_command,
-    category = "Miscellaneous",
     rename = "highlight",
     aliases("highlights", "hl"),
     subcommands(
@@ -21,13 +20,7 @@ pub async fn highlights(_: Ctx<'_>) -> Res<()> {
 }
 
 /// Add a new highlight
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    category = "Miscellaneous",
-    rename = "add"
-)]
+#[poise::command(prefix_command, slash_command, guild_only, rename = "add")]
 pub async fn highlights_add(
     ctx: Ctx<'_>,
     #[description = "The word you want to be notified about"] trigger: String,
@@ -85,13 +78,7 @@ pub async fn highlights_add(
 }
 
 /// List all of your highlights
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    category = "Miscellaneous",
-    rename = "list"
-)]
+#[poise::command(prefix_command, slash_command, guild_only, rename = "list")]
 pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
     let highlights = db.get_highlights().await?;
@@ -111,13 +98,7 @@ pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
 }
 
 /// Remove a highlight
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    category = "Miscellaneous",
-    rename = "remove"
-)]
+#[poise::command(prefix_command, slash_command, guild_only, rename = "remove")]
 pub async fn highlights_remove(
     ctx: Ctx<'_>,
     #[autocomplete = "autocomplete_highlights"]
@@ -137,13 +118,7 @@ pub async fn highlights_remove(
 }
 
 /// Remove all of your highlights
-#[poise::command(
-    prefix_command,
-    slash_command,
-    guild_only,
-    category = "Miscellaneous",
-    rename = "clear"
-)]
+#[poise::command(prefix_command, slash_command, guild_only, rename = "clear")]
 pub async fn highlights_clear(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
     db.rm_highlights_of(ctx.author().id).await?;
