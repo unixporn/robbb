@@ -61,7 +61,6 @@ pub async fn fetch(
             let profile = db.get_profile(user.user.id).await?;
             ctx.send_embed(|e| {
                 e.author_user(&user.user);
-                e.title(format!("Fetch {}", user.user.tag()));
                 e.color_opt(color);
                 if let Some(date) = create_date {
                     e.timestamp(date);

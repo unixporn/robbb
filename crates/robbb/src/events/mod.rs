@@ -135,6 +135,10 @@ impl client::EventHandler for Handler {
                 }
             };
 
+        log_error!(
+            robbb_commands::commands::ask::handle_ask_button_clicked(&ctx, &interaction).await
+        );
+
         if !stop_event_handler {
             self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction })
                 .await;

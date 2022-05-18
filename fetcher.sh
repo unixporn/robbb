@@ -2,13 +2,11 @@
 
 print() {
 	cat <<EOF
-Copy and paste the command below in the server.
-You can also attach an image to the message, be it your screenshot or wallpaper.
-Note that '!setfetch' without 'update' overwrites almost everything,
-including the image, but not your git, dotfiles, or description.
-Also note that !git, !dotfiles, and !desc are different commands.
+Press the "Continue"-button in discord and copy/paste the data below into the popup!
 
-!setfetch
+You can always use /setfetch update to manually update any of these values
+or to add an image to your fetch, be it your screenshot or wallpaper.
+
 Distro: $NAME $ver
 Kernel: $kernel
 Terminal: $term

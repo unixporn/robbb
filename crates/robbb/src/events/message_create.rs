@@ -91,7 +91,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
 
     let result = msg.author.dm(&ctx, |m| {
         m.content(format!(
-            "Your message in {} has been deleted. Please use `!ask` to ask any questions, and respond in the thread.\nYour messages was:\n\n{}", 
+            "Your message in {} has been deleted. Please use `/ask` to ask any questions, and respond in the thread.\nYour messages was:\n\n{}", 
             config.channel_tech_support.mention(),
             msg.content,
         ))
@@ -100,7 +100,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
     if result.is_ok() {
         msg.delete(&ctx).await?;
     } else {
-        let error_msg = msg.reply_error(&ctx, "Please use !ask to ask any questions and respond to others in the thread.\n**Your message will be deleted in a few seconds.**").await?;
+        let error_msg = msg.reply_error(&ctx, "Please use `/ask` to ask any questions and respond to others in the thread.\n**Your message will be deleted in a few seconds.**").await?;
         tokio::spawn({
             let ctx = ctx.clone();
             let msg = msg.clone();
