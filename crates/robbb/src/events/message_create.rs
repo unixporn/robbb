@@ -401,7 +401,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let context = Some(msg.link());
 
-        robbb_commands::commands::mute::do_mute(
+        robbb_commands::commands::mute::apply_mute(
             &ctx,
             guild,
             bot_id,

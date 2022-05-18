@@ -1,5 +1,7 @@
 use anyhow::Context;
 use chrono::Utc;
+use poise::serenity_prelude::User;
+use robbb_util::modal::create_modal_command_ir;
 use serenity::client;
 
 use crate::modlog;
@@ -7,6 +9,36 @@ use crate::modlog;
 use super::*;
 
 const TIMEOUT_MAX_DAYS: i64 = 28;
+
+#[derive(poise::Modal)]
+#[name = "Mute"]
+struct MuteModal {
+    duration: String,
+    #[paragraph]
+    reason: Option<String>,
+}
+
+#[poise::command(
+    guild_only,
+    context_menu_command = "Mute",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
+)]
+pub async fn menu_mute(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
+    let ctx = Ctx::Application(app_ctx);
+    let member = ctx.guild().unwrap().member(&ctx.discord(), user.id).await?;
+    let ctx = Ctx::Application(app_ctx);
+    let interaction = match app_ctx.interaction {
+        poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
+        _ => anyhow::bail!("Menu interaction was not an application command?"),
+    };
+    let response = create_modal_command_ir::<MuteModal>(app_ctx, interaction, None).await?;
+    let duration = response
+        .duration
+        .parse::<humantime::Duration>()
+        .user_error("Invalid duration")?;
+    do_mute(ctx, member, duration, response.reason).await?;
+    Ok(())
+}
 
 /// Mute a user for a given amount of time.
 #[poise::command(
@@ -23,30 +55,40 @@ pub async fn mute(
     #[rest]
     reason: Option<String>,
 ) -> Res<()> {
+    do_mute(ctx, user, duration, reason).await?;
+    Ok(())
+}
+
+/// Run a mute from a command or context menu
+async fn do_mute(
+    ctx: Ctx<'_>,
+    member: Member,
+    duration: humantime::Duration,
+    reason: Option<String>,
+) -> Res<()> {
     let success_msg = ctx
-        .say_success_mod_action(format!("Muting {} for {}", user.mention(), duration))
+        .say_success_mod_action(format!("Muting {} for {}", member.mention(), duration))
         .await?
         .message()
         .await?;
 
-    do_mute(
+    apply_mute(
         ctx.discord(),
         ctx.guild().unwrap(),
         ctx.author().id,
-        user.clone(),
+        member.clone(),
         *duration,
         reason.clone(),
         Some(success_msg.link()),
     )
     .await?;
 
-    modlog::log_mute(&ctx, &success_msg, &user.user, duration, reason).await;
-
+    modlog::log_mute(&ctx, &success_msg, &member.user, duration, reason).await;
     Ok(())
 }
 
 /// mute the user and add the mute-entry to the database.
-pub async fn do_mute(
+pub async fn apply_mute(
     ctx: &client::Context,
     guild: Guild,
     moderator: UserId,

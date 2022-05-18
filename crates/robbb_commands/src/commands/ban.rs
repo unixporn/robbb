@@ -1,11 +1,34 @@
 use anyhow::Context;
 use chrono::{Duration, Utc};
 use poise::serenity_prelude::{Message, User};
-use robbb_util::embeds;
+use robbb_util::{embeds, modal::create_modal_command_ir};
 
 use crate::checks::{self, PermissionLevel};
 
 use super::*;
+
+#[derive(poise::Modal)]
+#[name = "Ban"]
+struct BanModal {
+    #[paragraph]
+    reason: String,
+}
+
+#[poise::command(
+    guild_only,
+    context_menu_command = "Ban",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
+)]
+pub async fn menu_ban(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
+    let ctx = Ctx::Application(app_ctx);
+    let interaction = match app_ctx.interaction {
+        poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
+        _ => anyhow::bail!("Menu interaction was not an application command?"),
+    };
+    let response = create_modal_command_ir::<BanModal>(app_ctx, interaction, None).await?;
+    do_ban(ctx, vec![user], response.reason, 0).await?;
+    Ok(())
+}
 
 /// Ban a user from the server.
 #[poise::command(
@@ -72,7 +95,10 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
     let permission_level = checks::get_permission_level(&ctx.discord(), ctx.author()).await?;
 
     let mut main_response = ctx
-        .say_success_mod_action("Banning...")
+        .say_success_mod_action(format!(
+            "Banning {}...",
+            users.iter().map(|x| x.tag()).join(", ")
+        ))
         .await?
         .message()
         .await?;

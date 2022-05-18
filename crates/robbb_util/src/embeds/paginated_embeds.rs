@@ -3,7 +3,7 @@ use crate::{extensions::PoiseContextExt, log_error, prelude::Ctx, util::ellipsis
 use anyhow::Result;
 use itertools::Itertools;
 use poise::serenity_prelude::{CreateActionRow, CreateComponents, UserId};
-use serenity::{builder::CreateEmbed, client, futures::StreamExt, model::channel::Message};
+use serenity::{builder::CreateEmbed, client, model::channel::Message};
 
 const PAGINATION_LEFT: &str = "LEFT";
 const PAGINATION_RIGHT: &str = "RIGHT";
@@ -101,14 +101,16 @@ async fn handle_pagination_interactions(
     mut created_msg: Message,
 ) -> Result<()> {
     let mut current_page_idx = 0;
-    let mut interaction_stream = created_msg
-        .await_component_interactions(&serenity_ctx)
-        .collect_limit(10)
-        .timeout(std::time::Duration::from_secs(30))
-        .author_id(user_id)
-        .build();
 
-    while let Some(interaction) = interaction_stream.next().await {
+    let mut interactions = crate::collect_interaction::await_component_interactions_by(
+        &serenity_ctx,
+        &created_msg,
+        user_id,
+        10,
+        std::time::Duration::from_secs(30),
+    );
+
+    while let Some(interaction) = interactions.next(serenity_ctx).await {
         let direction = interaction.data.clone().custom_id;
         if direction == PAGINATION_LEFT && current_page_idx > 0 {
             current_page_idx -= 1;

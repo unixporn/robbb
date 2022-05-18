@@ -1,9 +1,33 @@
 use chrono::Utc;
 use poise::serenity_prelude::User;
+use robbb_util::modal::create_modal_command_ir;
 
 use crate::modlog;
 
 use super::*;
+
+#[derive(poise::Modal)]
+#[name = "Warn"]
+struct WarnModal {
+    #[paragraph]
+    reason: String,
+}
+
+#[poise::command(
+    guild_only,
+    context_menu_command = "Warn",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
+)]
+pub async fn menu_warn(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
+    let ctx = Ctx::Application(app_ctx);
+    let interaction = match app_ctx.interaction {
+        poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
+        _ => anyhow::bail!("Menu interaction was not an application command?"),
+    };
+    let response = create_modal_command_ir::<WarnModal>(app_ctx, interaction, None).await?;
+    do_warn(ctx, user, response.reason).await?;
+    Ok(())
+}
 
 /// Warn a user
 #[poise::command(
@@ -21,9 +45,13 @@ pub async fn warn(
     #[rest]
     reason: String,
 ) -> Res<()> {
+    do_warn(ctx, user, reason).await?;
+    Ok(())
+}
+
+async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
     let db = ctx.get_db();
     let warn_count = db.count_warns(user.id).await?;
-
     let success_msg = ctx
         .say_success_mod_action(format!(
             "{} has been warned by {} for the {} time for reason: {}",

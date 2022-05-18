@@ -76,6 +76,11 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         purge::purge(),
         poise_commands::register(),
         poise_commands::delete(),
+        // context menu
+        info::menu_info(),
+        ban::menu_ban(),
+        warn::menu_warn(),
+        mute::menu_mute(),
     ];
     for command in all_commands.iter_mut() {
         preprocess_command(command);

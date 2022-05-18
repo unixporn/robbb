@@ -1,9 +1,9 @@
 use anyhow::Context;
 use chrono::Utc;
 use futures::StreamExt;
-use poise::serenity_prelude::{Attachment, CollectModalInteraction, InteractionResponseType};
-use poise::Modal;
+use poise::serenity_prelude::Attachment;
 use robbb_util::embeds;
+use robbb_util::modal::create_modal_component_ir;
 
 use super::*;
 use robbb_db::fetch::Fetch;
@@ -74,32 +74,9 @@ pub async fn set_fetch_set(app_ctx: AppCtx<'_>) -> Res<()> {
                 .map(|x| fetch_to_setfetch_string(x))
                 .unwrap_or_default(),
         };
-        interaction
-            .create_interaction_response(ctx.discord(), |ir| {
-                *ir = SetfetchModal::create(Some(modal_defaults));
-                ir
-            })
-            .await?;
-
-        app_ctx
-            .has_sent_initial_response
-            .store(true, std::sync::atomic::Ordering::SeqCst);
-
-        // Wait for user to submit
-        let response = CollectModalInteraction::new(&app_ctx.discord.shard)
-            .author_id(interaction.user.id)
-            .await
-            .unwrap();
-
-        // Send acknowledgement so that the pop-up is closed
-        response
-            .create_interaction_response(app_ctx.discord, |b| {
-                b.kind(InteractionResponseType::DeferredUpdateMessage)
-            })
-            .await?;
 
         let response =
-            SetfetchModal::parse(response.data.clone()).map_err(serenity::Error::Other)?;
+            create_modal_component_ir(app_ctx, &interaction, Some(modal_defaults)).await?;
 
         let success_embed = embeds::make_create_embed(&ctx.discord(), |e| {
             e.description("Updating your fetch data...")
