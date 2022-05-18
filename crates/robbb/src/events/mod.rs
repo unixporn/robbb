@@ -120,11 +120,29 @@ impl client::EventHandler for Handler {
         skip_all,
         fields(
             interaction_create.kind = ?interaction.kind(),
+            interaction_create.user,
         )
     )]
     async fn interaction_create(&self, ctx: client::Context, interaction: Interaction) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
+        let user = match &interaction {
+            Interaction::Ping(_) => None,
+            Interaction::ApplicationCommand(x) => Some(&x.user),
+            Interaction::MessageComponent(x) => Some(&x.user),
+            Interaction::Autocomplete(x) => Some(&x.user),
+            Interaction::ModalSubmit(x) => Some(&x.user),
+        };
+
+        tracing::debug!(
+            interaction_create.kind = ?interaction.kind(),
+            interaction_create.user = %user.map(|x| x.tag()).unwrap_or_default(),
+            "Got interaction_create event"
+        );
+        tracing::Span::current().record(
+            "interaction_create.user",
+            &user.map(|x| x.tag()).unwrap_or_default().as_str(),
+        );
 
         let stop_event_handler =
             match handle_blocklist::handle_blocklist_in_interaction(&ctx, &interaction).await {

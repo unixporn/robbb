@@ -121,6 +121,7 @@ pub async fn ask(
 
 /// Intercept an interaction and possibly handle it being a techsuport question button press.
 /// Returns Ok(true) if it _was_ a techsupport button press, and false otherwise
+#[tracing::instrument(skip_all)]
 pub async fn handle_ask_button_clicked(
     ctx: &client::Context,
     interaction: &poise::serenity_prelude::Interaction,

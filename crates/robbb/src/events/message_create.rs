@@ -128,7 +128,8 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         move || highlights_data.get_triggers_for_message(&msg_content)
     })
     .instrument(tracing::debug_span!("highlights-trigger-check"))
-    .await?;
+    .await
+    .context("Failed to get highlight triggers for a message")?;
 
     if highlight_matches.is_empty() {
         tracing::Span::current().record("highlights.notified_user_cnt", &0i32);
@@ -184,7 +185,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 // check if the user has already been notified of another word in this message
                 || handled_users.contains(&user_id)
                 // check if the user can read that channel
-                || !channel.permissions_for_user(&ctx, user_id)?.read_message_history()
+                || !channel.permissions_for_user(&ctx, user_id).context("Failed to get user permissions")?.read_message_history()
             {
                 continue;
             }
