@@ -153,6 +153,11 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
             }
             commands::UserErr::Other(issue) => {
                 let _ = ctx.say_error(format!("Error: {}", issue)).await;
+                tracing::info!(
+                    user_error.message=%issue,
+                    user_error.command_name = %ctx.command().qualified_name.as_str(),
+                    "User error"
+                );
             }
         },
         None => match err.downcast::<serenity::Error>() {
