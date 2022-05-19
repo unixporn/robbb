@@ -20,16 +20,19 @@ pub async fn check_channel_allows_commands(ctx: Ctx<'_>) -> Res<bool> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_is_moderator(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
     check_role(ctx.discord(), ctx.author(), config.role_mod).await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_is_helper(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
     check_role(ctx.discord(), ctx.author(), config.role_helper).await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_is_helper_or_mod(ctx: Ctx<'_>) -> Res<bool> {
     let permission_level = get_permission_level(ctx.discord(), ctx.author()).await?;
     match permission_level {
@@ -38,6 +41,7 @@ pub async fn check_is_helper_or_mod(ctx: Ctx<'_>) -> Res<bool> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn check_is_not_muted(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
 

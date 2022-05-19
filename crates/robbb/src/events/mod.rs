@@ -58,6 +58,7 @@ impl Handler {
     #[tracing::instrument(skip_all, fields(
         event.name = %event.name(),
         command_name,
+        custom_id,
         msg.content,
         msg.author,
         msg.id,
@@ -102,6 +103,7 @@ impl client::EventHandler for Handler {
     async fn message(&self, ctx: client::Context, msg: Message) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
+
         let stop_event_handler =
             match message_create::message_create(ctx.clone(), msg.clone()).await {
                 Ok(stop_event_handler) => stop_event_handler,
@@ -119,6 +121,8 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(
         skip_all,
         fields(
+            command_name,
+            interaction_create.custom_id,
             interaction_create.kind = ?interaction.kind(),
             interaction_create.user,
         )
@@ -133,6 +137,21 @@ impl client::EventHandler for Handler {
             Interaction::Autocomplete(x) => Some(&x.user),
             Interaction::ModalSubmit(x) => Some(&x.user),
         };
+
+        match &interaction {
+            Interaction::ApplicationCommand(x) => {
+                tracing::Span::current().record("command_name", &x.data.name.as_str());
+            }
+            Interaction::MessageComponent(x) => {
+                tracing::Span::current()
+                    .record("interaction_create.custom_id", &x.data.custom_id.as_str());
+            }
+            Interaction::ModalSubmit(x) => {
+                tracing::Span::current()
+                    .record("interaction_create.custom_id", &x.data.custom_id.as_str());
+            }
+            _ => (),
+        }
 
         tracing::debug!(
             interaction_create.kind = ?interaction.kind(),
@@ -231,7 +250,7 @@ impl client::EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all, fields(member.tag = %new_member.user.tag()))]
+    #[tracing::instrument(skip_all, fields(user = %new_member.user.tag()))]
     async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
