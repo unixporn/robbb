@@ -139,15 +139,15 @@ pub async fn note_list(
     Ok(())
 }
 
-struct NotesEntry {
-    note_type: NoteType,
-    description: String,
-    date: chrono::DateTime<Utc>,
-    moderator: UserId,
-    context: Option<String>,
+pub struct NotesEntry {
+    pub note_type: NoteType,
+    pub description: String,
+    pub date: chrono::DateTime<Utc>,
+    pub moderator: UserId,
+    pub context: Option<String>,
 }
 
-async fn fetch_note_values(
+pub async fn fetch_note_values(
     db: &Db,
     user_id: UserId,
     filter: Option<NoteType>,

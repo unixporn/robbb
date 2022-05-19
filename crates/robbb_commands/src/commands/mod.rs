@@ -63,6 +63,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         top::top(),
         move_users::move_users(),
         // Mod-only
+        info::modinfo(),
         tag::settag(),
         small::restart(),
         small::say(),

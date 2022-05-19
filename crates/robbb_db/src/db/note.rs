@@ -4,7 +4,7 @@ use serenity::model::id::UserId;
 
 use super::Db;
 
-#[derive(Debug, Eq, Copy, Clone, PartialEq)]
+#[derive(Debug, Eq, Copy, Clone, PartialEq, Hash)]
 pub enum NoteType {
     ManualNote,
     BlocklistViolation,

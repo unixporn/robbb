@@ -1,6 +1,8 @@
 use poise::serenity_prelude::{CreateEmbed, Mentionable, User};
 use robbb_util::embeds;
 
+use crate::{checks::check_is_moderator, commands};
+
 use super::*;
 
 /// Get general information about any member
@@ -11,7 +13,11 @@ use super::*;
 )]
 pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
     let member = ctx.guild().unwrap().member(ctx.discord(), &user).await?;
-    let embed = make_info_embed(ctx, member).await;
+    let embed = if check_is_moderator(ctx).await? {
+        make_mod_info_embed(ctx, member).await?
+    } else {
+        make_info_embed(ctx, member).await
+    };
     ctx.send_embed_full(true, |e| {
         *e = embed;
     })
@@ -28,8 +34,24 @@ pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
 )]
 pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;
-    let embed = make_info_embed(ctx, user).await;
+    let embed = make_info_embed(ctx, user.clone()).await;
     ctx.send_embed(|e| {
+        *e = embed;
+    })
+    .await?;
+    Ok(())
+}
+
+/// Get general information and some moderation specific data about any member
+#[poise::command(
+    slash_command,
+    guild_only,
+    prefix_command,
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
+)]
+pub async fn modinfo(ctx: Ctx<'_>, #[description = "User"] user: Member) -> Res<()> {
+    let embed = make_mod_info_embed(ctx, user).await?;
+    ctx.send_embed_full(true, |e| {
         *e = embed;
     })
     .await?;
@@ -64,4 +86,28 @@ async fn make_info_embed(ctx: Ctx<'_>, member: Member) -> CreateEmbed {
         e
     })
     .await
+}
+
+async fn make_mod_info_embed(ctx: Ctx<'_>, member: Member) -> Res<CreateEmbed> {
+    let db = ctx.get_db();
+    let notes = commands::note::fetch_note_values(&db, member.user.id, None).await?;
+    let note_counts = notes.iter().counts_by(|x| x.note_type);
+    let embed_content = note_counts
+        .iter()
+        .map(|(note_type, count)| {
+            let note_type = match note_type {
+                robbb_db::note::NoteType::ManualNote => "Manual notes",
+                robbb_db::note::NoteType::BlocklistViolation => "Blocklist violations",
+                robbb_db::note::NoteType::Warn => "Warnings",
+                robbb_db::note::NoteType::Mute => "Mutes",
+                robbb_db::note::NoteType::Ban => "Bans",
+                robbb_db::note::NoteType::Kick => "Kicks",
+            };
+            format!("**{}**: {}", note_type, count)
+        })
+        .join("\n");
+
+    let mut embed = make_info_embed(ctx, member.clone()).await;
+    embed.description(embed_content);
+    Ok(embed)
 }
