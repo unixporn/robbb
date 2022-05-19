@@ -50,7 +50,7 @@ pub async fn help(
 
 async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> Res<Message> {
     let handle = ctx
-        .send_embed(move |e| {
+        .send_embed_full(true, move |e| {
             e.title(format!("Help for {}", command.name));
             if let Some(desc) = command.multiline_help {
                 e.description(desc());
@@ -94,6 +94,6 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
         embeds::make_create_embed(ctx.discord(), |e| e.title("Help")).await,
     )
     .await
-    .reply_to(ctx)
+    .reply_to(ctx, true)
     .await
 }

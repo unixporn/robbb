@@ -48,16 +48,20 @@ impl PaginatedEmbed {
     }
 
     #[tracing::instrument(name = "send_paginated_embed", skip_all, fields(paginated_embed.page_cnt = %self.pages.len()))]
-    pub async fn reply_to(&self, ctx: Ctx<'_>) -> Result<Message> {
+    pub async fn reply_to(&self, ctx: Ctx<'_>, ephemeral: bool) -> Result<Message> {
         let pages = self.pages.clone();
         match pages.len() {
             0 => {
-                let handle = ctx.send_embed(|e| e.clone_from(&self.base_embed)).await?;
+                let handle = ctx
+                    .send_embed_full(ephemeral, |e| e.clone_from(&self.base_embed))
+                    .await?;
                 Ok(handle.message().await?)
             }
             1 => {
                 let page = self.pages.first().unwrap();
-                let handle = ctx.send_embed(|e| e.clone_from(page)).await?;
+                let handle = ctx
+                    .send_embed_full(ephemeral, |e| e.clone_from(page))
+                    .await?;
                 Ok(handle.message().await?)
             }
             _ => {
@@ -65,6 +69,7 @@ impl PaginatedEmbed {
                     .send(|m| {
                         m.embeds.push(self.pages.get(0).unwrap().clone());
                         m.components = Some(make_paginate_components(0, pages.len()));
+                        m.ephemeral(ephemeral);
                         m
                     })
                     .await?;
@@ -128,7 +133,10 @@ async fn handle_pagination_interactions(
             .await?;
     }
     created_msg
-        .edit(&serenity_ctx, |e| e.components(|c| c))
+        .edit(&serenity_ctx, |e| {
+            e.set_embed(pages.get(current_page_idx).unwrap().clone());
+            e.components(|c| c)
+        })
         .await?;
     Ok(())
 }

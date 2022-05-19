@@ -133,7 +133,7 @@ pub async fn note_list(
 
     embeds::PaginatedEmbed::create_from_fields(fields, base_embed)
         .await
-        .reply_to(ctx)
+        .reply_to(ctx, false)
         .await?;
 
     Ok(())

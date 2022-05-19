@@ -28,7 +28,7 @@ pub async fn set_fetch(_ctx: Ctx<'_>) -> Res<()> {
 /// Use our custom fetch script to fill in your entire fetch automatically!
 #[poise::command(slash_command, guild_only, rename = "script")]
 pub async fn set_fetch_script(ctx: Ctx<'_>) -> Res<()> {
-    ctx.send_embed(|e| {
+    ctx.send_embed_full(true, |e| {
         e.description(SETFETCH_USAGE);
     })
     .await?;

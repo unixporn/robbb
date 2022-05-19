@@ -36,7 +36,8 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
                         })
                     })
                 })
-            })
+            });
+            m.ephemeral(true)
         })
         .await?;
     let mut roles_msg = handle.message().await?;

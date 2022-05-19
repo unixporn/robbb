@@ -93,7 +93,9 @@ pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
     if let Some(meta) = command.custom_data.downcast_ref::<CmdMeta>() {
         command.check = match meta.perms {
             PermissionLevel::Mod => Some(|ctx| Box::pin(crate::checks::check_is_moderator(ctx))),
-            PermissionLevel::Helper => Some(|ctx| Box::pin(crate::checks::check_is_helper_or_mod(ctx))),
+            PermissionLevel::Helper => {
+                Some(|ctx| Box::pin(crate::checks::check_is_helper_or_mod(ctx)))
+            }
             PermissionLevel::User => None,
         };
         command.default_member_permissions = match meta.perms {

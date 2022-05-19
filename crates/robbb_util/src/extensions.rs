@@ -87,7 +87,7 @@ pub impl<'a> Ctx<'a> {
             "Sending success message to user"
         );
         let create_embed = embeds::make_success_embed(self.discord(), &text.to_string()).await;
-        self.send_embed(|e| {
+        self.send_embed_full(true, |e| {
             e.clone_from(&create_embed);
         })
         .await

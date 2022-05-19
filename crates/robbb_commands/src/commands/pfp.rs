@@ -38,7 +38,7 @@ pub async fn pfp(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> 
         embeds::make_create_embed(ctx.discord(), |e| e).await,
     )
     .await
-    .reply_to(ctx)
+    .reply_to(ctx, false)
     .await?;
     Ok(())
 }
