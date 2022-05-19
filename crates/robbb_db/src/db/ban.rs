@@ -15,6 +15,7 @@ pub struct Ban {
 }
 
 impl Db {
+    #[tracing::instrument(skip_all)]
     pub async fn add_ban(
         &self,
         moderator: UserId,
@@ -51,6 +52,7 @@ impl Db {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_bans(&self, user: UserId) -> Result<Vec<Ban>> {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;

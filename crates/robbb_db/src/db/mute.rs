@@ -18,6 +18,7 @@ pub struct Mute {
 
 impl Db {
     // I did not sign up for this @elkowar, you fix
+    #[tracing::instrument(skip_all)]
     #[allow(clippy::too_many_arguments)]
     pub async fn add_mute(
         &self,
@@ -62,6 +63,7 @@ impl Db {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_newly_expired_mutes(&self) -> Result<Vec<Mute>> {
         let mut conn = self.pool.acquire().await?;
         Ok(sqlx::query!(
@@ -84,6 +86,7 @@ impl Db {
         .collect())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_mutes(&self, user_id: UserId) -> Result<Vec<Mute>> {
         let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
@@ -104,6 +107,7 @@ impl Db {
             .collect())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_active_mute(&self, user_id: UserId) -> Result<Option<Mute>> {
         let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
@@ -124,6 +128,7 @@ impl Db {
         )
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn remove_active_mutes(&self, user_id: UserId) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
@@ -136,6 +141,7 @@ impl Db {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn set_mute_inactive(&self, id: i64) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!("update mute set active = false where id = ?", id)

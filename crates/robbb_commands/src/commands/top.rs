@@ -20,6 +20,8 @@ pub async fn top(
     #[description = "What do you care about?"] field: Option<FetchField>,
     #[description = "Regex pattern for values you want more details about"] pattern: Option<String>,
 ) -> Res<()> {
+    // defer, as get_all_fetches can apparently be quite slow
+    ctx.defer().await?;
     let db = ctx.get_db();
 
     let fetches = db.get_all_fetches().await?;

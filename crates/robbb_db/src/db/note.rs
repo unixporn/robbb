@@ -63,6 +63,7 @@ pub struct Note {
 }
 
 impl Db {
+    #[tracing::instrument(skip_all)]
     pub async fn add_note(
         &self,
         moderator: UserId,
@@ -102,6 +103,7 @@ impl Db {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn undo_latest_note(&self, user: UserId) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
@@ -112,6 +114,7 @@ impl Db {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_notes(&self, user_id: UserId, filter: Option<NoteType>) -> Result<Vec<Note>> {
         let mut conn = self.pool.acquire().await?;
         let user_id = user_id.0 as i64;

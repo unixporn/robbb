@@ -29,6 +29,7 @@ impl Fetch {
 }
 
 impl Db {
+    #[tracing::instrument(skip_all)]
     pub async fn set_fetch(
         &self,
         user: UserId,
@@ -57,6 +58,7 @@ impl Db {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_fetch(&self, user: UserId) -> Result<Option<Fetch>> {
         let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
@@ -77,6 +79,7 @@ impl Db {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn update_fetch(
         &self,
         user: UserId,

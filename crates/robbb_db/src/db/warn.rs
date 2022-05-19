@@ -61,6 +61,7 @@ impl Db {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_warns(&self, user: UserId) -> Result<Vec<Warn>> {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;

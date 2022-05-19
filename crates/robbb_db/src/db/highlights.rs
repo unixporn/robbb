@@ -100,6 +100,7 @@ impl HighlightsData {
 }
 
 impl Db {
+    #[tracing::instrument(skip_all)]
     pub async fn get_highlights(&self) -> Result<HighlightsData> {
         let mut cache = self.highlight_cache.write().await;
         if let Some(cache) = cache.as_ref() {
@@ -119,6 +120,7 @@ impl Db {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn remove_highlight(&self, user: UserId, trigger: String) -> Result<()> {
         {
             let mut conn = self.pool.acquire().await?;
@@ -166,6 +168,7 @@ impl Db {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn rm_highlights_of(&self, user: UserId) -> Result<()> {
         {
             let mut conn = self.pool.acquire().await?;
@@ -182,6 +185,7 @@ impl Db {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn remove_forbidden_highlights(&self) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         let word_list = BLOCKED_WORDS

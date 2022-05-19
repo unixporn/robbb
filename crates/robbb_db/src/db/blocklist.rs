@@ -17,6 +17,7 @@ impl Db {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_blocklist(&self) -> Result<Vec<String>> {
         let mut conn = self.pool.acquire().await?;
 

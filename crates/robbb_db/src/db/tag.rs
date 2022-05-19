@@ -14,6 +14,7 @@ pub struct Tag {
 }
 
 impl Db {
+    #[tracing::instrument(skip_all)]
     pub async fn set_tag(
         &self,
         moderator: UserId,
@@ -56,6 +57,7 @@ impl Db {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_tag(&self, name: &str) -> Result<Option<Tag>> {
         let mut conn = self.pool.acquire().await?;
         Ok(sqlx::query!(
@@ -77,6 +79,7 @@ impl Db {
         }}))
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn delete_tag(&self, name: String) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!(r#"delete from tag where name=? COLLATE NOCASE"#, name)
@@ -90,6 +93,7 @@ impl Db {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn list_tags(&self) -> Result<Vec<String>> {
         let tag_name_cache = self.tag_name_cache.read().await;
         if let Some(tag_names) = tag_name_cache.as_ref() {
