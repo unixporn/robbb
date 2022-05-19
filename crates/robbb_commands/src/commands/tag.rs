@@ -170,6 +170,8 @@ async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterat
         Err(_) => Vec::new(),
     };
 
+    let partial = partial.to_ascii_lowercase();
+
     tags.into_iter()
-        .filter(move |tag| tag.starts_with(&partial))
+        .filter(move |tag| tag.to_ascii_lowercase().starts_with(&partial))
 }
