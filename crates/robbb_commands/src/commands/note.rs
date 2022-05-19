@@ -139,7 +139,6 @@ pub async fn note_list(
     Ok(())
 }
 
-#[allow(dead_code)]
 struct NotesEntry {
     note_type: NoteType,
     description: String,
@@ -148,7 +147,6 @@ struct NotesEntry {
     context: Option<String>,
 }
 
-#[allow(unused)]
 async fn fetch_note_values(
     db: &Db,
     user_id: UserId,

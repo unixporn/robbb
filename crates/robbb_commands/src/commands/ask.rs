@@ -6,6 +6,7 @@ use poise::{
     Modal,
 };
 use serenity::client;
+use tracing_futures::Instrument;
 
 use super::*;
 
@@ -56,14 +57,12 @@ pub async fn ask(
     let webhook = match webhooks.into_iter().next() {
         Some(webhook) => webhook,
         None => {
+            let webhook_json = &serde_json::json!({"name": "Techsupport"});
             app_ctx
                 .discord
                 .http
-                .create_webhook(
-                    config.channel_tech_support.0,
-                    &serde_json::json!({"name": "Techsupport"}),
-                    None,
-                )
+                .create_webhook(config.channel_tech_support.0, webhook_json, None)
+                .instrument(tracing::info_span!("create techsupport webhook"))
                 .await?
         }
     };
@@ -74,6 +73,7 @@ pub async fn ask(
             w.avatar_url(ctx.author().face());
             w.content(format!("**{}**\n{}", title, details))
         })
+        .instrument(tracing::debug_span!("execute initial techsupport webhook"))
         .await?
         .context("No post?")?;
 
@@ -114,6 +114,9 @@ pub async fn ask(
                 })
             })
         })
+        .instrument(tracing::info_span!(
+            "Send techsupport ping and button message"
+        ))
         .await?;
 
     Ok(())
