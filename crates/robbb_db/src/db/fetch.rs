@@ -95,6 +95,7 @@ impl Db {
         self.set_fetch(user, fetch, Some(Utc::now())).await
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_all_fetches(&self) -> Result<Vec<Fetch>> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!("select * from fetch")

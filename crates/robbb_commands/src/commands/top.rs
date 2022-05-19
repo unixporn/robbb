@@ -41,6 +41,7 @@ pub async fn top(
     Ok(())
 }
 
+#[tracing::instrument(skip_all, fields(%field_name, %value_pattern))]
 async fn top_for_regex(
     ctx: Ctx<'_>,
     fetches: Vec<Fetch>,
@@ -82,6 +83,7 @@ async fn top_for_regex(
     Ok(())
 }
 
+#[tracing::instrument(skip_all, fields(%field_name))]
 async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField) -> Res<()> {
     let field_values = fetches
         .into_iter()
@@ -128,6 +130,7 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
     let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
