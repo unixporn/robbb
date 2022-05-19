@@ -125,7 +125,7 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
         msg.author = %ctx.author(),
         msg.id = %ctx.id(),
         msg.channel_id = %ctx.channel_id(),
-        "command '{}' invoked by '{}'",
+        "{} invoked by {}",
         ctx.command().name,
         ctx.author().tag()
     );

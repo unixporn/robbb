@@ -47,6 +47,7 @@ pub async fn ask(
             details: question.unwrap_or_default(),
         },
     )
+    .instrument(tracing::info_span!("wait for modal response"))
     .await?;
 
     let webhooks = app_ctx

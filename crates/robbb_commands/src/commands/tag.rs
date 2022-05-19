@@ -1,5 +1,6 @@
 use chrono::Utc;
 use poise::Modal;
+use tracing_futures::Instrument;
 
 use super::*;
 
@@ -132,6 +133,7 @@ pub async fn tag_set(
             content: default_content,
         },
     )
+    .instrument(tracing::info_span!("wait for modal response"))
     .await?;
 
     db.set_tag(
