@@ -180,6 +180,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
             highlights.users_count = %users.len(),
             "Notifying {} users about a mention of the word '{}'", users.len(), word
         );
+
         for user_id in users {
             if user_id == msg.author.id
                 // check if the user has already been notified of another word in this message
