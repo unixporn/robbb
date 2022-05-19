@@ -182,20 +182,29 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         );
 
         for user_id in users {
+            let user_can_see_channel = channel
+                .guild_id
+                .member(&ctx, msg.author.id)
+                .await?
+                .permissions(&ctx)?
+                .read_message_history();
+
             if user_id == msg.author.id
                 // check if the user has already been notified of another word in this message
                 || handled_users.contains(&user_id)
                 // check if the user can read that channel
-                || !channel.permissions_for_user(&ctx, user_id).context("Failed to get user permissions")?.read_message_history()
+                || !user_can_see_channel
             {
                 continue;
             }
             handled_users.insert(user_id);
 
             if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
-                let _ = dm_channel
-                    .send_message(&ctx, |m| m.set_embed(embed.clone()))
-                    .await;
+                let ctx = ctx.clone();
+                let embed = embed.clone();
+                tokio::spawn(async move {
+                    let _ = dm_channel.send_message(&ctx, |m| m.set_embed(embed)).await;
+                });
             }
         }
     }
