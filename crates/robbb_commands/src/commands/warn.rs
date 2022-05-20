@@ -73,7 +73,7 @@ async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
     )
     .await?;
 
-    modlog::log_warn(&ctx, &success_msg, user, warn_count, &reason).await;
+    modlog::log_warn(&ctx, &success_msg, user, warn_count + 1, &reason).await;
     Ok(())
 }
 
