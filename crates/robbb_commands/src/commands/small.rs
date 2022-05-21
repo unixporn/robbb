@@ -1,4 +1,5 @@
 use chrono::Utc;
+use robbb_db::fetch_field::FetchField;
 
 use super::*;
 
@@ -109,53 +110,16 @@ pub async fn invite(ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
-/// Get a users description
-#[poise::command(
-    guild_only,
-    slash_command,
-    subcommands("desc_set", "desc_get", "desc_clear"),
-    rename = "description"
-)]
-pub async fn desc(_ctx: Ctx<'_>) -> Res<()> {
-    Ok(())
-}
-
-/// Clear your description
-#[poise::command(prefix_command, guild_only, slash_command, rename = "clear")]
-pub async fn desc_clear(ctx: Ctx<'_>) -> Res<()> {
-    let db = ctx.get_db();
-    db.set_description(ctx.author().id, None).await?;
-    ctx.say_success("Successfully cleared your description!")
-        .await?;
-    Ok(())
-}
-
-/// Set your profiles description.
-#[poise::command(prefix_command, guild_only, slash_command, rename = "set")]
-pub async fn desc_set(
+/// Get a users description. Provide your own using /setfetch.
+#[poise::command(prefix_command, guild_only, slash_command)]
+pub async fn description(
     ctx: Ctx<'_>,
-    #[description = "Your profile description"] description: String,
+    #[description = "The user"] user: Option<Member>,
 ) -> Res<()> {
-    let db = ctx.get_db();
-    if description.len() < 200 {
-        db.set_description(ctx.author().id, Some(description))
-            .await?;
-        ctx.say_success("Successfully updated your description!")
-            .await?;
-    } else {
-        ctx.say_error("Description may not be longer than 200 characters")
-            .await?;
-    }
-    Ok(())
-}
-
-/// Get a users description
-#[poise::command(prefix_command, guild_only, slash_command, rename = "get")]
-pub async fn desc_get(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;
     let db = ctx.get_db();
-    let profile = db.get_profile(user.user.id).await?;
-    if let Some(desc) = profile.description {
+    let fetch = db.get_fetch(user.user.id).await?;
+    if let Some(desc) = fetch.and_then(|x| x.info.get(&FetchField::Description).cloned()) {
         ctx.send_embed(|e| {
             e.author_user(&user.user);
             e.title("Description");
@@ -168,55 +132,13 @@ pub async fn desc_get(ctx: Ctx<'_>, #[description = "The user"] user: Option<Mem
     }
     Ok(())
 }
-
-/// Link to your dotfiles
-#[poise::command(
-    guild_only,
-    slash_command,
-    subcommands("dotfiles_set", "dotfiles_get", "dotfiles_clear"),
-    rename = "dotfiles"
-)]
-pub async fn dotfiles(_ctx: Ctx<'_>) -> Res<()> {
-    Ok(())
-}
-
-/// Clear your dotfiles
-#[poise::command(prefix_command, guild_only, slash_command, rename = "clear")]
-pub async fn dotfiles_clear(ctx: Ctx<'_>) -> Res<()> {
-    let db = ctx.get_db();
-    db.set_dotfiles(ctx.author().id, None).await?;
-    ctx.say_success("Successfully cleared your dotfiles!")
-        .await?;
-    Ok(())
-}
-
-/// Provide a link to your dotfiles
-#[poise::command(prefix_command, guild_only, slash_command, rename = "set")]
-pub async fn dotfiles_set(
-    ctx: Ctx<'_>,
-    #[description = "Link to your dotfiles"] link: String,
-) -> Res<()> {
-    let db = ctx.get_db();
-    if util::validate_url(&link) {
-        db.set_dotfiles(ctx.author().id, Some(link)).await?;
-        ctx.say_success("Successfully updated the link to your dotfiles!")
-            .await?;
-    } else {
-        ctx.say_error("Dotfiles must be a valid link").await?;
-    }
-    Ok(())
-}
-
-/// Get a users dotfiles
-#[poise::command(prefix_command, guild_only, slash_command, rename = "get")]
-pub async fn dotfiles_get(
-    ctx: Ctx<'_>,
-    #[description = "The user"] user: Option<Member>,
-) -> Res<()> {
+/// Get a users dotfiles. Provide your own using /setfetch.
+#[poise::command(prefix_command, guild_only, slash_command)]
+pub async fn dotfiles(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;
     let db = ctx.get_db();
-    let profile = db.get_profile(user.user.id).await?;
-    if let Some(dots) = profile.dotfiles {
+    let fetch = db.get_fetch(user.user.id).await?;
+    if let Some(dots) = fetch.and_then(|x| x.info.get(&FetchField::Dotfiles).cloned()) {
         ctx.send_embed(|e| {
             e.author_user(&user.user);
             e.title("Dotfiles");
@@ -233,51 +155,13 @@ pub async fn dotfiles_get(
     Ok(())
 }
 
-/// Link to your git profile
-#[poise::command(
-    guild_only,
-    slash_command,
-    subcommands("git_set", "git_clear", "git_get"),
-    rename = "git"
-)]
-pub async fn git(_ctx: Ctx<'_>) -> Res<()> {
-    Ok(())
-}
-
-/// Clear your git profile
-#[poise::command(prefix_command, guild_only, slash_command, rename = "clear")]
-pub async fn git_clear(ctx: Ctx<'_>) -> Res<()> {
-    let db = ctx.get_db();
-    db.set_git(ctx.author().id, None).await?;
-    ctx.say_success("Successfully cleared your git profile!")
-        .await?;
-    Ok(())
-}
-
-/// Provide a link to your git profile
-#[poise::command(prefix_command, guild_only, slash_command, rename = "set")]
-pub async fn git_set(
-    ctx: Ctx<'_>,
-    #[description = "Link to your git profile"] link: String,
-) -> Res<()> {
-    let db = ctx.get_db();
-    if util::validate_url(&link) {
-        db.set_git(ctx.author().id, Some(link)).await?;
-        ctx.say_success("Successfully updated the link to your git profile!")
-            .await?;
-    } else {
-        ctx.say_error("Git profile must be a valid link").await?;
-    }
-    Ok(())
-}
-
-/// Get a users git profile
-#[poise::command(prefix_command, guild_only, slash_command, rename = "get")]
-pub async fn git_get(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>) -> Res<()> {
+/// Get a users git profile. Provide your own using /setfetch.
+#[poise::command(prefix_command, guild_only, slash_command)]
+pub async fn git(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;
     let db = ctx.get_db();
-    let profile = db.get_profile(user.user.id).await?;
-    if let Some(git) = profile.git {
+    let fetch = db.get_fetch(user.user.id).await?;
+    if let Some(git) = fetch.and_then(|x| x.info.get(&FetchField::Git).cloned()) {
         ctx.send_embed(|e| {
             e.author_user(&user.user);
             e.title("Git profile");

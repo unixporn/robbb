@@ -52,7 +52,6 @@ pub async fn fetch(
 
         // Handle fetching all fields
         None => {
-            let profile = db.get_profile(user.user.id).await?;
             ctx.send_embed(|e| {
                 e.author_user(&user.user);
                 e.color_opt(color);
@@ -73,15 +72,6 @@ pub async fn fetch(
                             e.field(key, val, true);
                         }
                     }
-                }
-                if let Some(git) = profile.git {
-                    e.field("git", git, true);
-                }
-                if let Some(desc) = profile.description {
-                    e.description(desc);
-                }
-                if let Some(dots) = profile.dotfiles {
-                    e.field("dotfiles", dots, true);
                 }
             })
             .await?;

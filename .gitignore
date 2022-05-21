@@ -3,6 +3,8 @@ target/
 flake.lock
 trup.db-*
 trup.db
+robbb.db
+robbb.db-*
 cache
 base.db-shm
 base.db-wal

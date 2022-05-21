@@ -1,5 +1,6 @@
 use chrono::Utc;
 use poise::serenity_prelude::User;
+use robbb_db::mod_action::{ModActionKind, ModActionType};
 use robbb_util::modal::create_modal_command_ir;
 
 use crate::modlog;
@@ -51,7 +52,7 @@ pub async fn warn(
 
 async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
     let db = ctx.get_db();
-    let warn_count = db.count_warns(user.id).await?;
+    let warn_count = db.count_mod_actions(user.id, ModActionType::Warn).await?;
     let success_msg = ctx
         .say_success_mod_action(format!(
             "{} has been warned by {} for the {} time for reason: {}",
@@ -64,12 +65,13 @@ async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
         .message()
         .await?;
 
-    db.add_warn(
+    db.add_mod_action(
         ctx.author().id,
         user.id,
         reason.to_string(),
         Utc::now(),
         Some(success_msg.link()),
+        ModActionKind::Warn,
     )
     .await?;
 
@@ -89,7 +91,8 @@ pub async fn undo_warn(
     #[description = "Who was wrongfully convicted?"] user: User,
 ) -> Res<()> {
     let db = ctx.get_db();
-    db.undo_latest_warn(user.id).await?;
+    db.undo_latest_mod_action(user.id, ModActionType::Warn)
+        .await?;
     ctx.say_success_mod_action("Successfully removed the warning!")
         .await?;
 

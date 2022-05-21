@@ -216,12 +216,13 @@ async fn handle_single_ban(
         .context("Ban failed")?;
 
     // Log the ban as a Note in the database
-    db.add_ban(
+    db.add_mod_action(
         ctx.author().id,
         user.id,
         reason.to_string(),
         Utc::now(),
         Some(ctx_message.link()),
+        robbb_db::mod_action::ModActionKind::Ban,
     )
     .await?;
 

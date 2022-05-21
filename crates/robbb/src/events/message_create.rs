@@ -417,7 +417,6 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         robbb_commands::commands::mute::apply_mute(
             &ctx,
-            guild,
             bot_id,
             member,
             duration,

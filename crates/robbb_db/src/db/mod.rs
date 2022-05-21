@@ -8,18 +8,14 @@ use serenity::prelude::RwLock;
 use serenity::prelude::TypeMapKey;
 use sqlx::SqlitePool;
 use std::collections::HashMap;
-pub mod ban;
 pub mod blocklist;
 pub mod emoji_logging;
 pub mod fetch;
 pub mod fetch_field;
 pub mod highlights;
-pub mod kick;
+pub mod mod_action;
 pub mod mute;
-pub mod note;
-pub mod profile;
 pub mod tag;
-pub mod warn;
 
 #[derive(Debug)]
 pub struct Db {

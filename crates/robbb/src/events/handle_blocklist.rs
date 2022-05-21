@@ -1,7 +1,7 @@
 use chrono::Utc;
 use poise::serenity_prelude::message_component::ActionRowComponent;
 use robbb_commands::checks::{self, PermissionLevel};
-use robbb_db::note::NoteType;
+use robbb_db::mod_action::ModActionKind;
 use tracing_futures::Instrument;
 
 use super::*;
@@ -52,13 +52,13 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
             let bot_id = ctx.cache.current_user_id();
             let note_content = format!("Message deleted because of word `{}`", word);
             let _ = db
-                .add_note(
+                .add_mod_action(
                     bot_id,
                     msg.author.id,
                     note_content,
                     Utc::now(),
-                    NoteType::BlocklistViolation,
                     Some(msg.link()),
+                    ModActionKind::BlocklistViolation,
                 )
                 .await;
         };
@@ -120,13 +120,13 @@ pub async fn handle_blocklist_in_interaction(
                     values.title, word
                 );
                 let _ = db
-                    .add_note(
+                    .add_mod_action(
                         bot_id,
                         values.user.id,
                         note_content,
                         Utc::now(),
-                        NoteType::BlocklistViolation,
                         None,
+                        ModActionKind::BlocklistViolation,
                     )
                     .await;
             };

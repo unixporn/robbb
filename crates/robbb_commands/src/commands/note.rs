@@ -1,6 +1,9 @@
 use chrono::Utc;
 use poise::serenity_prelude::{Mentionable, User, UserId};
-use robbb_db::{note::NoteType, Db};
+use robbb_db::{
+    mod_action::{ModAction, ModActionType},
+    Db,
+};
 use robbb_util::embeds;
 
 use crate::modlog;
@@ -37,13 +40,13 @@ pub async fn note_add(
 
     let success_msg = ctx.say_success("Noting...").await?.message().await.ok();
 
-    db.add_note(
+    db.add_mod_action(
         ctx.author().id,
         user.id,
         content.to_string(),
         Utc::now(),
-        NoteType::ManualNote,
         success_msg.map(|x| x.link()),
+        robbb_db::mod_action::ModActionKind::ManualNote,
     )
     .await?;
 
@@ -61,7 +64,8 @@ pub async fn note_add(
 )]
 pub async fn note_undo(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
     let db = ctx.get_db();
-    db.undo_latest_note(user.id).await?;
+    db.undo_latest_mod_action(user.id, ModActionType::ManualNote)
+        .await?;
     ctx.say_success("Successfully removed the note!").await?;
 
     Ok(())
@@ -94,12 +98,12 @@ pub async fn note_list(
     let db = ctx.get_db();
 
     let note_filter = match note_filter {
-        Some(NoteFilterParam::Mod) => Some(NoteType::ManualNote),
-        Some(NoteFilterParam::Blocklist) => Some(NoteType::BlocklistViolation),
-        Some(NoteFilterParam::Warn) => Some(NoteType::Warn),
-        Some(NoteFilterParam::Mute) => Some(NoteType::Mute),
-        Some(NoteFilterParam::Ban) => Some(NoteType::Ban),
-        Some(NoteFilterParam::Kick) => Some(NoteType::Kick),
+        Some(NoteFilterParam::Mod) => Some(ModActionType::ManualNote),
+        Some(NoteFilterParam::Blocklist) => Some(ModActionType::BlocklistViolation),
+        Some(NoteFilterParam::Warn) => Some(ModActionType::Warn),
+        Some(NoteFilterParam::Mute) => Some(ModActionType::Mute),
+        Some(NoteFilterParam::Ban) => Some(ModActionType::Ban),
+        Some(NoteFilterParam::Kick) => Some(ModActionType::Kick),
         _ => None,
     };
 
@@ -114,10 +118,14 @@ pub async fn note_list(
             .map(|link| format!(" - [(context)]({})", link))
             .unwrap_or_else(String::new);
         (
-            format!("{} - {} ", note.note_type, util::format_date_ago(note.date)),
+            format!(
+                "{} - {} ",
+                note.kind.to_action_type(),
+                util::format_date_ago(note.create_date.unwrap_or_else(|| Utc::now()))
+            ),
             format!(
                 "{} - {}{}",
-                note.description,
+                note.reason,
                 note.moderator.mention(),
                 context_link
             ),
@@ -140,7 +148,7 @@ pub async fn note_list(
 }
 
 pub struct NotesEntry {
-    pub note_type: NoteType,
+    pub note_type: ModActionType,
     pub description: String,
     pub date: chrono::DateTime<Utc>,
     pub moderator: UserId,
@@ -150,85 +158,9 @@ pub struct NotesEntry {
 pub async fn fetch_note_values(
     db: &Db,
     user_id: UserId,
-    filter: Option<NoteType>,
-) -> Res<Vec<NotesEntry>> {
-    let mut entries = Vec::new();
-
-    if filter.is_none()
-        || filter == Some(NoteType::ManualNote)
-        || filter == Some(NoteType::BlocklistViolation)
-    {
-        let notes = db
-            .get_notes(user_id, filter)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: x.note_type,
-                description: x.content,
-                moderator: x.moderator,
-                date: x.create_date,
-                context: x.context,
-            });
-        entries.extend(notes);
-    }
-    if filter.is_none() || filter == Some(NoteType::Mute) {
-        let mutes = db
-            .get_mutes(user_id)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: NoteType::Mute,
-                description: format!(
-                    "[{}] {}",
-                    humantime::Duration::from(
-                        (x.end_time - x.start_time).to_std().unwrap_or_default()
-                    ),
-                    x.reason
-                ),
-                date: x.start_time,
-                moderator: x.moderator,
-                context: x.context,
-            });
-        entries.extend(mutes);
-    }
-    if filter.is_none() || filter == Some(NoteType::Warn) {
-        let warns = db
-            .get_warns(user_id)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: NoteType::Warn,
-                description: x.reason,
-                date: x.create_date,
-                moderator: x.moderator,
-                context: x.context,
-            });
-        entries.extend(warns);
-    }
-    if filter.is_none() || filter == Some(NoteType::Ban) {
-        let bans = db.get_bans(user_id).await?.into_iter().map(|x| NotesEntry {
-            note_type: NoteType::Ban,
-            description: x.reason,
-            date: x.create_date,
-            moderator: x.moderator,
-            context: x.context,
-        });
-        entries.extend(bans);
-    }
-    if filter.is_none() || filter == Some(NoteType::Kick) {
-        let kicks = db
-            .get_kicks(user_id)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: NoteType::Kick,
-                description: x.reason,
-                date: x.create_date,
-                moderator: x.moderator,
-                context: x.context,
-            });
-        entries.extend(kicks);
-    }
-    entries.sort_by_key(|x| x.date);
+    filter: Option<ModActionType>,
+) -> Res<Vec<ModAction>> {
+    let mut entries = db.get_mod_actions(user_id, filter).await?;
+    entries.sort_by_key(|x| x.create_date);
     Ok(entries)
 }

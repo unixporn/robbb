@@ -1,6 +1,7 @@
 use anyhow::Context;
 use chrono::Utc;
 use poise::serenity_prelude::User;
+use robbb_db::mod_action::ModActionKind;
 use robbb_util::modal::create_modal_command_ir;
 use serenity::client;
 
@@ -74,7 +75,6 @@ async fn do_mute(
 
     apply_mute(
         ctx.discord(),
-        ctx.guild().unwrap(),
         ctx.author().id,
         member.clone(),
         *duration,
@@ -90,7 +90,6 @@ async fn do_mute(
 /// mute the user and add the mute-entry to the database.
 pub async fn apply_mute(
     ctx: &client::Context,
-    guild: Guild,
     moderator: UserId,
     mut member: Member,
     duration: std::time::Duration,
@@ -105,14 +104,17 @@ pub async fn apply_mute(
     // Ensure only one active mute per member
     db.remove_active_mutes(member.user.id).await?;
 
-    db.add_mute(
-        guild.id,
+    db.add_mod_action(
         moderator,
         member.user.id,
         reason.unwrap_or_else(|| "no reason".to_string()),
         start_time,
-        end_time,
         context,
+        ModActionKind::Mute {
+            start_time,
+            end_time,
+            active: true,
+        },
     )
     .await?;
 
