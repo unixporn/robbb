@@ -67,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    let gateway_intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
+    let gateway_intents = GatewayIntents::all();
 
     let config = Arc::new(config);
     let db = Arc::new(db);
