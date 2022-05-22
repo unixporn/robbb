@@ -110,8 +110,12 @@ pub async fn note_edit(
 
     db.edit_mod_action_reason(action.id, ctx.author().id, reason.to_string())
         .await?;
-    ctx.say_success_mod_action("Successfully edited the entry!")
-        .await?;
+    ctx.say_success_mod_action(format!(
+        "Successfully edited {}'s entry {}",
+        action.user.mention(),
+        action.id
+    ))
+    .await?;
     Ok(())
 }
 
