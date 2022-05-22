@@ -99,15 +99,16 @@ pub async fn note_edit(
         reason: String,
     }
 
-    let result = NoteEditModal::execute_with_defaults(
+    let NoteEditModal { reason } = NoteEditModal::execute_with_defaults(
         app_ctx,
         NoteEditModal {
             reason: action.reason,
         },
     )
     .await?;
+    let reason = reason.trim().trim_matches('\n');
 
-    db.edit_mod_action_reason(action.id, ctx.author().id, result.reason)
+    db.edit_mod_action_reason(action.id, ctx.author().id, reason.to_string())
         .await?;
     ctx.say_success_mod_action("Successfully edited the entry!")
         .await?;
@@ -155,7 +156,7 @@ pub async fn note_list(
     });
 
     let base_embed = embeds::make_create_embed(ctx.discord(), |e| {
-        e.description(format!("Notes about {}", user.mention()));
+        e.description(format!("{} notes about {}", notes.len(), user.mention()));
         e.author_user(&user)
     })
     .await;
