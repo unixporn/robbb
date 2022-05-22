@@ -1,129 +1,5 @@
 {
   "db": "SQLite",
-  "036e0ecc24cbee8131c2ff77a96ddc42e6435e7cc072fba9e168f0b217a56025": {
-    "query": "insert into kick (moderator, usr, reason, create_date, context) values(?, ?, ?, ?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 5
-      },
-      "nullable": []
-    }
-  },
-  "0442fa7e4127ab16e3f2320c8ea184c54d1d5f56efad059e8c2eb6e0fa77aa8f": {
-    "query": "select * from mute where usr=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "guildid",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 3,
-          "type_info": "Int64"
-        },
-        {
-          "name": "start_time",
-          "ordinal": 4,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "end_time",
-          "ordinal": 5,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "reason",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "active",
-          "ordinal": 7,
-          "type_info": "Bool"
-        },
-        {
-          "name": "context",
-          "ordinal": 8,
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true
-      ]
-    }
-  },
-  "0550da53d63dd07c09d2fdeb038b287594c20481abd78efedfa3660ee3f415d4": {
-    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\", context from kick where usr=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "reason!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "create_date!",
-          "ordinal": 4,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "context",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        true,
-        true
-      ]
-    }
-  },
   "0c88576dce38c07fa9d77263ab5e3e02b5fd72effb664ff96af236e7fe973374": {
     "query": "insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage + ?3)",
     "describe": {
@@ -132,6 +8,88 @@
         "Right": 4
       },
       "nullable": []
+    }
+  },
+  "0ce996dc3f45563f2bdb0d4726f2b43ccd87a52b8c69514df7897feb89c22fab": {
+    "query": "delete from mod_action where id=? AND usr=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "0fc74ffeaa8a6811f271b7905bfb0980929c0999657ba8d778d9f46f1da3613f": {
+    "query": "SELECT * from mute, mod_action\n             WHERE mute.mod_action = mod_action.id\n               AND cast(strftime('%s', end_time) as integer) < cast(strftime('%s', datetime('now')) as integer)\n               AND active",
+    "describe": {
+      "columns": [
+        {
+          "name": "mod_action",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "end_time",
+          "ordinal": 1,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "active",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "id",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "context",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "action_type",
+          "ordinal": 8,
+          "type_info": "Int64"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 9,
+          "type_info": "Datetime"
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true
+      ]
     }
   },
   "119359a3b3ee926414647c50404ecf27cf2a9ba7bf0b676f827735d1c24941fc": {
@@ -174,64 +132,6 @@
         false,
         false
       ]
-    }
-  },
-  "196adebd50fde26d42c48d454ace166c815e563100e2baa182eba218935485a5": {
-    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\", context from ban where usr=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "reason!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "create_date!",
-          "ordinal": 4,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "context",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        true,
-        true
-      ]
-    }
-  },
-  "21ddb04219c79de6bf88f4f5b6fbdc850b73a67fc3d7c5915912625929f76e99": {
-    "query": "delete from warn as w where usr=? and create_date=(select max(create_date) from warn where usr=w.usr)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
     }
   },
   "226b8494595a64c2f94760c4ce6b758da025ed0070b21f3f7ce8e1970c81ccb5": {
@@ -294,16 +194,6 @@
       ]
     }
   },
-  "2a873876b633d414c811cbc0b5352d17c2c948a753b4d3e655d0b3cca9c2dc41": {
-    "query": "insert into mute (guildid, moderator, usr, reason, start_time, end_time, active, context) values(?, ?, ?, ?, ?, ?, true, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 7
-      },
-      "nullable": []
-    }
-  },
   "2bdeb084c05e060d999359fc517d8d0adfee9fdebeeb9ffba3862a1f7544a318": {
     "query": "delete from highlights where usr=?",
     "describe": {
@@ -314,39 +204,59 @@
       "nullable": []
     }
   },
-  "33e5cf5d7b9b2a5d6c017ae6e1bf25d1c61017193abcc1269e5790983199479a": {
-    "query": "insert into profile (usr, git, dotfiles, description) values (?1, NULL, ?2, NULl)\n                on conflict(usr) do update set dotfiles=?2",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
-  "3e0646c911027ad95d299003c0c88fc8bc2c5b4b7d25551fb9624b6974f7d2cb": {
-    "query": "select * from profile where usr=?",
+  "3e7804d6f6ed7af4687e5d2bab626e3adf5f552cc2d31b4ef365211f565af0ae": {
+    "query": "select * from mute, mod_action where mute.mod_action = mod_action.id AND usr=? AND active=true",
     "describe": {
       "columns": [
         {
-          "name": "usr",
+          "name": "mod_action",
           "ordinal": 0,
           "type_info": "Int64"
         },
         {
-          "name": "git",
+          "name": "end_time",
           "ordinal": 1,
-          "type_info": "Text"
+          "type_info": "Datetime"
         },
         {
-          "name": "dotfiles",
+          "name": "active",
           "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "id",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason",
+          "ordinal": 6,
           "type_info": "Text"
         },
         {
-          "name": "description",
-          "ordinal": 3,
+          "name": "context",
+          "ordinal": 7,
           "type_info": "Text"
+        },
+        {
+          "name": "action_type",
+          "ordinal": 8,
+          "type_info": "Int64"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 9,
+          "type_info": "Datetime"
         }
       ],
       "parameters": {
@@ -354,9 +264,33 @@
       },
       "nullable": [
         false,
+        false,
+        false,
+        false,
+        false,
+        false,
         true,
         true,
+        false,
         true
+      ]
+    }
+  },
+  "3fed338b95b7ad020b41a1f0232b17971ba254dffc0cffdfbc36821de0bd258c": {
+    "query": "SELECT COUNT(*) FROM mod_action WHERE usr=? AND action_type=?",
+    "describe": {
+      "columns": [
+        {
+          "name": "COUNT(*)",
+          "ordinal": 0,
+          "type_info": "Int"
+        }
+      ],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": [
+        false
       ]
     }
   },
@@ -408,16 +342,6 @@
       ]
     }
   },
-  "5742bd846e5f0f927fefb88ee5e1dc76beb82f85d86067dd9500a03bf5c82a16": {
-    "query": "insert into ban (moderator, usr, reason, create_date, context) values(?, ?, ?, ?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 5
-      },
-      "nullable": []
-    }
-  },
   "5e7e1c0e6bc30fcaae882395e46cb1f3af61733077fe0525d0ff4e7096d0154a": {
     "query": "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?)\n                on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
     "describe": {
@@ -438,126 +362,24 @@
       "nullable": []
     }
   },
-  "618923be18d0dfd599b1ee4942561c7535ff8faf52749670db0c7d7cd52869cf": {
-    "query": "insert into warn (moderator, usr, reason, create_date, context) values(?, ?, ?, ?, ?)",
+  "6aa8181feb59cd5c6dc942060b18518ebe7f37a4d07bb4b0b5fde0c21b20fb6f": {
+    "query": "insert into mute (mod_action, end_time, active) VALUES(?, ?, ?)",
     "describe": {
       "columns": [],
       "parameters": {
-        "Right": 5
+        "Right": 3
       },
       "nullable": []
     }
   },
-  "65c4d052bc870845c896116e536dca622423fe384f2c59f4368f2e804b788701": {
-    "query": "insert into profile (usr, git, dotfiles, description) values (?1, ?2, NULL, NULL)\n                on conflict(usr) do update set git=?2",
+  "6cb3dd3a23c32b2cec7b7710a6f8dfef4ff841c7f770bbe794c6fa41f2a8cb82": {
+    "query": "update mute set active=false\n            from mute m\n            join mod_action on mod_action.id = m.mod_action\n            where mod_action.usr=? and m.active=true\n            ",
     "describe": {
       "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
-  "6783360f279251696fdfba274fddcb5b97082dcb86033e77820cb8c3243edeab": {
-    "query": "\n                SELECT * FROM note\n                WHERE usr=?1 AND (?2 IS NULL OR note_type=?2)\n                ORDER BY create_date DESC",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "content",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "note_type",
-          "ordinal": 4,
-          "type_info": "Int64"
-        },
-        {
-          "name": "create_date",
-          "ordinal": 5,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "context",
-          "ordinal": 6,
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true
-      ]
-    }
-  },
-  "6fa790784fbae2357b0a84047b813bb3e3d61b5c04ed5e70a384ed05746d7ecb": {
-    "query": "select id, moderator, usr, reason as \"reason!\", create_date as \"create_date!\", context from warn where usr=?",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "reason!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "create_date!",
-          "ordinal": 4,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "context",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
       "parameters": {
         "Right": 1
       },
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        true,
-        true
-      ]
+      "nullable": []
     }
   },
   "7193a2b848e2268d56a3dcb4b925014d951f30c1aec8f572230375a2ec9feb39": {
@@ -590,22 +412,168 @@
       ]
     }
   },
-  "81a21148a4d13b344dd0b6a8653b8d641d405c5917a22aac3908c38875c4363a": {
-    "query": "select count(*) from warn where usr=?",
+  "75e00fd0d6a8ed307d638822478a085b5821478cb444fb697e4f39fa653df054": {
+    "query": "select * from mute, mod_action where mute.mod_action = mod_action.id AND usr=?",
     "describe": {
       "columns": [
         {
-          "name": "count(*)",
+          "name": "mod_action",
           "ordinal": 0,
-          "type_info": "Int"
+          "type_info": "Int64"
+        },
+        {
+          "name": "end_time",
+          "ordinal": 1,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "active",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "id",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 4,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "context",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "action_type",
+          "ordinal": 8,
+          "type_info": "Int64"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 9,
+          "type_info": "Datetime"
         }
       ],
       "parameters": {
         "Right": 1
       },
       "nullable": [
-        false
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true
       ]
+    }
+  },
+  "804dbb98d3ebdca2703d372f1e58156748f56e98d77d132251d07b52f3e90551": {
+    "query": "update mod_action set reason=?, moderator=? where id=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
+    }
+  },
+  "828561d33a663c1decbe23d302815b6230b02102a3549c274281899ac21d5a0a": {
+    "query": "\n                SELECT * FROM mod_action\n                LEFT JOIN mute ON mod_action.id = mute.mod_action\n                WHERE id=?1\n            ",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "context",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "action_type",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 6,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "mod_action",
+          "ordinal": 7,
+          "type_info": "Int64"
+        },
+        {
+          "name": "end_time",
+          "ordinal": 8,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "active",
+          "ordinal": 9,
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "8b784af44fc9e1a8edd626c6e41096a80c91d6675ad5758ecc6f59cc944b9a25": {
+    "query": "insert into mod_action (moderator, usr, reason, create_date, context, action_type) values(?, ?, ?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 6
+      },
+      "nullable": []
     }
   },
   "8cf2ddb35e421b79c2211b6b3a9feeef833e44471e11f4582d5a23432ed4743f": {
@@ -680,26 +648,6 @@
       "nullable": []
     }
   },
-  "aceea99bc515eb29168f82d5985b6a29a6d5766b6ff3147df95c71572013dbf8": {
-    "query": "delete from note as n where usr=? and create_date=(select max(create_date) from note where usr=n.usr)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "b1ea1c6c33606aab4ac1ef8ff4edd0ef8e5c1a92ca14ff853fe489ccfc9cf77d": {
-    "query": "update mute set active=false where usr=? and active=true",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
   "bd17229e614eafc8ec51aedac87f07a77575f9ac1882a48eb680e4c4544a8167": {
     "query": "select *, in_text_usage + reaction_usage as \"usage!: i32\" FROM emoji_stats order by \"usage!: i32\" DESC limit ?",
     "describe": {
@@ -758,82 +706,6 @@
       "nullable": []
     }
   },
-  "c386b69aa794524cc9f561bff2ccc7eecbcf70db2259117b3b8ed77372c0eea6": {
-    "query": "update mute set active = false where id = ?",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": []
-    }
-  },
-  "c412e8d76a158cd7bdb428f8af4ec542202d376e393cc7588d9b06557ae9c796": {
-    "query": "select * from mute where usr=? and active=true",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "guildid",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 3,
-          "type_info": "Int64"
-        },
-        {
-          "name": "start_time",
-          "ordinal": 4,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "end_time",
-          "ordinal": 5,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "reason",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "active",
-          "ordinal": 7,
-          "type_info": "Bool"
-        },
-        {
-          "name": "context",
-          "ordinal": 8,
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Right": 1
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true
-      ]
-    }
-  },
   "dbe7847eb59535d213b80e8d322bd36203174963556e806b34a1e787d4814cbc": {
     "query": "insert into blocked_regexes(pattern, added_by) values (?, ?)",
     "describe": {
@@ -868,82 +740,6 @@
       ]
     }
   },
-  "e3321a960c1ad7e547a65eb897ae477fcc8914a82549c9f8911cc5d2a7538347": {
-    "query": "insert into note (moderator, usr, content, create_date, note_type, context) values(?, ?, ?, ?, ?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 6
-      },
-      "nullable": []
-    }
-  },
-  "e4c175b9833610b928fa0b19616aeed28c5dd0d0d95b149264b97264a29055eb": {
-    "query": "select * from mute \n            where cast(strftime('%s', end_time) as integer) < cast(strftime('%s', datetime('now')) as integer)\n              and active",
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        },
-        {
-          "name": "guildid",
-          "ordinal": 1,
-          "type_info": "Int64"
-        },
-        {
-          "name": "moderator",
-          "ordinal": 2,
-          "type_info": "Int64"
-        },
-        {
-          "name": "usr",
-          "ordinal": 3,
-          "type_info": "Int64"
-        },
-        {
-          "name": "start_time",
-          "ordinal": 4,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "end_time",
-          "ordinal": 5,
-          "type_info": "Datetime"
-        },
-        {
-          "name": "reason",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "active",
-          "ordinal": 7,
-          "type_info": "Bool"
-        },
-        {
-          "name": "context",
-          "ordinal": 8,
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Right": 0
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true
-      ]
-    }
-  },
   "eb70d1603c247c330ce591420fc391180193dc5d6eaf42de6c0928a38dc6ec6d": {
     "query": "select * from fetch where usr=?",
     "describe": {
@@ -974,12 +770,108 @@
       ]
     }
   },
-  "f4b8e4fe777d4895dcf411cebb388f38960efe6860bea5bd6110ee487472c796": {
-    "query": "insert into profile (usr, git, dotfiles, description) values (?1, NULL, NULL, ?2)\n                on conflict(usr) do update set description=?2",
+  "eb9ebcf83026a19e6038024031823ee1c7bb5ed452543dbe510b8ce4d285a630": {
+    "query": "SELECT action_type, COUNT(*) as \"count!: i32\" FROM mod_action WHERE usr=? GROUP BY action_type",
+    "describe": {
+      "columns": [
+        {
+          "name": "action_type",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "count!: i32",
+          "ordinal": 1,
+          "type_info": "Null"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        null
+      ]
+    }
+  },
+  "f814c7bc275e84e03fd1ddc5d3a42d06c9b726426f968715d60d138af5471558": {
+    "query": "\n                SELECT * FROM mod_action\n                LEFT JOIN mute ON mod_action.id = mute.mod_action\n                WHERE usr=?1 AND (?2 IS NULL OR action_type=?2)\n            ",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "moderator",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "usr",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "reason",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "context",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "action_type",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "create_date",
+          "ordinal": 6,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "mod_action",
+          "ordinal": 7,
+          "type_info": "Int64"
+        },
+        {
+          "name": "end_time",
+          "ordinal": 8,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "active",
+          "ordinal": 9,
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "fc050199c34fcc2b659e3aac42252c661a3ca10c7d64fdb2c7b5195c7dc25451": {
+    "query": "update mute set active = false where mod_action = ?",
     "describe": {
       "columns": [],
       "parameters": {
-        "Right": 2
+        "Right": 1
       },
       "nullable": []
     }
