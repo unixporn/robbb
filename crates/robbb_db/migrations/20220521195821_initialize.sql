@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS mute (
     mod_action integer not null unique,
     end_time datetime not null,
     active boolean not null,
-    FOREIGN KEY(mod_action) REFERENCES mod_action(id)
+    FOREIGN KEY(mod_action) REFERENCES mod_action(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS fetch (

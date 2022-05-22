@@ -90,8 +90,9 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
     });
 
     embeds::PaginatedEmbed::create_from_fields(
+        "Help".to_string(),
         fields,
-        embeds::make_create_embed(ctx.discord(), |e| e.title("Help")).await,
+        embeds::make_create_embed(ctx.discord(), |e| e).await,
     )
     .await
     .reply_to(ctx, true)

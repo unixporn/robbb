@@ -107,7 +107,8 @@ pub async fn note_edit(
     )
     .await?;
 
-    db.edit_mod_action_reason(action.id, result.reason).await?;
+    db.edit_mod_action_reason(action.id, ctx.author().id, result.reason)
+        .await?;
     ctx.say_success_mod_action("Successfully edited the entry!")
         .await?;
     Ok(())
@@ -129,7 +130,7 @@ pub async fn note_list(
     let db = ctx.get_db();
 
     let mut notes = db.get_mod_actions(user.id, note_filter).await?;
-    notes.sort_by_key(|x| x.create_date);
+    notes.sort_by_key(|x| std::cmp::Reverse(x.create_date));
 
     let fields = notes.iter().map(|note| {
         let context_link = note
@@ -154,13 +155,12 @@ pub async fn note_list(
     });
 
     let base_embed = embeds::make_create_embed(ctx.discord(), |e| {
-        e.title("Notes");
         e.description(format!("Notes about {}", user.mention()));
         e.author_user(&user)
     })
     .await;
 
-    embeds::PaginatedEmbed::create_from_fields(fields, base_embed)
+    embeds::PaginatedEmbed::create_from_fields("Notes".to_string(), fields, base_embed)
         .await
         .reply_to(ctx, false)
         .await?;

@@ -195,7 +195,7 @@ impl Db {
 
         let note_type_value = filter.map(|x| x.as_i32());
 
-        let mut actions = sqlx::query_as!(
+        let mut actions: Vec<ModAction> = sqlx::query_as!(
             DbModActionFields,
             r#"
                 SELECT * FROM mod_action
@@ -210,7 +210,7 @@ impl Db {
         .into_iter()
         .map(|x| x.to_mod_action())
         .collect::<Result<Vec<_>>>()?;
-        actions.sort_by_key(|x| x.create_date);
+        actions.sort_by_key(|x| std::cmp::Reverse(x.create_date));
         Ok(actions)
     }
 
@@ -267,11 +267,22 @@ impl Db {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn edit_mod_action_reason(&self, id: i64, new_reason: String) -> Result<bool> {
+    pub async fn edit_mod_action_reason(
+        &self,
+        id: i64,
+        moderator: UserId,
+        new_reason: String,
+    ) -> Result<bool> {
         let mut conn = self.pool.acquire().await?;
-        let result = sqlx::query!("update mod_action set reason=? where id=?", new_reason, id,)
-            .execute(&mut conn)
-            .await?;
+        let moderator = moderator.0 as i64;
+        let result = sqlx::query!(
+            "update mod_action set reason=?, moderator=? where id=?",
+            new_reason,
+            moderator,
+            id,
+        )
+        .execute(&mut conn)
+        .await?;
         Ok(result.rows_affected() > 0)
     }
 }

@@ -7,7 +7,7 @@ use serenity::{builder::CreateEmbed, client, model::channel::Message};
 
 const PAGINATION_LEFT: &str = "LEFT";
 const PAGINATION_RIGHT: &str = "RIGHT";
-const MAX_EMBED_FIELDS: usize = 25;
+const MAX_EMBED_FIELDS: usize = 12; // discords max is 25, but that's ugly
 
 #[derive(Debug)]
 pub struct PaginatedEmbed {
@@ -27,14 +27,23 @@ impl PaginatedEmbed {
     }
 
     pub async fn create_from_fields(
+        title: String,
         fields: impl IntoIterator<Item = (String, String)>,
         base_embed: CreateEmbed,
     ) -> PaginatedEmbed {
         let pages = fields.into_iter().chunks(MAX_EMBED_FIELDS);
+        let pages: Vec<_> = pages.into_iter().collect();
+        let page_cnt = pages.len();
         let pages = pages
             .into_iter()
-            .map(|fields| {
+            .enumerate()
+            .map(|(page_idx, fields)| {
                 let mut e = base_embed.clone();
+                if page_cnt < 2 {
+                    e.title(&title);
+                } else {
+                    e.title(format!("{} ({}/{})", title, page_idx + 1, page_cnt));
+                }
                 e.fields(
                     fields
                         .map(|(k, v)| (k, ellipsis_text(&v, 500), false))
