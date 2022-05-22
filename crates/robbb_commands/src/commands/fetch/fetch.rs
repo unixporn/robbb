@@ -13,6 +13,7 @@ pub async fn fetch(
 ) -> Res<()> {
     let db = ctx.get_db();
     let user = member_or_self(ctx, user).await?;
+    ctx.defer().await?;
 
     // Query the database
     let fetch_info: Fetch = db.get_fetch(user.user.id).await?.unwrap_or_else(|| Fetch {

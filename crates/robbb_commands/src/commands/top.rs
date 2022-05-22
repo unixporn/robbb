@@ -8,6 +8,13 @@ use robbb_db::{
 use super::{fetch::format_fetch_field_value, *};
 use std::collections::HashMap;
 
+static EXCLUDED_FETCH_FIELDS: &[FetchField] = &[
+    FetchField::Dotfiles,
+    FetchField::Description,
+    FetchField::Git,
+    FetchField::Image,
+];
+
 /// Get statistics about what the community uses.
 #[poise::command(
     slash_command,
@@ -136,7 +143,10 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
 async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
     let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
-        for field_name in FETCH_KEY_ORDER.iter().filter(|&x| x != &FetchField::Image) {
+        for field_name in FETCH_KEY_ORDER
+            .iter()
+            .filter(|&x| !EXCLUDED_FETCH_FIELDS.contains(x))
+        {
             let data_value = data.entry(field_name.clone()).or_insert_with(Vec::new);
             if let Some(field) = fetch.info.get(field_name) {
                 data_value.push(field.clone());
