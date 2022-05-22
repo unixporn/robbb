@@ -13,6 +13,7 @@ pub async fn fetch(
 ) -> Res<()> {
     let db = ctx.get_db();
     let user = member_or_self(ctx, user).await?;
+    ctx.defer().await?;
 
     // Query the database
     let fetch_info: Fetch = db.get_fetch(user.user.id).await?.unwrap_or_else(|| Fetch {
@@ -52,7 +53,6 @@ pub async fn fetch(
 
         // Handle fetching all fields
         None => {
-            let profile = db.get_profile(user.user.id).await?;
             ctx.send_embed(|e| {
                 e.author_user(&user.user);
                 e.color_opt(color);
@@ -73,15 +73,6 @@ pub async fn fetch(
                             e.field(key, val, true);
                         }
                     }
-                }
-                if let Some(git) = profile.git {
-                    e.field("git", git, true);
-                }
-                if let Some(desc) = profile.description {
-                    e.description(desc);
-                }
-                if let Some(dots) = profile.dotfiles {
-                    e.field("dotfiles", dots, true);
                 }
             })
             .await?;

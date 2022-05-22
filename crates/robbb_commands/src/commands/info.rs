@@ -1,7 +1,8 @@
 use poise::serenity_prelude::{CreateEmbed, Mentionable, User};
+use robbb_db::mod_action::ModActionType;
 use robbb_util::embeds;
 
-use crate::{checks::check_is_moderator, commands};
+use crate::checks::check_is_moderator;
 
 use super::*;
 
@@ -90,18 +91,17 @@ async fn make_info_embed(ctx: Ctx<'_>, member: Member) -> CreateEmbed {
 
 async fn make_mod_info_embed(ctx: Ctx<'_>, member: Member) -> Res<CreateEmbed> {
     let db = ctx.get_db();
-    let notes = commands::note::fetch_note_values(&db, member.user.id, None).await?;
-    let note_counts = notes.iter().counts_by(|x| x.note_type);
+    let note_counts = db.count_all_mod_actions(member.user.id).await?;
     let embed_content = note_counts
         .iter()
         .map(|(note_type, count)| {
             let note_type = match note_type {
-                robbb_db::note::NoteType::ManualNote => "Manual notes",
-                robbb_db::note::NoteType::BlocklistViolation => "Blocklist violations",
-                robbb_db::note::NoteType::Warn => "Warnings",
-                robbb_db::note::NoteType::Mute => "Mutes",
-                robbb_db::note::NoteType::Ban => "Bans",
-                robbb_db::note::NoteType::Kick => "Kicks",
+                ModActionType::ManualNote => "Manual notes",
+                ModActionType::BlocklistViolation => "Blocklist violations",
+                ModActionType::Warn => "Warnings",
+                ModActionType::Mute => "Mutes",
+                ModActionType::Ban => "Bans",
+                ModActionType::Kick => "Kicks",
             };
             format!("**{}**: {}", note_type, count)
         })

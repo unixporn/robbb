@@ -4,7 +4,7 @@ use chrono::Utc;
 use itertools::Itertools;
 use maplit::hashmap;
 use regex::Regex;
-use robbb_commands::modlog;
+use robbb_commands::{commands, modlog};
 use robbb_db::fetch_field::FetchField;
 use tracing::debug;
 use tracing_futures::Instrument;
@@ -413,16 +413,13 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
         let duration = std::time::Duration::from_secs(60 * 30);
 
-        let context = Some(msg.link());
-
-        robbb_commands::commands::mute::apply_mute(
+        commands::mute::apply_mute(
             &ctx,
-            guild,
             bot_id,
             member,
             duration,
-            Some("spam".to_string()),
-            context,
+            Some(format!("[AUTO] spamming \"{}\"", msg.content)),
+            msg.link(),
         )
         .await?;
         modlog::log_mute_for_spamming(ctx, msg, duration).await;

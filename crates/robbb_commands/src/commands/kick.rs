@@ -36,12 +36,13 @@ pub async fn kick(
         .message()
         .await?;
 
-    db.add_kick(
+    db.add_mod_action(
         ctx.author().id,
         user.id,
         reason.to_string(),
         Utc::now(),
-        Some(success_msg.link()),
+        success_msg.link(),
+        robbb_db::mod_action::ModActionKind::Kick,
     )
     .await?;
 

@@ -26,11 +26,14 @@ pub enum FetchField {
     CPU,
     GPU,
     Memory,
+    Description,
+    Git,
+    Dotfiles,
     #[serde(rename = "image")]
     Image,
 }
 
-pub static FETCH_KEY_ORDER: [FetchField; 15] = [
+pub static FETCH_KEY_ORDER: &[FetchField] = &[
     FetchField::Distro,
     FetchField::Kernel,
     FetchField::Terminal,
@@ -45,6 +48,9 @@ pub static FETCH_KEY_ORDER: [FetchField; 15] = [
     FetchField::CPU,
     FetchField::GPU,
     FetchField::Memory,
+    FetchField::Description,
+    FetchField::Git,
+    FetchField::Dotfiles,
     FetchField::Image,
 ];
 
@@ -83,6 +89,9 @@ impl std::str::FromStr for FetchField {
             "cpu" => Ok(Self::CPU),
             "gpu" => Ok(Self::GPU),
             "memory" => Ok(Self::Memory),
+            "description" => Ok(Self::Description),
+            "git" => Ok(Self::Git),
+            "dotfiles" => Ok(Self::Dotfiles),
             "image" => Ok(Self::Image),
             _ => Err(FetchFieldParseError),
         }

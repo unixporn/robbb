@@ -1,6 +1,9 @@
 use chrono::Utc;
-use poise::serenity_prelude::{Mentionable, User, UserId};
-use robbb_db::{note::NoteType, Db};
+use poise::{
+    serenity_prelude::{Mentionable, User},
+    Modal,
+};
+use robbb_db::mod_action::ModActionType;
 use robbb_util::embeds;
 
 use crate::modlog;
@@ -12,7 +15,7 @@ use super::*;
     slash_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
-    subcommands("note_add", "note_undo", "note_list")
+    subcommands("note_add", "note_list", "note_delete", "note_edit")
 )]
 pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
@@ -35,15 +38,15 @@ pub async fn note_add(
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let success_msg = ctx.say_success("Noting...").await?.message().await.ok();
+    let success_msg = ctx.say_success("Noting...").await?.message().await?;
 
-    db.add_note(
+    db.add_mod_action(
         ctx.author().id,
         user.id,
         content.to_string(),
         Utc::now(),
-        NoteType::ManualNote,
-        success_msg.map(|x| x.link()),
+        success_msg.link(),
+        robbb_db::mod_action::ModActionKind::ManualNote,
     )
     .await?;
 
@@ -51,31 +54,69 @@ pub async fn note_add(
     Ok(())
 }
 
-/// Undo the most recent note of a user
+/// Remove a specific mod action
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
-    rename = "undo"
+    rename = "delete"
 )]
-pub async fn note_undo(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
+pub async fn note_delete(
+    ctx: Ctx<'_>,
+    #[description = "The user"] user: User,
+    #[description = "Id of the mod action"] id: i64,
+) -> Res<()> {
     let db = ctx.get_db();
-    db.undo_latest_note(user.id).await?;
-    ctx.say_success("Successfully removed the note!").await?;
-
+    let succeeded = db.remove_mod_action(user.id, id).await?;
+    if succeeded {
+        ctx.say_success_mod_action("Successfully removed the entry!")
+            .await?;
+    } else {
+        ctx.say_error("No action with that id and user").await?;
+    }
     Ok(())
 }
 
-#[derive(Debug, poise::ChoiceParameter)]
-pub enum NoteFilterParam {
-    Mod,
-    Blocklist,
-    Warn,
-    Mute,
-    Ban,
-    Kick,
-    All,
+/// Edit a mod action
+#[poise::command(
+    slash_command,
+    guild_only,
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    rename = "edit"
+)]
+pub async fn note_edit(
+    app_ctx: AppCtx<'_>,
+    #[description = "Id of the mod action"] id: i64,
+) -> Res<()> {
+    let ctx = Ctx::Application(app_ctx);
+    let db = ctx.get_db();
+    let action = db.get_mod_action(id).await?;
+
+    #[derive(Modal)]
+    #[name = "Edit"]
+    struct NoteEditModal {
+        #[paragraph]
+        reason: String,
+    }
+
+    let NoteEditModal { reason } = NoteEditModal::execute_with_defaults(
+        app_ctx,
+        NoteEditModal {
+            reason: action.reason,
+        },
+    )
+    .await?;
+    let reason = reason.trim().trim_matches('\n');
+
+    db.edit_mod_action_reason(action.id, ctx.author().id, reason.to_string())
+        .await?;
+    ctx.say_success_mod_action(format!(
+        "Successfully edited {}'s entry {}",
+        action.user.mention(),
+        action.id
+    ))
+    .await?;
+    Ok(())
 }
 
 /// Read notes about a user.
@@ -89,23 +130,12 @@ pub enum NoteFilterParam {
 pub async fn note_list(
     ctx: Ctx<'_>,
     #[description = "User"] user: User,
-    #[description = "What kind of notes to show"] note_filter: Option<NoteFilterParam>,
+    #[description = "What kind of notes to show"] note_filter: Option<ModActionType>,
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let note_filter = match note_filter {
-        Some(NoteFilterParam::Mod) => Some(NoteType::ManualNote),
-        Some(NoteFilterParam::Blocklist) => Some(NoteType::BlocklistViolation),
-        Some(NoteFilterParam::Warn) => Some(NoteType::Warn),
-        Some(NoteFilterParam::Mute) => Some(NoteType::Mute),
-        Some(NoteFilterParam::Ban) => Some(NoteType::Ban),
-        Some(NoteFilterParam::Kick) => Some(NoteType::Kick),
-        _ => None,
-    };
-
-    let avatar_url = user.face();
-
-    let notes = fetch_note_values(&db, user.id, note_filter).await?;
+    let mut notes = db.get_mod_actions(user.id, note_filter).await?;
+    notes.sort_by_key(|x| std::cmp::Reverse(x.create_date));
 
     let fields = notes.iter().map(|note| {
         let context_link = note
@@ -114,10 +144,15 @@ pub async fn note_list(
             .map(|link| format!(" - [(context)]({})", link))
             .unwrap_or_else(String::new);
         (
-            format!("{} - {} ", note.note_type, util::format_date_ago(note.date)),
+            format!(
+                "[{}] {} - {} ",
+                note.id,
+                note.kind.to_action_type(),
+                util::format_date_ago(note.create_date.unwrap_or_else(|| Utc::now()))
+            ),
             format!(
                 "{} - {}{}",
-                note.description,
+                note.reason,
                 note.moderator.mention(),
                 context_link
             ),
@@ -125,110 +160,15 @@ pub async fn note_list(
     });
 
     let base_embed = embeds::make_create_embed(ctx.discord(), |e| {
-        e.title("Notes")
-            .description(format!("Notes about {}", user.mention()))
-            .author(|a| a.icon_url(avatar_url))
+        e.description(format!("{} notes about {}", notes.len(), user.mention()));
+        e.author_user(&user)
     })
     .await;
 
-    embeds::PaginatedEmbed::create_from_fields(fields, base_embed)
+    embeds::PaginatedEmbed::create_from_fields("Notes".to_string(), fields, base_embed)
         .await
         .reply_to(ctx, false)
         .await?;
 
     Ok(())
-}
-
-pub struct NotesEntry {
-    pub note_type: NoteType,
-    pub description: String,
-    pub date: chrono::DateTime<Utc>,
-    pub moderator: UserId,
-    pub context: Option<String>,
-}
-
-pub async fn fetch_note_values(
-    db: &Db,
-    user_id: UserId,
-    filter: Option<NoteType>,
-) -> Res<Vec<NotesEntry>> {
-    let mut entries = Vec::new();
-
-    if filter.is_none()
-        || filter == Some(NoteType::ManualNote)
-        || filter == Some(NoteType::BlocklistViolation)
-    {
-        let notes = db
-            .get_notes(user_id, filter)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: x.note_type,
-                description: x.content,
-                moderator: x.moderator,
-                date: x.create_date,
-                context: x.context,
-            });
-        entries.extend(notes);
-    }
-    if filter.is_none() || filter == Some(NoteType::Mute) {
-        let mutes = db
-            .get_mutes(user_id)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: NoteType::Mute,
-                description: format!(
-                    "[{}] {}",
-                    humantime::Duration::from(
-                        (x.end_time - x.start_time).to_std().unwrap_or_default()
-                    ),
-                    x.reason
-                ),
-                date: x.start_time,
-                moderator: x.moderator,
-                context: x.context,
-            });
-        entries.extend(mutes);
-    }
-    if filter.is_none() || filter == Some(NoteType::Warn) {
-        let warns = db
-            .get_warns(user_id)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: NoteType::Warn,
-                description: x.reason,
-                date: x.create_date,
-                moderator: x.moderator,
-                context: x.context,
-            });
-        entries.extend(warns);
-    }
-    if filter.is_none() || filter == Some(NoteType::Ban) {
-        let bans = db.get_bans(user_id).await?.into_iter().map(|x| NotesEntry {
-            note_type: NoteType::Ban,
-            description: x.reason,
-            date: x.create_date,
-            moderator: x.moderator,
-            context: x.context,
-        });
-        entries.extend(bans);
-    }
-    if filter.is_none() || filter == Some(NoteType::Kick) {
-        let kicks = db
-            .get_kicks(user_id)
-            .await?
-            .into_iter()
-            .map(|x| NotesEntry {
-                note_type: NoteType::Kick,
-                description: x.reason,
-                date: x.create_date,
-                moderator: x.moderator,
-                context: x.context,
-            });
-        entries.extend(kicks);
-    }
-    entries.sort_by_key(|x| x.date);
-    Ok(entries)
 }

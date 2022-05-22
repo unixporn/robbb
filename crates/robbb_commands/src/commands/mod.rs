@@ -55,7 +55,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         small::uptime(),
         small::repo(),
         small::invite(),
-        small::desc(),
+        small::description(),
         small::git(),
         small::dotfiles(),
         fetch::fetch(),
