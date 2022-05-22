@@ -111,7 +111,6 @@ pub async fn apply_mute(
         start_time,
         context,
         ModActionKind::Mute {
-            start_time,
             end_time,
             active: true,
         },

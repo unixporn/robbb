@@ -78,23 +78,3 @@ async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
     modlog::log_warn(&ctx, &success_msg, user, warn_count + 1, &reason).await;
     Ok(())
 }
-
-/// Undo the most recent warning on a user
-#[poise::command(
-    slash_command,
-    prefix_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
-)]
-pub async fn undo_warn(
-    ctx: Ctx<'_>,
-    #[description = "Who was wrongfully convicted?"] user: User,
-) -> Res<()> {
-    let db = ctx.get_db();
-    db.undo_latest_mod_action(user.id, ModActionType::Warn)
-        .await?;
-    ctx.say_success_mod_action("Successfully removed the warning!")
-        .await?;
-
-    Ok(())
-}

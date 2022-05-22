@@ -1,9 +1,9 @@
 use chrono::Utc;
-use poise::serenity_prelude::{Mentionable, User, UserId};
-use robbb_db::{
-    mod_action::{ModAction, ModActionType},
-    Db,
+use poise::{
+    serenity_prelude::{Mentionable, User},
+    Modal,
 };
+use robbb_db::mod_action::ModActionType;
 use robbb_util::embeds;
 
 use crate::modlog;
@@ -15,7 +15,7 @@ use super::*;
     slash_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
-    subcommands("note_add", "note_undo", "note_list")
+    subcommands("note_add", "note_list", "note_delete", "note_edit")
 )]
 pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
@@ -54,32 +54,63 @@ pub async fn note_add(
     Ok(())
 }
 
-/// Undo the most recent note of a user
+/// Remove a specific mod action
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
-    rename = "undo"
+    rename = "delete"
 )]
-pub async fn note_undo(ctx: Ctx<'_>, #[description = "User"] user: User) -> Res<()> {
+pub async fn note_delete(
+    ctx: Ctx<'_>,
+    #[description = "The user"] user: User,
+    #[description = "Id of the mod action"] id: i64,
+) -> Res<()> {
     let db = ctx.get_db();
-    db.undo_latest_mod_action(user.id, ModActionType::ManualNote)
-        .await?;
-    ctx.say_success("Successfully removed the note!").await?;
-
+    let succeeded = db.remove_mod_action(user.id, id).await?;
+    if succeeded {
+        ctx.say_success_mod_action("Successfully removed the entry!")
+            .await?;
+    } else {
+        ctx.say_error("No action with that id and user").await?;
+    }
     Ok(())
 }
 
-#[derive(Debug, poise::ChoiceParameter)]
-pub enum NoteFilterParam {
-    Mod,
-    Blocklist,
-    Warn,
-    Mute,
-    Ban,
-    Kick,
-    All,
+/// Edit a mod action
+#[poise::command(
+    slash_command,
+    guild_only,
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    rename = "edit"
+)]
+pub async fn note_edit(
+    app_ctx: AppCtx<'_>,
+    #[description = "Id of the mod action"] id: i64,
+) -> Res<()> {
+    let ctx = Ctx::Application(app_ctx);
+    let db = ctx.get_db();
+    let action = db.get_mod_action(id).await?;
+
+    #[derive(Modal)]
+    #[name = "Edit"]
+    struct NoteEditModal {
+        #[paragraph]
+        reason: String,
+    }
+
+    let result = NoteEditModal::execute_with_defaults(
+        app_ctx,
+        NoteEditModal {
+            reason: action.reason,
+        },
+    )
+    .await?;
+
+    db.edit_mod_action_reason(action.id, result.reason).await?;
+    ctx.say_success_mod_action("Successfully edited the entry!")
+        .await?;
+    Ok(())
 }
 
 /// Read notes about a user.
@@ -93,23 +124,12 @@ pub enum NoteFilterParam {
 pub async fn note_list(
     ctx: Ctx<'_>,
     #[description = "User"] user: User,
-    #[description = "What kind of notes to show"] note_filter: Option<NoteFilterParam>,
+    #[description = "What kind of notes to show"] note_filter: Option<ModActionType>,
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let note_filter = match note_filter {
-        Some(NoteFilterParam::Mod) => Some(ModActionType::ManualNote),
-        Some(NoteFilterParam::Blocklist) => Some(ModActionType::BlocklistViolation),
-        Some(NoteFilterParam::Warn) => Some(ModActionType::Warn),
-        Some(NoteFilterParam::Mute) => Some(ModActionType::Mute),
-        Some(NoteFilterParam::Ban) => Some(ModActionType::Ban),
-        Some(NoteFilterParam::Kick) => Some(ModActionType::Kick),
-        _ => None,
-    };
-
-    let avatar_url = user.face();
-
-    let notes = fetch_note_values(&db, user.id, note_filter).await?;
+    let mut notes = db.get_mod_actions(user.id, note_filter).await?;
+    notes.sort_by_key(|x| x.create_date);
 
     let fields = notes.iter().map(|note| {
         let context_link = note
@@ -119,7 +139,8 @@ pub async fn note_list(
             .unwrap_or_else(String::new);
         (
             format!(
-                "{} - {} ",
+                "[{}] {} - {} ",
+                note.id,
                 note.kind.to_action_type(),
                 util::format_date_ago(note.create_date.unwrap_or_else(|| Utc::now()))
             ),
@@ -133,9 +154,9 @@ pub async fn note_list(
     });
 
     let base_embed = embeds::make_create_embed(ctx.discord(), |e| {
-        e.title("Notes")
-            .description(format!("Notes about {}", user.mention()))
-            .author(|a| a.icon_url(avatar_url))
+        e.title("Notes");
+        e.description(format!("Notes about {}", user.mention()));
+        e.author_user(&user)
     })
     .await;
 
@@ -145,22 +166,4 @@ pub async fn note_list(
         .await?;
 
     Ok(())
-}
-
-pub struct NotesEntry {
-    pub note_type: ModActionType,
-    pub description: String,
-    pub date: chrono::DateTime<Utc>,
-    pub moderator: UserId,
-    pub context: Option<String>,
-}
-
-pub async fn fetch_note_values(
-    db: &Db,
-    user_id: UserId,
-    filter: Option<ModActionType>,
-) -> Res<Vec<ModAction>> {
-    let mut entries = db.get_mod_actions(user_id, filter).await?;
-    entries.sort_by_key(|x| x.create_date);
-    Ok(entries)
 }

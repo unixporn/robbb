@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS mod_action (
 
 CREATE TABLE IF NOT EXISTS mute (
     mod_action integer not null unique,
-    start_time datetime not null,
     end_time datetime not null,
     active boolean not null,
     FOREIGN KEY(mod_action) REFERENCES mod_action(id)
@@ -40,7 +39,7 @@ CREATE TABLE IF NOT EXISTS highlights (
     usr integer not null,
     PRIMARY KEY (word, usr)
 );
-create table if not exists emoji_stats (
+CREATE TABLE IF NOT EXISTS emoji_stats (
     emoji_id integer not null,
     emoji_name text,
     animated integer not null,

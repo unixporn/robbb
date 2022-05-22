@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serenity::model::id::UserId;
 
 use super::Db;
@@ -19,7 +21,6 @@ pub enum ModActionKind {
     BlocklistViolation,
     Warn,
     Mute {
-        start_time: DateTime<Utc>,
         end_time: DateTime<Utc>,
         active: bool,
     },
@@ -40,7 +41,7 @@ impl ModActionKind {
     }
 }
 
-#[derive(Debug, Eq, Copy, Clone, PartialEq, Hash)]
+#[derive(Debug, Eq, Copy, Clone, PartialEq, Hash, poise::ChoiceParameter)]
 pub enum ModActionType {
     ManualNote,
     BlocklistViolation,
@@ -87,6 +88,48 @@ impl std::fmt::Display for ModActionType {
     }
 }
 
+struct DbModActionFields {
+    id: i64,
+    /// Necessary field because it's part of the query output
+    #[allow(unused)]
+    mod_action: Option<i64>,
+    moderator: i64,
+    usr: i64,
+    reason: Option<String>,
+    create_date: Option<NaiveDateTime>,
+    context: Option<String>,
+    action_type: i64,
+    end_time: Option<NaiveDateTime>,
+    active: Option<bool>,
+}
+
+impl DbModActionFields {
+    fn to_mod_action(self) -> Result<ModAction> {
+        Ok(ModAction {
+            id: self.id,
+            moderator: UserId(self.moderator as u64),
+            user: UserId(self.usr as u64),
+            reason: self.reason.unwrap_or_default(),
+            create_date: self.create_date.map(|x| chrono::DateTime::from_utc(x, Utc)),
+            context: self.context,
+            kind: match ModActionType::from_i32(self.action_type as i32)? {
+                ModActionType::ManualNote => ModActionKind::ManualNote,
+                ModActionType::BlocklistViolation => ModActionKind::BlocklistViolation,
+                ModActionType::Warn => ModActionKind::Warn,
+                ModActionType::Mute => ModActionKind::Mute {
+                    end_time: chrono::DateTime::from_utc(
+                        self.end_time.context("no mute item for mute in database")?,
+                        Utc,
+                    ),
+                    active: self.active.context("no mute item for mute in database")?,
+                },
+                ModActionType::Ban => ModActionKind::Ban,
+                ModActionType::Kick => ModActionKind::Kick,
+            },
+        })
+    }
+}
+
 impl Db {
     #[tracing::instrument(skip_all)]
     pub async fn add_mod_action(
@@ -118,16 +161,10 @@ impl Db {
             .last_insert_rowid()
         };
 
-        if let ModActionKind::Mute {
-            start_time,
-            end_time,
-            active,
-        } = kind
-        {
+        if let ModActionKind::Mute { end_time, active } = kind {
             sqlx::query!(
-                "insert into mute (mod_action, start_time, end_time, active) VALUES(?, ?, ?, ?)",
+                "insert into mute (mod_action, end_time, active) VALUES(?, ?, ?)",
                 id,
-                start_time,
                 end_time,
                 active
             )
@@ -158,47 +195,39 @@ impl Db {
 
         let note_type_value = filter.map(|x| x.as_i32());
 
-        sqlx::query!(
+        let mut actions = sqlx::query_as!(
+            DbModActionFields,
             r#"
                 SELECT * FROM mod_action
                 LEFT JOIN mute ON mod_action.id = mute.mod_action
                 WHERE usr=?1 AND (?2 IS NULL OR action_type=?2)
-                ORDER BY create_date DESC"#,
+            "#,
             user_id,
             note_type_value,
         )
         .fetch_all(&mut conn)
         .await?
         .into_iter()
-        .map(|x| {
-            Ok(ModAction {
-                id: x.id,
-                moderator: UserId(x.moderator as u64),
-                user: UserId(x.usr as u64),
-                reason: x.reason.unwrap_or_default(),
-                create_date: x.create_date.map(|x| chrono::DateTime::from_utc(x, Utc)),
-                context: x.context,
-                kind: match ModActionType::from_i32(x.action_type as i32)? {
-                    ModActionType::ManualNote => ModActionKind::ManualNote,
-                    ModActionType::BlocklistViolation => ModActionKind::BlocklistViolation,
-                    ModActionType::Warn => ModActionKind::Warn,
-                    ModActionType::Mute => ModActionKind::Mute {
-                        start_time: chrono::DateTime::from_utc(
-                            x.start_time.context("no mute item for mute in database")?,
-                            Utc,
-                        ),
-                        end_time: chrono::DateTime::from_utc(
-                            x.end_time.context("no mute item for mute in database")?,
-                            Utc,
-                        ),
-                        active: x.active,
-                    },
-                    ModActionType::Ban => ModActionKind::Ban,
-                    ModActionType::Kick => ModActionKind::Kick,
-                },
-            })
-        })
-        .collect::<Result<_>>()
+        .map(|x| x.to_mod_action())
+        .collect::<Result<Vec<_>>>()?;
+        actions.sort_by_key(|x| x.create_date);
+        Ok(actions)
+    }
+
+    pub async fn get_mod_action(&self, id: i64) -> Result<ModAction> {
+        let mut conn = self.pool.acquire().await?;
+        let action = sqlx::query_as!(
+            DbModActionFields,
+            r#"
+                SELECT * FROM mod_action
+                LEFT JOIN mute ON mod_action.id = mute.mod_action
+                WHERE id=?1
+            "#,
+            id,
+        )
+        .fetch_one(&mut conn)
+        .await?;
+        Ok(action.to_mod_action()?)
     }
 
     pub async fn count_mod_actions(&self, user: UserId, action_type: ModActionType) -> Result<i32> {
@@ -206,7 +235,7 @@ impl Db {
         let id = user.0 as i64;
         let action_type = action_type.as_i32();
         Ok(sqlx::query_scalar!(
-            "select count(*) from mod_action where usr=? AND action_type=?",
+            "SELECT COUNT(*) FROM mod_action WHERE usr=? AND action_type=?",
             id,
             action_type
         )
@@ -214,20 +243,35 @@ impl Db {
         .await?)
     }
 
-    pub async fn undo_latest_mod_action(
-        &self,
-        user: UserId,
-        action_type: ModActionType,
-    ) -> Result<()> {
+    pub async fn count_all_mod_actions(&self, user: UserId) -> Result<HashMap<ModActionType, i32>> {
+        let mut conn = self.pool.acquire().await?;
+        let id = user.0 as i64;
+        Ok(sqlx::query!(
+            r#"SELECT action_type, COUNT(*) as "count!: i32" FROM mod_action WHERE usr=? GROUP BY action_type"#,
+            id,
+        )
+        .fetch_all(&mut conn)
+        .await?
+        .into_iter()
+        .map(|x| Ok((ModActionType::from_i32(x.action_type as i32)?, x.count)))
+        .collect::<Result<_>>()?
+        )
+    }
+
+    pub async fn remove_mod_action(&self, user: UserId, id: i64) -> Result<bool> {
         let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
-        let action_type = action_type.as_i32();
-        sqlx::query!(
-            r#"delete from mod_action as a
-            where usr=? AND action_type=? AND create_date=(select max(create_date) from mod_action where usr=a.usr)"#,
-            user,
-            action_type
-        ).execute(&mut conn).await?;
-        Ok(())
+        let result = sqlx::query!("delete from mod_action where id=? AND usr=?", id, user)
+            .execute(&mut conn)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn edit_mod_action_reason(&self, id: i64, new_reason: String) -> Result<bool> {
+        let mut conn = self.pool.acquire().await?;
+        let result = sqlx::query!("update mod_action set reason=? where id=?", new_reason, id,)
+            .execute(&mut conn)
+            .await?;
+        Ok(result.rows_affected() > 0)
     }
 }

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serenity::model::id::UserId;
 
@@ -27,16 +27,16 @@ impl Db {
         )
         .fetch_all(&mut conn).await?
         .into_iter()
-        .map(|x| {Mute {
+        .map(|x| Ok(Mute {
             id: x.id,
             moderator: UserId(x.moderator as u64),
             user: UserId(x.usr as u64),
             reason: x.reason.unwrap_or_default(),
-            start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
-            end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
+            start_time: DateTime::<Utc>::from_utc(x.create_date.context("no create date")?, Utc),
+            end_time: DateTime::<Utc>::from_utc(x.end_time, Utc),
             context: x.context,
-        }})
-        .collect())
+        }))
+        .collect::<Result<_>>()?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -50,36 +50,40 @@ impl Db {
         .fetch_all(&mut conn)
         .await?
         .into_iter()
-        .map(|x| Mute {
-            id: x.id,
-            moderator: UserId(x.moderator as u64),
-            user: UserId(x.usr as u64),
-            reason: x.reason.unwrap_or_default(),
-            start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
-            end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
-            context: x.context,
+        .map(|x| {
+            Ok(Mute {
+                id: x.id,
+                moderator: UserId(x.moderator as u64),
+                user: UserId(x.usr as u64),
+                reason: x.reason.unwrap_or_default(),
+                start_time: DateTime::<Utc>::from_utc(
+                    x.create_date.context("no create date")?,
+                    Utc,
+                ),
+                end_time: DateTime::<Utc>::from_utc(x.end_time, Utc),
+                context: x.context,
+            })
         })
-        .collect())
+        .collect::<Result<_>>()?)
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn get_active_mute(&self, user_id: UserId) -> Result<Option<Mute>> {
         let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
-        Ok(
-            sqlx::query!("select * from mute, mod_action where mute.mod_action = mod_action.id AND usr=? AND active=true", id)
-                .fetch_optional(&mut conn)
-                .await?
-                .map(|x| Mute {
-                    id: x.id,
-                    moderator: UserId(x.moderator as u64),
-                    user: UserId(x.usr as u64),
-                    reason: x.reason.unwrap_or_default(),
-                    start_time: chrono::DateTime::<Utc>::from_utc(x.start_time, Utc),
-                    end_time: chrono::DateTime::<Utc>::from_utc(x.end_time, Utc),
-                    context: x.context,
-                }),
-        )
+        sqlx::query!("select * from mute, mod_action where mute.mod_action = mod_action.id AND usr=? AND active=true", id)
+        .fetch_optional(&mut conn)
+        .await?
+        .map(|x| Ok(Mute {
+            id: x.id,
+            moderator: UserId(x.moderator as u64),
+            user: UserId(x.usr as u64),
+            reason: x.reason.unwrap_or_default(),
+            start_time: DateTime::<Utc>::from_utc(x.create_date.context("no create date")?, Utc),
+            end_time: DateTime::<Utc>::from_utc(x.end_time, Utc),
+            context: x.context,
+        }))
+        .transpose()
     }
 
     #[tracing::instrument(skip_all)]
