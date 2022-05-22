@@ -148,7 +148,7 @@ pub async fn note_list(
                 "[{}] {} - {} ",
                 note.id,
                 note.kind.to_action_type(),
-                util::format_date_ago(note.create_date.unwrap_or_else(|| Utc::now()))
+                util::format_date_ago(note.create_date.unwrap_or_else(Utc::now))
             ),
             format!(
                 "{} - {}{}",

@@ -19,7 +19,7 @@ impl Db {
     #[tracing::instrument(skip_all)]
     pub async fn get_newly_expired_mutes(&self) -> Result<Vec<Mute>> {
         let mut conn = self.pool.acquire().await?;
-        Ok(sqlx::query!(
+        sqlx::query!(
             "SELECT * from mute, mod_action
              WHERE mute.mod_action = mod_action.id
                AND cast(strftime('%s', end_time) as integer) < cast(strftime('%s', datetime('now')) as integer)
@@ -36,14 +36,14 @@ impl Db {
             end_time: DateTime::<Utc>::from_utc(x.end_time, Utc),
             context: x.context,
         }))
-        .collect::<Result<_>>()?)
+        .collect::<Result<_>>()
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn get_mutes(&self, user_id: UserId) -> Result<Vec<Mute>> {
         let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
-        Ok(sqlx::query!(
+        sqlx::query!(
             "select * from mute, mod_action where mute.mod_action = mod_action.id AND usr=?",
             id
         )
@@ -64,7 +64,7 @@ impl Db {
                 context: x.context,
             })
         })
-        .collect::<Result<_>>()?)
+        .collect::<Result<_>>()
     }
 
     #[tracing::instrument(skip_all)]

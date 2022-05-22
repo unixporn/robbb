@@ -106,7 +106,7 @@ struct DbModActionFields {
 }
 
 impl DbModActionFields {
-    fn to_mod_action(self) -> Result<ModAction> {
+    fn into_mod_action(self) -> Result<ModAction> {
         Ok(ModAction {
             id: self.id,
             moderator: UserId(self.moderator as u64),
@@ -219,7 +219,7 @@ impl Db {
         .fetch_all(&mut conn)
         .await?
         .into_iter()
-        .map(|x| x.to_mod_action())
+        .map(|x| x.into_mod_action())
         .collect::<Result<Vec<_>>>()?;
         actions.sort_by_key(|x| std::cmp::Reverse(x.create_date));
         Ok(actions)
@@ -239,7 +239,7 @@ impl Db {
         )
         .fetch_one(&mut conn)
         .await?;
-        Ok(action.to_mod_action()?)
+        action.into_mod_action()
     }
 
     #[tracing::instrument(skip_all)]
@@ -260,7 +260,7 @@ impl Db {
     pub async fn count_all_mod_actions(&self, user: UserId) -> Result<HashMap<ModActionType, i32>> {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
-        Ok(sqlx::query!(
+        sqlx::query!(
             r#"SELECT action_type, COUNT(*) as "count!: i32" FROM mod_action WHERE usr=? GROUP BY action_type"#,
             id,
         )
@@ -268,8 +268,7 @@ impl Db {
         .await?
         .into_iter()
         .map(|x| Ok((ModActionType::from_i32(x.action_type as i32)?, x.count)))
-        .collect::<Result<_>>()?
-        )
+        .collect::<Result<_>>()
     }
 
     #[tracing::instrument(skip_all, fields(mod_action.id = %id))]
