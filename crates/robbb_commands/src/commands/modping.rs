@@ -30,12 +30,9 @@ pub async fn modping(
     };
 
     ctx.send(|m| {
-        m.content(format!(
-            "{} pinged staff {} for reason {}",
-            ctx.author().mention(),
-            mods,
-            reason,
-        ))
+        m.content(
+            format!("{} pinged staff {} for reason {}", ctx.author().mention(), mods, reason,),
+        )
     })
     .await?;
 

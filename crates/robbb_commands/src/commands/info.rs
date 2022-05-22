@@ -68,21 +68,13 @@ async fn make_info_embed(ctx: Ctx<'_>, member: Member) -> CreateEmbed {
         e.thumbnail(member.user.face());
         e.color_opt(color);
         e.field("ID/Snowflake", member.user.id.to_string(), false);
-        e.field(
-            "Account creation date",
-            util::format_date_detailed(*created_at),
-            false,
-        );
+        e.field("Account creation date", util::format_date_detailed(*created_at), false);
         if let Some(joined_at) = member.joined_at {
             e.field("Join Date", util::format_date_detailed(*joined_at), false);
         }
 
         if !member.roles.is_empty() {
-            e.field(
-                "Roles",
-                member.roles.iter().map(|x| x.mention()).join(" "),
-                false,
-            );
+            e.field("Roles", member.roles.iter().map(|x| x.mention()).join(" "), false);
         }
         e
     })

@@ -8,12 +8,8 @@ use robbb_db::{
 use super::{fetch::format_fetch_field_value, *};
 use std::collections::HashMap;
 
-static EXCLUDED_FETCH_FIELDS: &[FetchField] = &[
-    FetchField::Dotfiles,
-    FetchField::Description,
-    FetchField::Git,
-    FetchField::Image,
-];
+static EXCLUDED_FETCH_FIELDS: &[FetchField] =
+    &[FetchField::Dotfiles, FetchField::Description, FetchField::Git, FetchField::Image];
 
 /// Get statistics about what the community uses.
 #[poise::command(
@@ -62,17 +58,12 @@ async fn top_for_regex(
         .build()
         .user_error("Invalid regex")?;
 
-    let field_values = fetches
-        .into_iter()
-        .filter_map(|mut x| x.info.remove(&field_name))
-        .collect_vec();
+    let field_values =
+        fetches.into_iter().filter_map(|mut x| x.info.remove(&field_name)).collect_vec();
 
     let total_field_values = field_values.len();
 
-    let matching_value_count = field_values
-        .into_iter()
-        .filter(|x| regex.is_match(x))
-        .count();
+    let matching_value_count = field_values.into_iter().filter(|x| regex.is_match(x)).count();
 
     let percentage = (matching_value_count as f64 / total_field_values as f64) * 100f64;
 
@@ -103,20 +94,15 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
 
     // only compare the first word when looking at distros
     let field_value_counts = if field_name == FetchField::Distro {
-        field_values
-            .filter_map(|value| value.split(' ').next().map(|x| x.to_string()))
-            .counts()
+        field_values.filter_map(|value| value.split(' ').next().map(|x| x.to_string())).counts()
     } else {
         field_values.counts()
     };
 
     let total_field_values: usize = field_value_counts.iter().map(|(_, n)| n).sum();
 
-    let top_ten_field_value_counts = field_value_counts
-        .into_iter()
-        .sorted_by_key(|(_, cnt)| *cnt)
-        .rev()
-        .take(10);
+    let top_ten_field_value_counts =
+        field_value_counts.into_iter().sorted_by_key(|(_, cnt)| *cnt).rev().take(10);
 
     let top_values_text = top_ten_field_value_counts
         .enumerate()
@@ -143,10 +129,7 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
 async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
     let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
-        for field_name in FETCH_KEY_ORDER
-            .iter()
-            .filter(|&x| !EXCLUDED_FETCH_FIELDS.contains(x))
-        {
+        for field_name in FETCH_KEY_ORDER.iter().filter(|&x| !EXCLUDED_FETCH_FIELDS.contains(x)) {
             let data_value = data.entry(field_name.clone()).or_insert_with(Vec::new);
             if let Some(field) = fetch.info.get(field_name) {
                 data_value.push(field.clone());

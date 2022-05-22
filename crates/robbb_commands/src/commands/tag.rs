@@ -20,10 +20,7 @@ pub async fn tag(
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let tag = db
-        .get_tag(&tag_name)
-        .await?
-        .user_error("No tag with this name exists")?;
+    let tag = db.get_tag(&tag_name).await?.user_error("No tag with this name exists")?;
 
     let moderator = tag.moderator.to_user(&ctx.discord()).await?;
 
@@ -127,23 +124,11 @@ pub async fn tag_set(
     // Content to pre-fill into the modal text field
     let default_content = existing_tag.map(|x| x.content).unwrap_or_default();
 
-    let result = TagModal::execute_with_defaults(
-        app_ctx,
-        TagModal {
-            content: default_content,
-        },
-    )
-    .instrument(tracing::info_span!("wait for modal response"))
-    .await?;
+    let result = TagModal::execute_with_defaults(app_ctx, TagModal { content: default_content })
+        .instrument(tracing::info_span!("wait for modal response"))
+        .await?;
 
-    db.set_tag(
-        ctx.author().id,
-        tag_name,
-        result.content,
-        true,
-        Some(Utc::now()),
-    )
-    .await?;
+    db.set_tag(ctx.author().id, tag_name, result.content, true, Some(Utc::now())).await?;
     ctx.say_success("Succesfully set!").await?;
     Ok(())
 }
@@ -151,15 +136,8 @@ pub async fn tag_set(
 /// Autocomplete all tags, but also provide whatever the user has already typed as one of the options.
 /// Used in /tag set, to provide completion for edits, but also allow adding new tags
 async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
-    let last = if partial.is_empty() {
-        vec![]
-    } else {
-        vec![partial.clone()]
-    };
-    tag_autocomplete_existing(ctx, partial.clone())
-        .await
-        .chain(last)
-        .dedup() // when the partial fully matches a value, we otherwise get a duplicate
+    let last = if partial.is_empty() { vec![] } else { vec![partial.clone()] };
+    tag_autocomplete_existing(ctx, partial.clone()).await.chain(last).dedup() // when the partial fully matches a value, we otherwise get a duplicate
 }
 
 /// Autocomplete all tags
@@ -172,6 +150,5 @@ async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterat
 
     let partial = partial.to_ascii_lowercase();
 
-    tags.into_iter()
-        .filter(move |tag| tag.to_ascii_lowercase().starts_with(&partial))
+    tags.into_iter().filter(move |tag| tag.to_ascii_lowercase().starts_with(&partial))
 }

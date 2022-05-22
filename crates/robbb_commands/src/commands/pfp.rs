@@ -33,12 +33,9 @@ pub async fn pfp(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> 
         .await,
     );
 
-    embeds::PaginatedEmbed::create(
-        embeds,
-        embeds::make_create_embed(ctx.discord(), |e| e).await,
-    )
-    .await
-    .reply_to(ctx, false)
-    .await?;
+    embeds::PaginatedEmbed::create(embeds, embeds::make_create_embed(ctx.discord(), |e| e).await)
+        .await
+        .reply_to(ctx, false)
+        .await?;
     Ok(())
 }

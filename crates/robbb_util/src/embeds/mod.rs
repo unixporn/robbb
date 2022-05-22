@@ -10,12 +10,7 @@ pub async fn make_create_embed(
     ctx: &client::Context,
     build: impl FnOnce(&mut CreateEmbed) -> &mut CreateEmbed,
 ) -> CreateEmbed {
-    let stare = ctx
-        .data
-        .read()
-        .await
-        .get::<UpEmotes>()
-        .and_then(|x| x.random_stare());
+    let stare = ctx.data.read().await.get::<UpEmotes>().and_then(|x| x.random_stare());
 
     let mut e = CreateEmbed::default();
 
@@ -32,11 +27,7 @@ pub async fn make_create_embed(
 }
 
 pub async fn make_success_embed(ctx: &client::Context, text: &str) -> CreateEmbed {
-    let emote = ctx
-        .get_up_emotes()
-        .await
-        .as_ref()
-        .map(|x| format!(" {}", x.poggers.clone()));
+    let emote = ctx.get_up_emotes().await.as_ref().map(|x| format!(" {}", x.poggers.clone()));
 
     let mut e = CreateEmbed::default();
     e.description(format!("{}{}", text, emote.unwrap_or_default()));
@@ -45,11 +36,7 @@ pub async fn make_success_embed(ctx: &client::Context, text: &str) -> CreateEmbe
 }
 
 pub async fn make_success_mod_action_embed(ctx: &client::Context, text: &str) -> CreateEmbed {
-    let emote = ctx
-        .get_up_emotes()
-        .await
-        .as_ref()
-        .map(|x| format!(" {}", x.police.clone()));
+    let emote = ctx.get_up_emotes().await.as_ref().map(|x| format!(" {}", x.police.clone()));
 
     let mut e = CreateEmbed::default();
     e.description(format!("{}{}", text, emote.unwrap_or_default()));
@@ -58,11 +45,7 @@ pub async fn make_success_mod_action_embed(ctx: &client::Context, text: &str) ->
 }
 
 pub async fn make_error_embed(ctx: &client::Context, text: &str) -> CreateEmbed {
-    let emote = ctx
-        .get_up_emotes()
-        .await
-        .as_ref()
-        .map(|x| format!(" {}", x.pensibe.clone()));
+    let emote = ctx.get_up_emotes().await.as_ref().map(|x| format!(" {}", x.pensibe.clone()));
 
     let mut e = CreateEmbed::default();
     e.description(format!("{}{}", text, emote.unwrap_or_default()));

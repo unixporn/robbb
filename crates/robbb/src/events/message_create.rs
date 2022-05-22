@@ -240,11 +240,7 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
     for emoji in &actual_emojis {
         db.alter_emoji_text_count(
             1,
-            &EmojiIdentifier {
-                name: emoji.name.clone(),
-                id: emoji.id,
-                animated: emoji.animated,
-            },
+            &EmojiIdentifier { name: emoji.name.clone(), id: emoji.id, animated: emoji.animated },
         )
         .await?;
     }
@@ -370,15 +366,10 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     }
 
     // TODO should the messages be cached here? given the previous checks this is rare enough to probably not matter.
-    let msgs = msg
-        .channel_id
-        .messages(&ctx, |m| m.before(msg.id).limit(10))
-        .await?;
+    let msgs = msg.channel_id.messages(&ctx, |m| m.before(msg.id).limit(10)).await?;
 
-    let spam_msgs = msgs
-        .iter()
-        .filter(|x| x.author == msg.author && x.content == msg.content)
-        .collect_vec();
+    let spam_msgs =
+        msgs.iter().filter(|x| x.author == msg.author && x.content == msg.content).collect_vec();
 
     let is_spam = spam_msgs.len() > 3
         && match spam_msgs.iter().minmax_by_key(|x| *x.timestamp) {
@@ -393,10 +384,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     let ping_spam_msgs = msgs.iter().filter(|x| x.author == msg.author).collect_vec();
     let is_ping_spam = default_pfp
         && ping_spam_msgs.len() > 3
-        && ping_spam_msgs
-            .iter()
-            .map(|m| m.mentions.len())
-            .sum::<usize>() as f32
+        && ping_spam_msgs.iter().map(|m| m.mentions.len()).sum::<usize>() as f32
             >= ping_spam_msgs.len() as f32 * 1.5
         && match spam_msgs.iter().minmax_by_key(|x| *x.timestamp) {
             itertools::MinMaxResult::NoElements => false,
@@ -438,14 +426,10 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     if msg.kind == MessageType::ThreadCreated {
         tracing::debug!(msg = ?msg, "Deleting ThreadCreated message");
-        msg.delete(&ctx)
-            .await
-            .context("Failed to delete showcase ThreadCreated message")?;
+        msg.delete(&ctx).await.context("Failed to delete showcase ThreadCreated message")?;
     } else if msg.attachments.is_empty() && msg.embeds.is_empty() && !msg.content.contains("http") {
         tracing::debug!(msg = ?msg, "Deleting invalid showcase post");
-        msg.delete(&ctx)
-            .await
-            .context("Failed to delete invalid showcase submission")?;
+        msg.delete(&ctx).await.context("Failed to delete invalid showcase submission")?;
         msg.author.direct_message(&ctx, |f| {
                 f.content(indoc::indoc!("
                     Your showcase submission was detected to be invalid. If you wanna comment on a rice, create a thread.
@@ -491,10 +475,7 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
     let recent_messages = msg.channel_id.messages(&ctx, |m| m.before(msg)).await?;
 
     let last_bottom_pin_msg = recent_messages.iter().find(|m| {
-        m.author.bot
-            && m.embeds
-                .iter()
-                .any(|e| e.title == Some("CONTRIBUTING.md".to_string()))
+        m.author.bot && m.embeds.iter().any(|e| e.title == Some("CONTRIBUTING.md".to_string()))
     });
     if let Some(bottom_pin_msg) = last_bottom_pin_msg {
         bottom_pin_msg.delete(&ctx).await?;

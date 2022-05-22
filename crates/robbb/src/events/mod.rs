@@ -86,10 +86,7 @@ impl client::EventHandler for Handler {
 
         self.init_ready_data(&ctx, data_about_bot.user.id).await;
 
-        log_error!(
-            "Error while handling ready event",
-            ready::ready(ctx, data_about_bot).await
-        );
+        log_error!("Error while handling ready event", ready::ready(ctx, data_about_bot).await);
     }
 
     #[tracing::instrument(
@@ -113,8 +110,7 @@ impl client::EventHandler for Handler {
                 }
             };
         if !stop_event_handler {
-            self.dispatch_poise_event(&ctx, &poise::Event::Message { new_message: msg })
-                .await;
+            self.dispatch_poise_event(&ctx, &poise::Event::Message { new_message: msg }).await;
         }
     }
 
@@ -158,10 +154,8 @@ impl client::EventHandler for Handler {
             interaction_create.user = %user.map(|x| x.tag()).unwrap_or_default(),
             "Got interaction_create event"
         );
-        tracing::Span::current().record(
-            "interaction_create.user",
-            &user.map(|x| x.tag()).unwrap_or_default().as_str(),
-        );
+        tracing::Span::current()
+            .record("interaction_create.user", &user.map(|x| x.tag()).unwrap_or_default().as_str());
 
         let stop_event_handler =
             match handle_blocklist::handle_blocklist_in_interaction(&ctx, &interaction).await {
@@ -177,8 +171,7 @@ impl client::EventHandler for Handler {
         );
 
         if !stop_event_handler {
-            self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction })
-                .await;
+            self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction }).await;
         }
     }
 

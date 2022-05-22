@@ -51,24 +51,18 @@ impl Db {
             .await?;
         }
 
-        Ok(Fetch {
-            user,
-            info,
-            create_date,
-        })
+        Ok(Fetch { user, info, create_date })
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn get_fetch(&self, user: UserId) -> Result<Option<Fetch>> {
         let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
-        let value = sqlx::query!("select * from fetch where usr=?", user)
-            .fetch_optional(&mut conn)
-            .await?;
+        let value =
+            sqlx::query!("select * from fetch where usr=?", user).fetch_optional(&mut conn).await?;
         if let Some(x) = value {
-            let create_date = x
-                .create_date
-                .map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
+            let create_date =
+                x.create_date.map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
             Ok(Some(Fetch {
                 user: UserId(x.usr as u64),
                 info: serde_json::from_str(&x.info).context("Failed to deserialize fetch data")?,
@@ -85,11 +79,7 @@ impl Db {
         user: UserId,
         new_values: HashMap<FetchField, String>,
     ) -> Result<Fetch> {
-        let mut fetch = self
-            .get_fetch(user)
-            .await?
-            .map(|x| x.info)
-            .unwrap_or_default();
+        let mut fetch = self.get_fetch(user).await?.map(|x| x.info).unwrap_or_default();
 
         for (key, value) in new_values {
             fetch.insert(key, value);
@@ -106,9 +96,8 @@ impl Db {
             .await?
             .into_iter()
             .map(|x| {
-                let create_date = x
-                    .create_date
-                    .map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
+                let create_date =
+                    x.create_date.map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
                 Ok(Fetch {
                     user: UserId(x.usr as u64),
                     info: serde_json::from_str(&x.info)

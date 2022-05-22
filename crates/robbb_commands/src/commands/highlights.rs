@@ -8,12 +8,7 @@ use crate::checks::{self, PermissionLevel};
     slash_command,
     rename = "highlight",
     aliases("highlights", "hl"),
-    subcommands(
-        "highlights_add",
-        "highlights_list",
-        "highlights_clear",
-        "highlights_remove",
-    )
+    subcommands("highlights_add", "highlights_list", "highlights_clear", "highlights_remove",)
 )]
 pub async fn highlights(_: Ctx<'_>) -> Res<()> {
     Ok(())
@@ -62,17 +57,11 @@ pub async fn highlights_add(
         .await
         .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
 
-    db.set_highlight(ctx.author().id, trigger.clone())
-        .await
-        .user_error(
-            "Couldn't add highlight, something went wrong (highlight might already be present)",
-        )?;
+    db.set_highlight(ctx.author().id, trigger.clone()).await.user_error(
+        "Couldn't add highlight, something went wrong (highlight might already be present)",
+    )?;
 
-    ctx.say_success(format!(
-        "You will be notified whenever someone says {}",
-        trigger
-    ))
-    .await?;
+    ctx.say_success(format!("You will be notified whenever someone says {}", trigger)).await?;
 
     Ok(())
 }
@@ -109,11 +98,8 @@ pub async fn highlights_remove(
     db.remove_highlight(ctx.author().id, trigger.clone())
         .await
         .user_error("Failed to remove the highlight.")?;
-    ctx.say_success(format!(
-        "You will no longer be notified when someone says '{}'",
-        trigger
-    ))
-    .await?;
+    ctx.say_success(format!("You will no longer be notified when someone says '{}'", trigger))
+        .await?;
     Ok(())
 }
 
@@ -122,8 +108,7 @@ pub async fn highlights_remove(
 pub async fn highlights_clear(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
     db.rm_highlights_of(ctx.author().id).await?;
-    ctx.say_success("Your highlights have been successfully cleared.")
-        .await?;
+    ctx.say_success("Your highlights have been successfully cleared.").await?;
     Ok(())
 }
 

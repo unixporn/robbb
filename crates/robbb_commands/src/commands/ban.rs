@@ -95,10 +95,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
     let permission_level = checks::get_permission_level(ctx.discord(), ctx.author()).await?;
 
     let mut main_response = ctx
-        .say_success_mod_action(format!(
-            "Banning {}...",
-            users.iter().map(|x| x.tag()).join(", ")
-        ))
+        .say_success_mod_action(format!("Banning {}...", users.iter().map(|x| x.tag()).join(", ")))
         .await?
         .message()
         .await?;
@@ -148,17 +145,12 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
             ctx.discord(),
             &format!(
                 "successfully yote\n{}",
-                successful_bans
-                    .iter()
-                    .map(|x| format!("- {} ({})", x.tag(), x.id))
-                    .join("\n")
+                successful_bans.iter().map(|x| format!("- {} ({})", x.tag(), x.id)).join("\n")
             ),
         )
         .await;
 
-        main_response
-            .edit(&ctx.discord(), |e| e.set_embed(embed))
-            .await?;
+        main_response.edit(&ctx.discord(), |e| e.set_embed(embed)).await?;
 
         crate::modlog::log_ban(ctx, &main_response, &successful_bans, &reason).await;
     }
@@ -187,10 +179,8 @@ async fn handle_single_ban(
 ) -> Result<User, BanFailedReason> {
     let ban_allowed = if permission_level == PermissionLevel::Helper {
         let member = guild.member(&ctx.discord(), user.id).await;
-        let join_or_create_date = member
-            .ok()
-            .and_then(|x| x.joined_at)
-            .unwrap_or_else(|| user.created_at());
+        let join_or_create_date =
+            member.ok().and_then(|x| x.joined_at).unwrap_or_else(|| user.created_at());
         Utc::now().signed_duration_since(*join_or_create_date) < Duration::days(3)
     } else {
         permission_level == PermissionLevel::Mod

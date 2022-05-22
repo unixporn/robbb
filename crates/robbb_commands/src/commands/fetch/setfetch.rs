@@ -86,14 +86,10 @@ pub async fn set_fetch_update(
         FetchField::GPU => gpu,
         FetchField::Memory => memory,
     };
-    let info = data
-        .into_iter()
-        .filter_map(|(k, v)| Some((k, v?)))
-        .collect();
+    let info = data.into_iter().filter_map(|(k, v)| Some((k, v?))).collect();
     let db = ctx.get_db();
     db.update_fetch(ctx.author().id, info).await?;
-    ctx.say_success("Successfully updated your fetch data!")
-        .await?;
+    ctx.say_success("Successfully updated your fetch data!").await?;
 
     Ok(())
 }
@@ -110,16 +106,12 @@ pub async fn set_fetch_clear(
         let old_fetch = db.get_fetch(ctx.author().id).await?;
         if let Some(mut fetch) = old_fetch {
             fetch.info.remove(&field);
-            db.set_fetch(ctx.author().id, fetch.info, Some(Utc::now()))
-                .await?;
+            db.set_fetch(ctx.author().id, fetch.info, Some(Utc::now())).await?;
         }
-        ctx.say_success(format!("Successfully cleared your {}", field))
-            .await?;
+        ctx.say_success(format!("Successfully cleared your {}", field)).await?;
     } else {
-        db.set_fetch(ctx.author().id, HashMap::new(), Some(Utc::now()))
-            .await?;
-        ctx.say_success("Successfully cleared your fetch data!")
-            .await?;
+        db.set_fetch(ctx.author().id, HashMap::new(), Some(Utc::now())).await?;
+        ctx.say_success("Successfully cleared your fetch data!").await?;
     }
     Ok(())
 }

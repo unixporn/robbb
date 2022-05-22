@@ -46,24 +46,18 @@ pub async fn purge(
         .take_while(|msg| {
             let msg_timestamp = msg.timestamp.timestamp();
             msg_timestamp > too_old_timestamp
-                && duration.map_or(true, |d| {
-                    msg_timestamp > now_timestamp - (d.as_secs() as i64)
-                })
+                && duration.map_or(true, |d| msg_timestamp > now_timestamp - (d.as_secs() as i64))
         })
         .take(count)
         .collect_vec();
 
-    channel
-        .delete_messages(&ctx.discord(), &recent_messages)
-        .await?;
+    channel.delete_messages(&ctx.discord(), &recent_messages).await?;
 
     let success_embed = embeds::make_success_mod_action_embed(
         ctx.discord(),
         &format!("Successfully deleted {} messages", recent_messages.len()),
     )
     .await;
-    response_msg
-        .edit(&ctx.discord(), |e| e.set_embed(success_embed))
-        .await?;
+    response_msg.edit(&ctx.discord(), |e| e.set_embed(success_embed)).await?;
     Ok(())
 }

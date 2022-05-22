@@ -48,13 +48,7 @@ impl Db {
             tag_names.insert(name.clone());
         }
 
-        Ok(Tag {
-            name,
-            moderator,
-            content,
-            official,
-            create_date,
-        })
+        Ok(Tag { name, moderator, content, official, create_date })
     }
 
     #[tracing::instrument(skip_all)]

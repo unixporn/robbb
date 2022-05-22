@@ -22,10 +22,7 @@ pub enum ModActionKind {
     ManualNote,
     BlocklistViolation,
     Warn,
-    Mute {
-        end_time: DateTime<Utc>,
-        active: bool,
-    },
+    Mute { end_time: DateTime<Utc>, active: bool },
     Ban,
     Kick,
 }

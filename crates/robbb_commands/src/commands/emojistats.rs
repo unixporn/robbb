@@ -28,9 +28,7 @@ pub async fn emojistats(
         false => Ordering::Descending,
     };
 
-    let guild_emojis = ctx
-        .get_guild_emojis()
-        .context("could not get guild emojis")?;
+    let guild_emojis = ctx.get_guild_emojis().context("could not get guild emojis")?;
 
     match emote {
         Some(emote_name) => {

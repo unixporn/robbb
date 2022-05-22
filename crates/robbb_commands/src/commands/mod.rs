@@ -140,10 +140,7 @@ pub async fn member_or_self(ctx: Ctx<'_>, member: Option<Member>) -> Res<Member>
     if let Some(member) = member {
         Ok(member)
     } else {
-        Ok(ctx
-            .author_member()
-            .await
-            .user_error("failed to fetch message author")?)
+        Ok(ctx.author_member().await.user_error("failed to fetch message author")?)
     }
 }
 

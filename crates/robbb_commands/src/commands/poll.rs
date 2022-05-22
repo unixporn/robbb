@@ -43,15 +43,9 @@ pub async fn poll_vote(
         .await?;
 
     let poll_msg = poll_msg.message().await?;
-    poll_msg
-        .react(&ctx.discord(), ReactionType::Unicode("✅".to_string()))
-        .await?;
-    poll_msg
-        .react(&ctx.discord(), ReactionType::Unicode("🤷".to_string()))
-        .await?;
-    poll_msg
-        .react(&ctx.discord(), ReactionType::Unicode("❎".to_string()))
-        .await?;
+    poll_msg.react(&ctx.discord(), ReactionType::Unicode("✅".to_string())).await?;
+    poll_msg.react(&ctx.discord(), ReactionType::Unicode("🤷".to_string())).await?;
+    poll_msg.react(&ctx.discord(), ReactionType::Unicode("❎".to_string())).await?;
 
     let config = ctx.get_config();
     if ctx.channel_id() == config.channel_mod_polls {
@@ -100,11 +94,9 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
         )))
     }
 
-    let options_lines = options_lines.into_iter().map(|line| {
-        POLL_OPTION_START_OF_LINE_PATTERN
-            .replace(line, "")
-            .to_string()
-    });
+    let options_lines = options_lines
+        .into_iter()
+        .map(|line| POLL_OPTION_START_OF_LINE_PATTERN.replace(line, "").to_string());
 
     let options = SELECTION_EMOJI.iter().zip(options_lines).collect_vec();
 
@@ -123,13 +115,9 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     let poll_msg = poll_msg.message().await?;
 
     for (emoji, _) in options.into_iter() {
-        poll_msg
-            .react(&ctx.discord(), ReactionType::Unicode(emoji.to_string()))
-            .await?;
+        poll_msg.react(&ctx.discord(), ReactionType::Unicode(emoji.to_string())).await?;
     }
-    poll_msg
-        .react(&ctx.discord(), ReactionType::Unicode("🤷".to_string()))
-        .await?;
+    poll_msg.react(&ctx.discord(), ReactionType::Unicode("🤷".to_string())).await?;
 
     let config = ctx.get_config();
     if ctx.channel_id() == config.channel_mod_polls {

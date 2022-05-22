@@ -29,18 +29,13 @@ pub fn format_fetch_field_value(field_name: &FetchField, value: String) -> Optio
 fn format_bytes(s: &str) -> String {
     let as_num = s.parse::<u128>();
     match as_num {
-        Ok(n) => byte_unit::Byte::from_bytes(n)
-            .get_appropriate_unit(false)
-            .to_string(),
+        Ok(n) => byte_unit::Byte::from_bytes(n).get_appropriate_unit(false).to_string(),
         Err(_) => s.to_string(),
     }
 }
 
 fn find_distro_image(distro: &str) -> Option<&str> {
-    DISTRO_IMAGES
-        .iter()
-        .find(|(d, _)| distro.to_lowercase().starts_with(d))
-        .map(|(_, url)| *url)
+    DISTRO_IMAGES.iter().find(|(d, _)| distro.to_lowercase().starts_with(d)).map(|(_, url)| *url)
 }
 
 pub static DISTRO_IMAGES: [(&str, &str); 90] = [

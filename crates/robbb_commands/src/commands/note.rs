@@ -69,8 +69,7 @@ pub async fn note_delete(
     let db = ctx.get_db();
     let succeeded = db.remove_mod_action(user.id, id).await?;
     if succeeded {
-        ctx.say_success_mod_action("Successfully removed the entry!")
-            .await?;
+        ctx.say_success_mod_action("Successfully removed the entry!").await?;
     } else {
         ctx.say_error("No action with that id and user").await?;
     }
@@ -99,17 +98,12 @@ pub async fn note_edit(
         reason: String,
     }
 
-    let NoteEditModal { reason } = NoteEditModal::execute_with_defaults(
-        app_ctx,
-        NoteEditModal {
-            reason: action.reason,
-        },
-    )
-    .await?;
+    let NoteEditModal { reason } =
+        NoteEditModal::execute_with_defaults(app_ctx, NoteEditModal { reason: action.reason })
+            .await?;
     let reason = reason.trim().trim_matches('\n');
 
-    db.edit_mod_action_reason(action.id, ctx.author().id, reason.to_string())
-        .await?;
+    db.edit_mod_action_reason(action.id, ctx.author().id, reason.to_string()).await?;
     ctx.say_success_mod_action(format!(
         "Successfully edited {}'s entry {}",
         action.user.mention(),
@@ -150,12 +144,7 @@ pub async fn note_list(
                 note.kind.to_action_type(),
                 util::format_date_ago(note.create_date.unwrap_or_else(Utc::now))
             ),
-            format!(
-                "{} - {}{}",
-                note.reason,
-                note.moderator.mention(),
-                context_link
-            ),
+            format!("{} - {}{}", note.reason, note.moderator.mention(), context_link),
         )
     });
 

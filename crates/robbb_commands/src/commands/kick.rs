@@ -28,10 +28,7 @@ pub async fn kick(
     do_kick(ctx.discord(), guild, &user, &reason).await?;
 
     let success_msg = ctx
-        .say_success_mod_action(format!(
-            "{} has been kicked from the server",
-            user.id.mention()
-        ))
+        .say_success_mod_action(format!("{} has been kicked from the server", user.id.mention()))
         .await?
         .message()
         .await?;

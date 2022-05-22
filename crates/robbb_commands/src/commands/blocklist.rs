@@ -30,8 +30,7 @@ pub async fn blocklist_add(
 
     db.add_blocklist_entry(ctx.author().id, &pattern).await?;
 
-    ctx.say_success(format!("Added `{}` to the blocklist", pattern))
-        .await?;
+    ctx.say_success(format!("Added `{}` to the blocklist", pattern)).await?;
 
     Ok(())
 }
@@ -52,8 +51,7 @@ pub async fn blocklist_remove(
     let db = ctx.get_db();
 
     db.remove_blocklist_entry(&pattern).await?;
-    ctx.say_success(format!("Removed `{}` from the blocklist", pattern))
-        .await?;
+    ctx.say_success(format!("Removed `{}` from the blocklist", pattern)).await?;
 
     Ok(())
 }
@@ -84,11 +82,7 @@ pub async fn blocklist_list(ctx: Ctx<'_>) -> Res<()> {
 async fn autocomplete_blocklist_entry(ctx: Ctx<'_>, partial: String) -> Vec<String> {
     let db = ctx.get_db();
     if let Ok(blocklist) = db.get_blocklist().await {
-        blocklist
-            .iter()
-            .filter(|x| x.contains(&partial))
-            .map(|x| x.to_string())
-            .collect_vec()
+        blocklist.iter().filter(|x| x.contains(&partial)).map(|x| x.to_string()).collect_vec()
     } else {
         Vec::new()
     }

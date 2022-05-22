@@ -142,11 +142,7 @@ pub impl<'a> Ctx<'a> {
     }
 
     fn get_random_stare(&self) -> Option<Emoji> {
-        self.data()
-            .up_emotes
-            .read()
-            .clone()
-            .and_then(|x| x.random_stare())
+        self.data().up_emotes.read().clone().and_then(|x| x.random_stare())
     }
 }
 
@@ -203,10 +199,7 @@ pub impl GuildId {
         })
         .await;
         let msg_fn: BoxedCreateMessageBuilder = Box::new(|m| m.set_embed(create_embed));
-        Ok(channel_id
-            .send_message(&ctx, msg_fn)
-            .await
-            .context("Failed to send embed message")?)
+        Ok(channel_id.send_message(&ctx, msg_fn).await.context("Failed to send embed message")?)
     }
 }
 
@@ -239,10 +232,7 @@ pub impl Message {
             m.set_embed(create_embed)
         });
 
-        self.channel_id
-            .send_message(&ctx, msg_fn)
-            .await
-            .context("Failed to send embed")
+        self.channel_id.send_message(&ctx, msg_fn).await.context("Failed to send embed")
     }
 
     async fn reply_error(
@@ -292,10 +282,7 @@ pub impl ChannelId {
         .await;
 
         let msg_fn: BoxedCreateMessageBuilder = Box::new(|m| m.set_embed(create_embed));
-        Ok(self
-            .send_message(&ctx, msg_fn)
-            .await
-            .context("Failed to send embed message")?)
+        Ok(self.send_message(&ctx, msg_fn).await.context("Failed to send embed message")?)
     }
 }
 
@@ -310,9 +297,7 @@ pub impl CreateEmbed {
 
     fn author_user(&mut self, u: &User) -> &mut Self {
         self.author(|a| {
-            a.name(u.tag())
-                .icon_url(u.face())
-                .url(format!("https://discord.com/users/{}", u.id))
+            a.name(u.tag()).icon_url(u.face()).url(format!("https://discord.com/users/{}", u.id))
         })
     }
 }

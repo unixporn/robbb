@@ -11,9 +11,7 @@ impl Db {
         if blocklist.is_empty() {
             Ok(Regex::new("a^").unwrap())
         } else {
-            Ok(RegexBuilder::new(&blocklist.join("|"))
-                .case_insensitive(true)
-                .build()?)
+            Ok(RegexBuilder::new(&blocklist.join("|")).case_insensitive(true).build()?)
         }
     }
 
@@ -37,13 +35,9 @@ impl Db {
     pub async fn add_blocklist_entry(&self, user_id: UserId, s: &str) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
         let user_id = user_id.0 as i64;
-        sqlx::query!(
-            "insert into blocked_regexes(pattern, added_by) values (?, ?)",
-            s,
-            user_id
-        )
-        .execute(&mut conn)
-        .await?;
+        sqlx::query!("insert into blocked_regexes(pattern, added_by) values (?, ?)", s, user_id)
+            .execute(&mut conn)
+            .await?;
 
         let mut cache = self.blocklist_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
@@ -55,9 +49,7 @@ impl Db {
 
     pub async fn remove_blocklist_entry(&self, s: &str) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
-        sqlx::query!("delete from blocked_regexes where pattern=?", s)
-            .execute(&mut conn)
-            .await?;
+        sqlx::query!("delete from blocked_regexes where pattern=?", s).execute(&mut conn).await?;
 
         let mut cache = self.blocklist_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {

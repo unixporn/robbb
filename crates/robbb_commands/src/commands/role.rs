@@ -54,9 +54,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         if let Some(role_id) = interaction.data.values.first() {
             let mut member = ctx.author_member().await.user_error("Not a member")?;
 
-            member
-                .remove_roles(&ctx.discord(), &config.roles_color)
-                .await?;
+            member.remove_roles(&ctx.discord(), &config.roles_color).await?;
 
             let response_embed = if role_id != ROLE_OPTION_NONE {
                 let role_id = RoleId(role_id.parse()?);
@@ -82,11 +80,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         }
     } else {
         let timed_out_embed = embeds::make_error_embed(ctx.discord(), "No role chosen").await;
-        roles_msg
-            .edit(&ctx.discord(), |e| {
-                e.set_embed(timed_out_embed).components(|c| c)
-            })
-            .await?;
+        roles_msg.edit(&ctx.discord(), |e| e.set_embed(timed_out_embed).components(|c| c)).await?;
     }
 
     Ok(())

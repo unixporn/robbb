@@ -33,10 +33,8 @@ pub async fn message_delete(
     }
 
     if msg.content.starts_with('!') {
-        let close_messages = msg
-            .channel_id
-            .messages(&ctx, |m| m.after(deleted_message_id).limit(5))
-            .await?;
+        let close_messages =
+            msg.channel_id.messages(&ctx, |m| m.after(deleted_message_id).limit(5)).await?;
         let bot_reply = close_messages.iter().find(|x| {
             x.message_reference.as_ref().and_then(|x| x.message_id) == Some(deleted_message_id)
                 && x.author.bot
@@ -47,22 +45,16 @@ pub async fn message_delete(
     }
 
     let deletor = find_deletor(&ctx, &config, &msg).await?;
-    let channel_name = util::channel_name(&ctx, channel_id)
-        .await
-        .unwrap_or_else(|_| "unknown".to_string());
+    let channel_name =
+        util::channel_name(&ctx, channel_id).await.unwrap_or_else(|_| "unknown".to_string());
 
     config
         .channel_bot_messages
         .send_message(&ctx, |m| {
-            m.add_files(attachments.iter().map(|(path, file)| {
-                AttachmentType::File {
-                    filename: path
-                        .file_name()
-                        .and_then(|x| x.to_str())
-                        .unwrap_or("attachment")
-                        .to_string(),
-                    file,
-                }
+            m.add_files(attachments.iter().map(|(path, file)| AttachmentType::File {
+                filename:
+                    path.file_name().and_then(|x| x.to_str()).unwrap_or("attachment").to_string(),
+                file,
             }));
             m.embed(|e| {
                 e.author(|a| a.name("Message Deleted").icon_url(msg.author.face()));
@@ -94,27 +86,16 @@ pub async fn message_delete_bulk(
 
     if deleted_message_ids.len() == 1 {
         let mut deleted_message_ids = deleted_message_ids;
-        message_delete(
-            ctx,
-            channel_id,
-            deleted_message_ids.pop().unwrap(),
-            guild_id,
-        )
-        .await?;
+        message_delete(ctx, channel_id, deleted_message_ids.pop().unwrap(), guild_id).await?;
         return Ok(());
     }
 
     // Channel the messages where in
-    let channel_name = channel_id
-        .name(&ctx)
-        .await
-        .unwrap_or_else(|| "unknown".to_string());
+    let channel_name = channel_id.name(&ctx).await.unwrap_or_else(|| "unknown".to_string());
 
     // Look through the cache to try to find the messages that where just deleted
-    let msgs: Vec<Message> = deleted_message_ids
-        .iter()
-        .filter_map(|id| ctx.cache.message(channel_id, id))
-        .collect();
+    let msgs: Vec<Message> =
+        deleted_message_ids.iter().filter_map(|id| ctx.cache.message(channel_id, id)).collect();
 
     if msgs.is_empty() {
         config
@@ -189,9 +170,7 @@ async fn await_audit_log(
     filter: impl Fn(&AuditLogEntry) -> bool,
 ) -> Result<Option<(AuditLogEntry, std::collections::HashMap<UserId, User>)>> {
     for _ in 0..3 {
-        let results = guild
-            .audit_logs(&ctx, Some(action_type), user_id, None, None)
-            .await?;
+        let results = guild.audit_logs(&ctx, Some(action_type), user_id, None, None).await?;
         let matching_value = results.entries.into_iter().find(|x| filter(x));
         if let Some(matching_value) = matching_value {
             return Ok(Some((matching_value, results.users)));

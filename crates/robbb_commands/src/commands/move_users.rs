@@ -24,10 +24,8 @@ pub async fn move_users(
         abort_with!("I won't move you there");
     }
 
-    let mentions = users
-        .split(' ')
-        .filter_map(|x| Some(x.trim().parse::<UserId>().ok()?.mention()))
-        .join(" ");
+    let mentions =
+        users.split(' ').filter_map(|x| Some(x.trim().parse::<UserId>().ok()?.mention())).join(" ");
 
     if target_channel == config.channel_tech_support {
         Ok(send_ask_in_tech_support(ctx, target_channel, mentions).await?)
@@ -86,9 +84,7 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
     let mut continuation_msg = {
         let continuation_embed = make_continuation_embed(ctx, None).await;
         target_channel
-            .send_message(&ctx.discord(), |m| {
-                m.content(mentions).set_embed(continuation_embed)
-            })
+            .send_message(&ctx.discord(), |m| m.content(mentions).set_embed(continuation_embed))
             .await?
     };
 
@@ -118,9 +114,7 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
         .await?;
 
     let new_continuation_embed = make_continuation_embed(ctx, Some(move_message)).await;
-    continuation_msg
-        .edit(&ctx.discord(), |m| m.set_embed(new_continuation_embed))
-        .await?;
+    continuation_msg.edit(&ctx.discord(), |m| m.set_embed(new_continuation_embed)).await?;
 
     if let poise::Context::Prefix(ctx) = ctx {
         ctx.msg.delete(&ctx.discord).await?;

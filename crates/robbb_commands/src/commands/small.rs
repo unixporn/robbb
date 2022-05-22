@@ -28,8 +28,7 @@ pub async fn say(
     ctx: Ctx<'_>,
     #[description = "What you,.. ummmm. I mean _I_ should say"] message: String,
 ) -> Res<()> {
-    ctx.send(|m| m.content("Sure thing!").ephemeral(true))
-        .await?;
+    ctx.send(|m| m.content("Sure thing!").ephemeral(true)).await?;
     ctx.channel_id().say(&ctx.discord(), message).await?;
     Ok(())
 }
@@ -87,10 +86,7 @@ pub async fn uptime(ctx: Ctx<'_>) -> Res<()> {
     let config = ctx.get_config();
     ctx.send_embed(|e| {
         e.title("Uptime");
-        e.description(format!(
-            "Started {}",
-            util::format_date_detailed(config.time_started)
-        ));
+        e.description(format!("Started {}", util::format_date_detailed(config.time_started)));
     })
     .await?;
     Ok(())
@@ -127,8 +123,7 @@ pub async fn description(
         })
         .await?;
     } else {
-        ctx.say_error(format!("{} hasn't set their description", user.user.tag()))
-            .await?;
+        ctx.say_error(format!("{} hasn't set their description", user.user.tag())).await?;
     }
     Ok(())
 }
@@ -146,11 +141,7 @@ pub async fn dotfiles(ctx: Ctx<'_>, #[description = "The user"] user: Option<Mem
         })
         .await?;
     } else {
-        ctx.say_error(format!(
-            "{} hasn't provided their dotfiles",
-            user.user.tag()
-        ))
-        .await?;
+        ctx.say_error(format!("{} hasn't provided their dotfiles", user.user.tag())).await?;
     }
     Ok(())
 }
@@ -169,11 +160,7 @@ pub async fn git(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>)
         })
         .await?;
     } else {
-        ctx.say_error(format!(
-            "{} hasn't provided their git profile",
-            user.user.tag()
-        ))
-        .await?;
+        ctx.say_error(format!("{} hasn't provided their git profile", user.user.tag())).await?;
     }
     Ok(())
 }

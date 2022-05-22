@@ -47,10 +47,7 @@ pub async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> anyhow::Re
             .find(|x| x.name == "poggersphisch")
             .context("no poggers emote found")?
             .clone(),
-        stares: all_emoji
-            .into_iter()
-            .filter(|x| x.name.starts_with("stare"))
-            .collect(),
+        stares: all_emoji.into_iter().filter(|x| x.name.starts_with("stare")).collect(),
     })
 }
 

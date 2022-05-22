@@ -15,9 +15,10 @@ pub fn init_tracing(honeycomb_api_key: Option<String>) {
     let remove_presence_update_filter = FilterFn::new(|metadata| {
         !(metadata.target() == "serenity::gateway::shard"
             && metadata.name() == "handle_gateway_dispatch"
-            && metadata.fields().field("event").map_or(false, |event| {
-                event.to_string().starts_with("PresenceUpdate")
-            }))
+            && metadata
+                .fields()
+                .field("event")
+                .map_or(false, |event| event.to_string().starts_with("PresenceUpdate")))
     });
 
     let sub = tracing_subscriber::registry::Registry::default()

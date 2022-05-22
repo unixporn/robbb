@@ -10,13 +10,10 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
     let msg = event.message(&ctx).await?;
 
     let is_poll = msg.author.bot
-        && msg.embeds.iter().any(|embed| {
-            embed
-                .title
-                .as_ref()
-                .map(|x| x.starts_with("Poll"))
-                .unwrap_or(false)
-        });
+        && msg
+            .embeds
+            .iter()
+            .any(|embed| embed.title.as_ref().map(|x| x.starts_with("Poll")).unwrap_or(false));
 
     if is_poll {
         // This is rather imperfect, but discord API sucks :/
@@ -38,12 +35,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
             }
         }
     }
-    if !is_poll
-        && msg
-            .reactions
-            .iter()
-            .any(|x| x.reaction_type == event.emoji && x.count == 1)
-    {
+    if !is_poll && msg.reactions.iter().any(|x| x.reaction_type == event.emoji && x.count == 1) {
         handle_reaction_emoji_logging(ctx, event).await?;
     }
     Ok(())
@@ -52,9 +44,9 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
 #[tracing::instrument(skip(ctx))]
 async fn handle_reaction_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
     let (id, animated, name) = match event.emoji {
-        Custom {
-            id, animated, name, ..
-        } => (id, animated, name.context("Could not find name for emoji")?),
+        Custom { id, animated, name, .. } => {
+            (id, animated, name.context("Could not find name for emoji")?)
+        }
         _ => return Ok(()),
     };
 
@@ -67,8 +59,7 @@ async fn handle_reaction_emoji_logging(ctx: client::Context, event: Reaction) ->
     };
 
     let db = ctx.get_db().await;
-    db.alter_emoji_reaction_count(1, &EmojiIdentifier { animated, id, name })
-        .await?;
+    db.alter_emoji_reaction_count(1, &EmojiIdentifier { animated, id, name }).await?;
 
     Ok(())
 }

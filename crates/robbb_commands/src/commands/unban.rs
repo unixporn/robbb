@@ -22,8 +22,7 @@ pub async fn unban(
 
     guild.unban(&ctx.discord(), user_id).await?;
 
-    ctx.say_success(format!("Succesfully deyote {}", user_id.mention()))
-        .await?;
+    ctx.say_success(format!("Succesfully deyote {}", user_id.mention())).await?;
 
     modlog::log_unban(ctx, user).await;
 

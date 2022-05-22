@@ -18,9 +18,9 @@ pub async fn reaction_remove(ctx: client::Context, event: Reaction) -> Result<()
 #[tracing::instrument(skip(ctx))]
 pub async fn handle_emoji_removal(ctx: client::Context, event: Reaction) -> Result<()> {
     let (id, animated, name) = match event.emoji {
-        Custom {
-            id, animated, name, ..
-        } => (id, animated, name.context("Could not find name for emoji")?),
+        Custom { id, animated, name, .. } => {
+            (id, animated, name.context("Could not find name for emoji")?)
+        }
         _ => return Ok(()),
     };
 
@@ -33,8 +33,7 @@ pub async fn handle_emoji_removal(ctx: client::Context, event: Reaction) -> Resu
     };
 
     let db = ctx.get_db().await;
-    db.alter_emoji_reaction_count(-1, &EmojiIdentifier { animated, id, name })
-        .await?;
+    db.alter_emoji_reaction_count(-1, &EmojiIdentifier { animated, id, name }).await?;
 
     Ok(())
 }

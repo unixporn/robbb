@@ -45,9 +45,7 @@ pub async fn check_is_helper_or_mod(ctx: Ctx<'_>) -> Res<bool> {
 pub async fn check_is_not_muted(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
 
-    check_role(ctx.discord(), ctx.author(), config.role_mute)
-        .await
-        .map(|x| !x)
+    check_role(ctx.discord(), ctx.author(), config.role_mute).await.map(|x| !x)
 }
 
 #[tracing::instrument(skip_all, fields(user_id = %user.id.0, role_id = %role.0))]

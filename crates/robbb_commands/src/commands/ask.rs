@@ -42,19 +42,12 @@ pub async fn ask(
 
     let AskModal { title, details } = AskModal::execute_with_defaults(
         app_ctx,
-        AskModal {
-            title: String::new(),
-            details: question.unwrap_or_default(),
-        },
+        AskModal { title: String::new(), details: question.unwrap_or_default() },
     )
     .instrument(tracing::info_span!("wait for modal response"))
     .await?;
 
-    let webhooks = app_ctx
-        .discord
-        .http
-        .get_channel_webhooks(config.channel_tech_support.0)
-        .await?;
+    let webhooks = app_ctx.discord.http.get_channel_webhooks(config.channel_tech_support.0).await?;
     let webhook = match webhooks.into_iter().next() {
         Some(webhook) => webhook,
         None => {
@@ -115,9 +108,7 @@ pub async fn ask(
                 })
             })
         })
-        .instrument(tracing::info_span!(
-            "Send techsupport ping and button message"
-        ))
+        .instrument(tracing::info_span!("Send techsupport ping and button message"))
         .await?;
 
     Ok(())
@@ -143,12 +134,7 @@ pub async fn handle_ask_button_clicked(
 
     let mut control_msg = interaction.message.clone();
 
-    if control_msg
-        .channel_id
-        .to_channel(&ctx)
-        .await?
-        .guild()
-        .and_then(|x| x.parent_id)
+    if control_msg.channel_id.to_channel(&ctx).await?.guild().and_then(|x| x.parent_id)
         != Some(config.channel_tech_support)
     {
         return Ok(false);
@@ -169,25 +155,12 @@ pub async fn handle_ask_button_clicked(
         return Ok(false);
     }
 
-    let webhooks = ctx
-        .http
-        .get_channel_webhooks(config.channel_tech_support.0)
-        .await?;
-    let webhook = webhooks
-        .first()
-        .context("No webhook for techsupport registered")?;
-    let post = ctx
-        .http
-        .get_message(config.channel_tech_support.0, post_id.0)
-        .await?;
+    let webhooks = ctx.http.get_channel_webhooks(config.channel_tech_support.0).await?;
+    let webhook = webhooks.first().context("No webhook for techsupport registered")?;
+    let post = ctx.http.get_message(config.channel_tech_support.0, post_id.0).await?;
 
-    let title = post
-        .content
-        .lines()
-        .next()
-        .context("No lines in message")?
-        .trim_matches('*')
-        .to_string();
+    let title =
+        post.content.lines().next().context("No lines in message")?.trim_matches('*').to_string();
     let details = post.content.lines().skip(1).join("\n");
 
     if action == QuestionButtonKind::Edit {
@@ -198,10 +171,7 @@ pub async fn handle_ask_button_clicked(
             })
             .await?;
 
-        let response = CollectModalInteraction::new(&ctx.shard)
-            .author_id(asker)
-            .await
-            .unwrap();
+        let response = CollectModalInteraction::new(&ctx.shard).author_id(asker).await.unwrap();
 
         // Send acknowledgement so that the pop-up is closed
         response
@@ -214,9 +184,7 @@ pub async fn handle_ask_button_clicked(
             AskModal::parse(response.data.clone()).map_err(serenity::Error::Other)?;
 
         webhook
-            .edit_message(&ctx, post_id, |m| {
-                m.content(format!("**{}**\n{}", title, details))
-            })
+            .edit_message(&ctx, post_id, |m| m.content(format!("**{}**\n{}", title, details)))
             .await?;
     } else if action == QuestionButtonKind::Solved {
         interaction
@@ -232,9 +200,7 @@ pub async fn handle_ask_button_clicked(
             })
             .await?;
 
-        control_msg
-            .edit(&ctx, |e| e.embed(|e| e.title("Solved!")).components(|c| c))
-            .await?;
+        control_msg.edit(&ctx, |e| e.embed(|e| e.title("Solved!")).components(|c| c)).await?;
 
         interaction
             .channel_id
@@ -242,9 +208,7 @@ pub async fn handle_ask_button_clicked(
             .await?
             .guild()
             .context("Thread wasn't a guild channel?")?
-            .edit_thread(ctx, |e| {
-                e.name(format!("[SOLVED] {}", title)).archived(true)
-            })
+            .edit_thread(ctx, |e| e.name(format!("[SOLVED] {}", title)).archived(true))
             .await?;
     }
     Ok(true)
@@ -273,12 +237,8 @@ impl FromStr for QuestionButtonId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (_, rest) = s.split_once('-').context("Malformed QuestionButtonId")?;
-        let (kind, rest) = rest
-            .split_once('-')
-            .context("Malformed QuestionButton id")?;
-        let (user_id, post_id) = rest
-            .split_once('-')
-            .context("Malformed QuestionButton id")?;
+        let (kind, rest) = rest.split_once('-').context("Malformed QuestionButton id")?;
+        let (user_id, post_id) = rest.split_once('-').context("Malformed QuestionButton id")?;
         Ok(Self(
             match kind {
                 "solved" => QuestionButtonKind::Solved,

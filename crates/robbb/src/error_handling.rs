@@ -21,39 +21,24 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
         Setup { error } => {
             tracing::error!(error = %error, "Error during setup: {}", error)
         }
-        Listener {
-            error,
-            event,
-            ctx: _,
-            framework: _,
-        } => {
+        Listener { error, event, ctx: _, framework: _ } => {
             tracing::error!(event = ?event, error = %error, "Error in event listener: {}", error);
         }
         ArgumentParse { input, ctx, error } => {
             log_error!(handle_argument_parse_error(ctx, error, input).await);
         }
         CommandStructureMismatch { description, ctx } => {
-            log_error!(
-                poise::Context::Application(ctx)
-                    .say_error("Something went wrong")
-                    .await
-            );
+            log_error!(poise::Context::Application(ctx).say_error("Something went wrong").await);
             tracing::error!(error="CommandStructureMismach", error.description=%description, "Error in command structure: {}", description);
         }
-        CooldownHit {
-            remaining_cooldown,
-            ctx,
-        } => log_error!(
+        CooldownHit { remaining_cooldown, ctx } => log_error!(
             ctx.say_error(format!(
                 "You're doing this too much. Try again {}",
                 util::format_date_ago(util::time_after_duration(remaining_cooldown))
             ))
             .await
         ),
-        MissingBotPermissions {
-            missing_permissions,
-            ctx,
-        } => {
+        MissingBotPermissions { missing_permissions, ctx } => {
             log_error!(
                 ctx.say_error(format!(
                     "It seems like I am lacking the {} permission",
@@ -67,10 +52,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 missing_permissions
             )
         }
-        MissingUserPermissions {
-            missing_permissions,
-            ctx,
-        } => {
+        MissingUserPermissions { missing_permissions, ctx } => {
             log_error!(ctx.say_error("Missing permissions").await);
             tracing::error!(
                 error = "User missing permissions",
@@ -89,16 +71,12 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
             log_error!(ctx.say_error("This can only be used in DMs").await);
         }
         NsfwOnly { ctx } => {
-            log_error!(
-                ctx.say_error("This can only be used in NSFW channels")
-                    .await
-            );
+            log_error!(ctx.say_error("This can only be used in NSFW channels").await);
         }
         CommandCheckFailed { error, ctx } => {
             if let Some(error) = error {
                 log_error!(
-                    ctx.say_error("Something went wrong while checking your permissions")
-                        .await
+                    ctx.say_error("Something went wrong while checking your permissions").await
                 );
                 tracing::error!(
                     error = %error,
@@ -107,8 +85,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 );
             } else if matches!(ctx, poise::Context::Application(_)) {
                 log_error!(
-                    ctx.send(|m| m.ephemeral(true).content("Insufficient permissions"))
-                        .await
+                    ctx.send(|m| m.ephemeral(true).content("Insufficient permissions")).await
                 );
             }
         }

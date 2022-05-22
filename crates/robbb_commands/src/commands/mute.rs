@@ -33,10 +33,8 @@ pub async fn menu_mute(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
         _ => anyhow::bail!("Menu interaction was not an application command?"),
     };
     let response = create_modal_command_ir::<MuteModal>(app_ctx, interaction, None).await?;
-    let duration = response
-        .duration
-        .parse::<humantime::Duration>()
-        .user_error("Invalid duration")?;
+    let duration =
+        response.duration.parse::<humantime::Duration>().user_error("Invalid duration")?;
     do_mute(ctx, member, duration, response.reason).await?;
     Ok(())
 }
@@ -110,10 +108,7 @@ pub async fn apply_mute(
         reason.unwrap_or_else(|| "no reason".to_string()),
         start_time,
         context,
-        ModActionKind::Mute {
-            end_time,
-            active: true,
-        },
+        ModActionKind::Mute { end_time, active: true },
     )
     .await?;
 
@@ -125,9 +120,7 @@ pub async fn apply_mute(
         .date();
 
     if end_time.date() <= latest_possible_timeout {
-        member
-            .disable_communication_until_datetime(&ctx, end_time.into())
-            .await?;
+        member.disable_communication_until_datetime(&ctx, end_time.into()).await?;
     }
 
     set_mute_role(ctx, member).await?;

@@ -23,9 +23,8 @@ pub async fn message_update(
         err => log_error!("error while handling blocklist in message_update", err),
     };
 
-    let channel_name = util::channel_name(&ctx, event.channel_id)
-        .await
-        .unwrap_or_else(|_| "unknown".to_string());
+    let channel_name =
+        util::channel_name(&ctx, event.channel_id).await.unwrap_or_else(|_| "unknown".to_string());
 
     config
         .guild
@@ -45,10 +44,7 @@ pub async fn message_update(
                 old_if_available
                     .map(|old| old.content)
                     .unwrap_or_else(|| "<Unavailable>".to_string()),
-                event
-                    .content
-                    .clone()
-                    .unwrap_or_else(|| "<Unavailable>".to_string()),
+                event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
                 msg.to_context_link()
             ));
             if let Some(edited_timestamp) = event.edited_timestamp {

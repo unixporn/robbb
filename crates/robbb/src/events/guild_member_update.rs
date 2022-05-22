@@ -2,9 +2,7 @@ use tracing_futures::Instrument;
 
 use super::*;
 
-static HOISTING_CHAR: &[char] = &[
-    '!', '"', '#', '$', '\'', '(', ')', '*', '-', '+', '.', '/', '=',
-];
+static HOISTING_CHAR: &[char] = &['!', '"', '#', '$', '\'', '(', ')', '*', '-', '+', '.', '/', '='];
 
 pub async fn guild_member_update(
     ctx: client::Context,

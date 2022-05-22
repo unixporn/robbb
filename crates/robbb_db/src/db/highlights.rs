@@ -37,10 +37,7 @@ impl HighlightsData {
             .find_iter(s)
             .filter_map(|m| {
                 let trigger = m.as_str();
-                Some((
-                    trigger.to_string(),
-                    self.entries.get(&trigger.to_lowercase())?.clone(),
-                ))
+                Some((trigger.to_string(), self.entries.get(&trigger.to_lowercase())?.clone()))
             })
             .collect()
     }
@@ -54,10 +51,8 @@ impl HighlightsData {
     }
 
     fn remove_entry(&mut self, trigger: &str, user: UserId) -> Result<()> {
-        let user_list = self
-            .entries
-            .get_mut(&trigger.to_lowercase())
-            .context("No entry with that trigger")?;
+        let user_list =
+            self.entries.get_mut(&trigger.to_lowercase()).context("No entry with that trigger")?;
         user_list.retain(|x| x != &user);
         if user_list.is_empty() {
             self.entries.remove(&trigger.to_lowercase());
@@ -125,13 +120,9 @@ impl Db {
         {
             let mut conn = self.pool.acquire().await?;
             let user = user.0 as i64;
-            sqlx::query!(
-                "delete from highlights where word=? and usr=?",
-                trigger,
-                user
-            )
-            .execute(&mut conn)
-            .await?;
+            sqlx::query!("delete from highlights where word=? and usr=?", trigger, user)
+                .execute(&mut conn)
+                .await?;
         }
         let mut cache = self.highlight_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
@@ -152,13 +143,9 @@ impl Db {
         {
             let mut conn = self.pool.acquire().await?;
             let user = user.0 as i64;
-            sqlx::query!(
-                "insert into highlights (word, usr) values (?, ?)",
-                word,
-                user
-            )
-            .execute(&mut conn)
-            .await?;
+            sqlx::query!("insert into highlights (word, usr) values (?, ?)", word, user)
+                .execute(&mut conn)
+                .await?;
         }
         let mut cache = self.highlight_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {
@@ -173,9 +160,7 @@ impl Db {
         {
             let mut conn = self.pool.acquire().await?;
             let user = user.0 as i64;
-            sqlx::query!("delete from highlights where usr=?", user)
-                .execute(&mut conn)
-                .await?;
+            sqlx::query!("delete from highlights where usr=?", user).execute(&mut conn).await?;
         }
 
         let mut cache = self.highlight_cache.write().await;
@@ -188,19 +173,14 @@ impl Db {
     #[tracing::instrument(skip_all)]
     pub async fn remove_forbidden_highlights(&self) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
-        let word_list = BLOCKED_WORDS
-            .iter()
-            .map(|word| format!("'{}'", word.to_ascii_lowercase()))
-            .join(", ");
+        let word_list =
+            BLOCKED_WORDS.iter().map(|word| format!("'{}'", word.to_ascii_lowercase())).join(", ");
 
         // sqlx does not provide any way to properly embed a list here, so we godda use format!().
         // MAKE SURE that word_list never turns into user-provided input!
-        sqlx::query(&format!(
-            "delete from highlights where lower(word) in ({})",
-            word_list,
-        ))
-        .execute(&mut conn)
-        .await?;
+        sqlx::query(&format!("delete from highlights where lower(word) in ({})", word_list,))
+            .execute(&mut conn)
+            .await?;
         Ok(())
     }
 }

@@ -46,10 +46,7 @@ pub fn ellipsis_text(text: &str, max_len: usize) -> String {
 }
 
 pub fn thread_title_from_text(text: &str) -> Result<String> {
-    let title = text
-        .lines()
-        .find(|x| !x.trim().is_empty())
-        .context("Text was empty")?;
+    let title = text.lines().find(|x| !x.trim().is_empty()).context("Text was empty")?;
 
     Ok(ellipsis_text(title, 96))
 }
@@ -86,13 +83,9 @@ pub fn format_date_before_plaintext(
     a: chrono::DateTime<chrono::Utc>,
     b: chrono::DateTime<chrono::Utc>,
 ) -> String {
-    let actual_date = a
-        .checked_add_signed(chrono::Utc::now().signed_duration_since(b))
-        .unwrap();
-    let formatted = chrono_humanize::HumanTime::from(actual_date).to_text_en(
-        chrono_humanize::Accuracy::Rough,
-        chrono_humanize::Tense::Past,
-    );
+    let actual_date = a.checked_add_signed(chrono::Utc::now().signed_duration_since(b)).unwrap();
+    let formatted = chrono_humanize::HumanTime::from(actual_date)
+        .to_text_en(chrono_humanize::Accuracy::Rough, chrono_humanize::Tense::Past);
     // lmao
     if formatted == "now ago" {
         "now".to_string()
@@ -198,13 +191,9 @@ pub fn generate_message_link(
     message_id: i64,
 ) -> String {
     match guild_id {
-        Some(guild_id) => format!(
-            "https://discord.com/channels/{}/{}/{}",
-            guild_id, channel_id, message_id
-        ),
-        None => format!(
-            "https://discord.com/channels/@me/{}/{}",
-            channel_id, message_id
-        ),
+        Some(guild_id) => {
+            format!("https://discord.com/channels/{}/{}/{}", guild_id, channel_id, message_id)
+        }
+        None => format!("https://discord.com/channels/@me/{}/{}", channel_id, message_id),
     }
 }

@@ -20,10 +20,7 @@ impl PaginatedEmbed {
         embeds: impl IntoIterator<Item = CreateEmbed>,
         base_embed: CreateEmbed,
     ) -> PaginatedEmbed {
-        PaginatedEmbed {
-            pages: embeds.into_iter().collect(),
-            base_embed,
-        }
+        PaginatedEmbed { pages: embeds.into_iter().collect(), base_embed }
     }
 
     pub async fn create_from_fields(
@@ -44,11 +41,7 @@ impl PaginatedEmbed {
                 } else {
                     e.title(format!("{} ({}/{})", title, page_idx + 1, page_cnt));
                 }
-                e.fields(
-                    fields
-                        .map(|(k, v)| (k, ellipsis_text(&v, 500), false))
-                        .collect_vec(),
-                );
+                e.fields(fields.map(|(k, v)| (k, ellipsis_text(&v, 500), false)).collect_vec());
                 e
             })
             .collect_vec();
@@ -61,16 +54,13 @@ impl PaginatedEmbed {
         let pages = self.pages.clone();
         match pages.len() {
             0 => {
-                let handle = ctx
-                    .send_embed_full(ephemeral, |e| e.clone_from(&self.base_embed))
-                    .await?;
+                let handle =
+                    ctx.send_embed_full(ephemeral, |e| e.clone_from(&self.base_embed)).await?;
                 Ok(handle.message().await?)
             }
             1 => {
                 let page = self.pages.first().unwrap();
-                let handle = ctx
-                    .send_embed_full(ephemeral, |e| e.clone_from(page))
-                    .await?;
+                let handle = ctx.send_embed_full(ephemeral, |e| e.clone_from(page)).await?;
                 Ok(handle.message().await?)
             }
             _ => {
@@ -152,15 +142,9 @@ async fn handle_pagination_interactions(
 
 fn make_paginate_components(page_idx: usize, page_cnt: usize) -> CreateComponents {
     let mut row = CreateActionRow::default();
+    row.create_button(|b| b.label("←").disabled(page_idx == 0).custom_id(PAGINATION_LEFT));
     row.create_button(|b| {
-        b.label("←")
-            .disabled(page_idx == 0)
-            .custom_id(PAGINATION_LEFT)
-    });
-    row.create_button(|b| {
-        b.label("→")
-            .disabled(page_idx >= page_cnt - 1)
-            .custom_id(PAGINATION_RIGHT)
+        b.label("→").disabled(page_idx >= page_cnt - 1).custom_id(PAGINATION_RIGHT)
     });
     let mut components = CreateComponents::default();
     components.set_action_row(row);

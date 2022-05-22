@@ -17,10 +17,7 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
         config
             .channel_modlog
             .send_embed(&ctx, |e| {
-                e.author(|a| {
-                    a.name("Mute evasion caught")
-                        .icon_url(new_member.user.face())
-                });
+                e.author(|a| a.name("Mute evasion caught").icon_url(new_member.user.face()));
                 e.title(new_member.user.name_with_disc_and_id());
                 e.description(format!(
                     "User {} was muted and rejoined.\nReadding the mute role.",

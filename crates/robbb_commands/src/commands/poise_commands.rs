@@ -30,19 +30,14 @@ pub async fn delete(
 
         ctx.say_success(format!(
             "Deleted global commands: {}",
-            global_commands
-                .iter()
-                .map(|x| x.name.to_string())
-                .join(", ")
+            global_commands.iter().map(|x| x.name.to_string()).join(", ")
         ))
         .await?;
     } else if let Some(guild) = ctx.guild() {
         let commands = guild.get_application_commands(ctx.discord()).await?;
         for command in &commands {
             tracing::debug!(deleted_command_name = %command.name, "Deleting application command {}", command.name);
-            guild
-                .delete_application_command(ctx.discord(), command.id)
-                .await?;
+            guild.delete_application_command(ctx.discord(), command.id).await?;
         }
         ctx.say_success(format!(
             "Deleted application commands: {}",

@@ -56,9 +56,9 @@ async fn main() -> anyhow::Result<()> {
         }),
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("!".into()),
-            edit_tracker: Some(poise::EditTracker::for_timespan(
-                std::time::Duration::from_secs(10),
-            )),
+            edit_tracker: Some(poise::EditTracker::for_timespan(std::time::Duration::from_secs(
+                10,
+            ))),
             execute_untracked_edits: true,
             execute_self_messages: false,
             case_insensitive_commands: true,
@@ -105,11 +105,8 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
         poise::Context::Application(_) => "<slash command>".to_string(),
         poise::Context::Prefix(prefix) => prefix.msg.content.to_string(),
     };
-    let channel_name = ctx
-        .channel_id()
-        .to_channel_cached(&ctx.discord())
-        .and_then(|x| x.guild())
-        .map(|x| x.name);
+    let channel_name =
+        ctx.channel_id().to_channel_cached(&ctx.discord()).and_then(|x| x.guild()).map(|x| x.name);
 
     let span = tracing::Span::current();
     span.record("command_name", &ctx.command().qualified_name.as_str());

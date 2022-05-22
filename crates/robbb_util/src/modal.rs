@@ -6,13 +6,10 @@ use poise::serenity_prelude::{
 use crate::prelude::{AppCtx, Res};
 
 async fn wait_for_modal_ir_response<T: poise::Modal>(ctx: AppCtx<'_>, user_id: UserId) -> Res<T> {
-    ctx.has_sent_initial_response
-        .store(true, std::sync::atomic::Ordering::SeqCst);
+    ctx.has_sent_initial_response.store(true, std::sync::atomic::Ordering::SeqCst);
     // Wait for user to submit
-    let response = CollectModalInteraction::new(&ctx.discord.shard)
-        .author_id(user_id)
-        .await
-        .unwrap();
+    let response =
+        CollectModalInteraction::new(&ctx.discord.shard).author_id(user_id).await.unwrap();
 
     // Send acknowledgement so that the pop-up is closed
     response

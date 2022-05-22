@@ -51,13 +51,6 @@ pub fn await_component_interactions_by(
     by_user_limit: usize,
     timeout: std::time::Duration,
 ) -> UserSpecificComponentInteractionCollector {
-    let collector = message
-        .await_component_interactions(&ctx)
-        .timeout(timeout)
-        .build();
-    UserSpecificComponentInteractionCollector {
-        user_id,
-        by_user_limit,
-        inner_collector: collector,
-    }
+    let collector = message.await_component_interactions(&ctx).timeout(timeout).build();
+    UserSpecificComponentInteractionCollector { user_id, by_user_limit, inner_collector: collector }
 }

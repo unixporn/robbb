@@ -12,11 +12,7 @@ pub struct EmojiStats {
 
 impl EmojiStats {
     pub fn new(emoji_id: EmojiIdentifier) -> EmojiStats {
-        EmojiStats {
-            emoji: emoji_id,
-            reactions: 0,
-            in_text: 0,
-        }
+        EmojiStats { emoji: emoji_id, reactions: 0, in_text: 0 }
     }
 }
 

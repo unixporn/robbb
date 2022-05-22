@@ -41,18 +41,15 @@ async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachm
     let file_path = dir_path.as_ref().join(attachment.filename);
     tracing::debug!("Storing file {}", &file_path.display());
 
-    let resp = reqwest::get(&attachment.url)
-        .await
-        .context("Failed to load attachment")?;
+    let resp = reqwest::get(&attachment.url).await.context("Failed to load attachment")?;
     let mut body = resp
         .bytes_stream()
         .map_err(|e| futures::io::Error::new(futures::io::ErrorKind::Other, e))
         .into_async_read()
         .compat();
 
-    let mut attachment_file = tokio::fs::File::create(file_path)
-        .await
-        .context("Failed to create attachment log file")?;
+    let mut attachment_file =
+        tokio::fs::File::create(file_path).await.context("Failed to create attachment log file")?;
 
     tokio::io::copy(&mut body, &mut attachment_file).await?;
     Ok(())

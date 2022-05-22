@@ -76,10 +76,7 @@ pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[Use
             e.author_user(ctx.author());
             e.description(format!(
                 "yote user(s):\n{}\n{}",
-                successful_bans
-                    .iter()
-                    .map(|x| format!("- {}", x.mention_and_tag()))
-                    .join("\n"),
+                successful_bans.iter().map(|x| format!("- {}", x.mention_and_tag())).join("\n"),
                 context_msg.to_context_link(),
             ));
             e.field("Reason", reason, false);
@@ -147,11 +144,7 @@ pub async fn log_mute_for_spamming(
                 spam_msg.author.mention_and_tag(),
                 spam_msg.to_context_link(),
             ));
-            e.field(
-                "Duration",
-                humantime::Duration::from(duration).to_string(),
-                false,
-            );
+            e.field("Duration", humantime::Duration::from(duration).to_string(), false);
         })
         .await;
 }
