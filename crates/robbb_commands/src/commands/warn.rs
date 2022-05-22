@@ -70,7 +70,7 @@ async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
         user.id,
         reason.to_string(),
         Utc::now(),
-        Some(success_msg.link()),
+        success_msg.link(),
         ModActionKind::Warn,
     )
     .await?;

@@ -38,14 +38,14 @@ pub async fn note_add(
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let success_msg = ctx.say_success("Noting...").await?.message().await.ok();
+    let success_msg = ctx.say_success("Noting...").await?.message().await?;
 
     db.add_mod_action(
         ctx.author().id,
         user.id,
         content.to_string(),
         Utc::now(),
-        success_msg.map(|x| x.link()),
+        success_msg.link(),
         robbb_db::mod_action::ModActionKind::ManualNote,
     )
     .await?;

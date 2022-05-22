@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context, Result};
+use poise::serenity_prelude::GuildId;
 use serenity::{
     client,
     model::{id::ChannelId, misc::EmojiIdentifier},
@@ -180,4 +181,30 @@ pub async fn channel_name(ctx: &client::Context, channel_id: ChannelId) -> Resul
         .guild()
         .context("Failed to get guild channel for channel object")?;
     Ok(channel.name().to_string())
+}
+
+/// Discord snowflakes are just fancy timestamps, kinda.
+/// This function converts a time into a discord snowflake that may be used to link to a point in chat without requiring a specific message.
+///
+/// See [here](https://discord.com/developers/docs/reference#snowflake-ids-in-pagination-generating-a-snowflake-id-from-a-timestamp-example)
+pub fn time_to_discord_snowflake(time: chrono::DateTime<chrono::Utc>) -> i64 {
+    const DISCORD_EPOCH: i64 = 1420070400000;
+    (time.timestamp_millis() - DISCORD_EPOCH) << 22
+}
+
+pub fn generate_message_link(
+    guild_id: Option<GuildId>,
+    channel_id: ChannelId,
+    message_id: i64,
+) -> String {
+    match guild_id {
+        Some(guild_id) => format!(
+            "https://discord.com/channels/{}/{}/{}",
+            guild_id, channel_id, message_id
+        ),
+        None => format!(
+            "https://discord.com/channels/@me/{}/{}",
+            channel_id, message_id
+        ),
+    }
 }

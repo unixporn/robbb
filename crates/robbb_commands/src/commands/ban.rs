@@ -221,7 +221,7 @@ async fn handle_single_ban(
         user.id,
         reason.to_string(),
         Utc::now(),
-        Some(ctx_message.link()),
+        ctx_message.link(),
         robbb_db::mod_action::ModActionKind::Ban,
     )
     .await?;

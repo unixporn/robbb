@@ -6,6 +6,7 @@ use serenity::model::id::UserId;
 
 use super::Db;
 
+#[derive(Debug)]
 pub struct ModAction {
     pub id: i64,
     pub moderator: UserId,
@@ -16,6 +17,7 @@ pub struct ModAction {
     pub kind: ModActionKind,
 }
 
+#[derive(Debug)]
 pub enum ModActionKind {
     ManualNote,
     BlocklistViolation,
@@ -131,14 +133,23 @@ impl DbModActionFields {
 }
 
 impl Db {
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(skip_all,
+        fields(
+            mod_action.moderator = %moderator.0,
+            mod_action.user_id = %user.0,
+            mod_action.reason = %reason,
+            mod_action.create_date = %create_date,
+            mod_action.context = %context,
+            mod_action.kind = ?kind
+        )
+    )]
     pub async fn add_mod_action(
         &self,
         moderator: UserId,
         user: UserId,
         reason: String,
         create_date: DateTime<Utc>,
-        context: Option<String>,
+        context: String,
         kind: ModActionKind,
     ) -> Result<ModAction> {
         let mut trans = self.pool.begin().await?;
@@ -179,7 +190,7 @@ impl Db {
             user,
             reason,
             create_date: Some(create_date),
-            context,
+            context: Some(context),
             kind,
         })
     }
@@ -214,6 +225,7 @@ impl Db {
         Ok(actions)
     }
 
+    #[tracing::instrument(skip_all, fields(mod_action.id = %id))]
     pub async fn get_mod_action(&self, id: i64) -> Result<ModAction> {
         let mut conn = self.pool.acquire().await?;
         let action = sqlx::query_as!(
@@ -230,6 +242,7 @@ impl Db {
         Ok(action.to_mod_action()?)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn count_mod_actions(&self, user: UserId, action_type: ModActionType) -> Result<i32> {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
@@ -243,6 +256,7 @@ impl Db {
         .await?)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn count_all_mod_actions(&self, user: UserId) -> Result<HashMap<ModActionType, i32>> {
         let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
@@ -258,6 +272,7 @@ impl Db {
         )
     }
 
+    #[tracing::instrument(skip_all, fields(mod_action.id = %id))]
     pub async fn remove_mod_action(&self, user: UserId, id: i64) -> Result<bool> {
         let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
@@ -267,6 +282,7 @@ impl Db {
         Ok(result.rows_affected() > 0)
     }
 
+    #[tracing::instrument(skip_all, fields(mod_action.id = %id, mod_action.moderator = %moderator.0, mod_action.new_reason = %new_reason))]
     pub async fn edit_mod_action_reason(
         &self,
         id: i64,

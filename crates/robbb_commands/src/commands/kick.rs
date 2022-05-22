@@ -41,7 +41,7 @@ pub async fn kick(
         user.id,
         reason.to_string(),
         Utc::now(),
-        Some(success_msg.link()),
+        success_msg.link(),
         robbb_db::mod_action::ModActionKind::Kick,
     )
     .await?;

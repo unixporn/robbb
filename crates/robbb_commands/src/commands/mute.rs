@@ -79,7 +79,7 @@ async fn do_mute(
         member.clone(),
         *duration,
         reason.clone(),
-        Some(success_msg.link()),
+        success_msg.link(),
     )
     .await?;
 
@@ -94,7 +94,7 @@ pub async fn apply_mute(
     mut member: Member,
     duration: std::time::Duration,
     reason: Option<String>,
-    context: Option<String>,
+    context: String,
 ) -> anyhow::Result<()> {
     let db = ctx.get_db().await;
 

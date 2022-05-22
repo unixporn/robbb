@@ -2,6 +2,7 @@ use chrono::Utc;
 use poise::serenity_prelude::message_component::ActionRowComponent;
 use robbb_commands::checks::{self, PermissionLevel};
 use robbb_db::mod_action::ModActionKind;
+use robbb_util::util::{generate_message_link, time_to_discord_snowflake};
 use tracing_futures::Instrument;
 
 use super::*;
@@ -57,7 +58,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
                     msg.author.id,
                     note_content,
                     Utc::now(),
-                    Some(msg.link()),
+                    msg.link(),
                     ModActionKind::BlocklistViolation,
                 )
                 .await;
@@ -106,6 +107,12 @@ pub async fn handle_blocklist_in_interaction(
             tracing::Span::current().record("blocklist.blocked_word", &word);
             tracing::Span::current().record("interaction.user", &values.user.tag().as_str());
 
+            let context_link = generate_message_link(
+                values.guild_id,
+                values.channel_id,
+                time_to_discord_snowflake(Utc::now()),
+            );
+
             let bot_log_future = config.log_automod_action(&ctx, |e| {
                 e.author_user(&values.user);
                 e.title("Interaction aborted because of blocked word");
@@ -125,7 +132,7 @@ pub async fn handle_blocklist_in_interaction(
                         values.user.id,
                         note_content,
                         Utc::now(),
-                        None,
+                        context_link,
                         ModActionKind::BlocklistViolation,
                     )
                     .await;
@@ -166,6 +173,8 @@ pub async fn handle_blocklist_in_interaction(
 struct InteractionValues<'a> {
     values: Vec<&'a str>,
     user: &'a User,
+    guild_id: Option<GuildId>,
+    channel_id: ChannelId,
     title: &'a str,
 }
 
@@ -174,8 +183,8 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
         Interaction::Ping(_) | Interaction::MessageComponent(_) | Interaction::Autocomplete(_) => {
             None
         }
-        Interaction::ApplicationCommand(command_interaction) => {
-            let values = command_interaction
+        Interaction::ApplicationCommand(interaction) => {
+            let values = interaction
                 .data
                 .options
                 .iter()
@@ -184,12 +193,14 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
 
             Some(InteractionValues {
                 values,
-                user: &command_interaction.user,
-                title: &command_interaction.data.name,
+                channel_id: interaction.channel_id,
+                guild_id: interaction.guild_id,
+                user: &interaction.user,
+                title: &interaction.data.name,
             })
         }
-        Interaction::ModalSubmit(modal_interaction) => Some(InteractionValues {
-            values: modal_interaction
+        Interaction::ModalSubmit(interaction) => Some(InteractionValues {
+            values: interaction
                 .data
                 .components
                 .iter()
@@ -199,7 +210,9 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
                     _ => None,
                 })
                 .collect(),
-            user: &modal_interaction.user,
+            user: &interaction.user,
+            channel_id: interaction.channel_id,
+            guild_id: interaction.guild_id,
             title: "Modal",
         }),
     }
