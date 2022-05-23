@@ -54,6 +54,9 @@ pub async fn set_fetch_update(
     #[description = "GTK icon theme"] gtk_icon_theme: Option<String>,
     #[description = "CPU"] cpu: Option<String>,
     #[description = "GPU"] gpu: Option<String>,
+    #[description = "Description"] description: Option<String>,
+    #[description = "Dotfiles"] dotfiles: Option<String>,
+    #[description = "Git"] git: Option<String>,
     #[description = "Memory"] memory: Option<String>,
 ) -> Res<()> {
     let image = image.map(|i| i.url);
@@ -84,6 +87,9 @@ pub async fn set_fetch_update(
         FetchField::Icons => gtk_icon_theme,
         FetchField::CPU => cpu,
         FetchField::GPU => gpu,
+        FetchField::Dotfiles => dotfiles,
+        FetchField::Description => description,
+        FetchField::Git => git,
         FetchField::Memory => memory,
     };
     let info = data.into_iter().filter_map(|(k, v)| Some((k, v?))).collect();
