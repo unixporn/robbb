@@ -204,7 +204,8 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 let embed = embed.clone();
                 tokio::spawn(async move {
                     let _ = dm_channel.send_message(&ctx, |m| m.set_embed(embed)).await;
-                });
+                })
+                .instrument(tracing::info_span!("send_highlight_notification"));
             }
         }
     }
