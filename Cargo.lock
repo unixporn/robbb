@@ -660,7 +660,7 @@ dependencies = [
  "indexmap",
  "slab",
  "tokio 1.19.2",
- "tokio-util 0.7.1",
+ "tokio-util 0.7.3",
  "tracing",
 ]
 
@@ -1712,7 +1712,7 @@ dependencies = [
  "serenity",
  "thiserror",
  "tokio 1.19.2",
- "tokio-util 0.7.1",
+ "tokio-util 0.7.3",
  "tracing",
  "tracing-futures",
  "tracing-honeycomb",
@@ -1747,7 +1747,7 @@ dependencies = [
  "serenity",
  "thiserror",
  "tokio 1.19.2",
- "tokio-util 0.7.1",
+ "tokio-util 0.7.3",
  "tracing",
  "tracing-futures",
  "unicase",
@@ -1793,7 +1793,7 @@ dependencies = [
  "serenity",
  "thiserror",
  "tokio 1.19.2",
- "tokio-util 0.7.1",
+ "tokio-util 0.7.3",
  "tracing",
  "tracing-futures",
  "url",
@@ -2427,9 +2427,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.1"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0edfdeb067411dba2044da6d1cb2df793dd35add7888d73c16e3381ded401764"
+checksum = "cc463cd8deddc3770d20f9852143d50bf6094e640b485cb2e189a2099085ff45"
 dependencies = [
  "bytes 1.1.0",
  "futures-core",
