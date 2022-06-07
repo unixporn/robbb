@@ -30,15 +30,21 @@ futures = "0.3"
 
 unicase = "2.6.0"
 
+cpu-monitor = "0.1.1"
+poise = "0.2.0"
+parking_lot = "0.12"
+
 tracing = "0.1.31"
 tracing-log = "0.1.2"
 tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.0", features = [ "std", "env-filter" ] }
-tracing-honeycomb = "0.4.3"
-libhoney-rust = "0.1.6"
-cpu-monitor = "0.1.1"
-poise = "0.2.0"
-parking_lot = "0.12"
+# we're using my fork of tracing-honeycomb, as we want to use an unreleased version of libhoney-rust (which tracing-honeycomb also transitively depends on)
+# this is because libhoney-rusts latest released version still depends on an old version of tokio, which is affected by https://github.com/advisories/GHSA-fg7r-2g4j-5cgr
+tracing-honeycomb = { git = "https://github.com/elkowar/tracing-honeycomb", branch = "latest" }
+libhoney-rust = { git = "https://github.com/nlopes/libhoney-rust", rev = "f64def9dad3523866be429866fa2821d8b0e21ad" }
+#tracing-honeycomb = "0.4.3"
+#libhoney-rust = "0.1.6"
+
 
 robbb_db = { path = "../robbb_db" }
 robbb_util = { path = "../robbb_util" }
