@@ -53,11 +53,13 @@ pub async fn warn(
 async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
     let db = ctx.get_db();
     let warn_count = db.count_mod_actions(user.id, ModActionType::Warn).await?;
+
+    let police = ctx.get_up_emotes().map(|x| x.police.to_string()).unwrap_or_default();
+
     let success_msg = ctx
-        .say_success_mod_action(format!(
-            "{} has been warned by {} for the {} time for reason: {}",
+        .say(format!(
+            "{police}{police} Warning {} for the {} time. {police}{police}\nReason: {}",
             user.mention(),
-            ctx.author().id.mention(),
             util::format_count(warn_count + 1),
             reason,
         ))

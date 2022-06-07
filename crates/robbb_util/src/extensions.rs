@@ -37,6 +37,10 @@ pub impl<'a> Ctx<'a> {
         self.data().db.clone()
     }
 
+    fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
+        self.data().up_emotes.read().clone()
+    }
+
     async fn send_embed<F>(&self, build: F) -> StdResult<ReplyHandle<'_>, serenity::Error>
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,

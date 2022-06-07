@@ -65,8 +65,14 @@ async fn do_mute(
     duration: humantime::Duration,
     reason: Option<String>,
 ) -> Res<()> {
+    let police = ctx.get_up_emotes().map(|x| x.police.to_string()).unwrap_or_default();
     let success_msg = ctx
-        .say_success_mod_action(format!("Muting {} for {}", member.mention(), duration))
+        .say(format!(
+            "{police}{police} Muting {} for {}. {police}{police}{}",
+            member.mention(),
+            duration,
+            reason.as_ref().map(|x| format!("\nReason: {}", x)).unwrap_or_default()
+        ))
         .await?
         .message()
         .await?;
