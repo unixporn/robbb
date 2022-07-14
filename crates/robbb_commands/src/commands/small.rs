@@ -53,7 +53,7 @@ pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
             let msg_time = prefix_ctx.msg.timestamp;
             let now = Utc::now();
             Some(std::time::Duration::from_millis(
-                (now.timestamp_millis() - msg_time.timestamp_millis()).abs() as u64,
+                (now.timestamp_millis() - msg_time.timestamp_millis()).unsigned_abs(),
             ))
         }
     };
