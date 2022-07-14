@@ -18,7 +18,7 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
         })
         .await;
 
-    let _ = ctx.set_presence(Some(Activity::listening("/help")), OnlineStatus::Online).await;
+    ctx.set_presence(Some(Activity::listening("/help")), OnlineStatus::Online).await;
 
     dehoist_everyone(ctx.clone(), config.guild).await;
 
