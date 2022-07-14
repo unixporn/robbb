@@ -2,6 +2,12 @@ use regex::Regex;
 
 use super::*;
 
+pub static SHOULD_NEVER_TRIGGER_BLOCKLIST: &[&str] = &[
+    "",
+    "Hello, I am new to linux, and I'd love to get some help with my GNOME installation.",
+    "I use Arch with GNOME, but for some reason, my backspace key doesn't work properly. Someone please help",
+];
+
 /// Control the blocklist
 #[poise::command(
     slash_command,
@@ -26,7 +32,11 @@ pub async fn blocklist_add(
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let _ = Regex::new(&pattern).user_error("Illegal regex pattern")?;
+    let regex = Regex::new(&pattern).user_error("Illegal regex pattern")?;
+
+    if SHOULD_NEVER_TRIGGER_BLOCKLIST.iter().any(|x| regex.is_match(x)) {
+        abort_with!("Pattern matches one of the test strings it should never match. Make sure you're not matching the empty string or anything else you don't want to.")
+    }
 
     db.add_blocklist_entry(ctx.author().id, &pattern).await?;
 

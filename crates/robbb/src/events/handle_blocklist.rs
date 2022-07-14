@@ -1,6 +1,9 @@
 use chrono::Utc;
 use poise::serenity_prelude::message_component::ActionRowComponent;
-use robbb_commands::checks::{self, PermissionLevel};
+use robbb_commands::{
+    checks::{self, PermissionLevel},
+    commands::blocklist::SHOULD_NEVER_TRIGGER_BLOCKLIST,
+};
 use robbb_db::mod_action::ModActionKind;
 use robbb_util::util::{generate_message_link, time_to_discord_snowflake};
 use tracing_futures::Instrument;
@@ -18,6 +21,11 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
     // remove invisible characters
     let normalized_msg = msg.content.replace(INVISIBLE_CHARS, "");
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
+    if SHOULD_NEVER_TRIGGER_BLOCKLIST.iter().any(|x| blocklist_regex.is_match(x)) {
+        tracing::error!("Blocklist regex matches one of the sanity check patterns. Make sure none of the blocklist entries match the empty string.");
+        return Ok(false);
+    }
+
     if let Some(word) = blocklist_regex.find(&normalized_msg) {
         if checks::get_permission_level(&ctx, &msg.author).await? == PermissionLevel::Mod {
             return Ok(false);
