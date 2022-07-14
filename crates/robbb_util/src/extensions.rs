@@ -153,8 +153,12 @@ pub impl<'a> Ctx<'a> {
 #[extend::ext(name = ClientContextExt)]
 #[async_trait]
 pub impl client::Context {
-    async fn get_guild_emojis(&self, id: GuildId) -> Option<HashMap<EmojiId, Emoji>> {
-        Some(self.cache.guild(id)?.emojis)
+    async fn get_guild_emojis(&self, id: GuildId) -> Result<HashMap<EmojiId, Emoji>> {
+        if let Some(emoji) = self.cache.guild_field(id, |guild| guild.emojis.clone()) {
+            Ok(emoji)
+        } else {
+            Ok(self.http.get_guild(*id.as_u64()).await?.emojis)
+        }
     }
 
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {

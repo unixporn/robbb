@@ -4,7 +4,7 @@ use robbb_util::embeds;
 
 use super::*;
 
-/// Set your role.
+/// Select a role. The role can be selected in a popup.
 #[poise::command(
     slash_command,
     guild_only,

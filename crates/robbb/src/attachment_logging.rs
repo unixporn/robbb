@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio_util::compat::FuturesAsyncReadCompatExt;
+use tracing_futures::Instrument;
 
 use serenity::{
     futures::{self, future::try_join_all, TryStreamExt},
@@ -103,10 +104,13 @@ pub async fn cleanup(config: &Config) -> Result<()> {
         files.sort_by_key(|(_, meta)| meta.modified().expect("Unsupported platform"));
     }
 
+    tracing::info!("{} bytes currently occupied by attachment logging", total_size_bytes);
+
     while total_size_bytes > config.attachment_cache_max_size && !files.is_empty() {
         let (file, meta) = files.remove(0);
-        tracing::debug!("deleting {}", file.path().display());
-        tokio::fs::remove_file(file.path()).await?;
+        tokio::fs::remove_file(file.path())
+            .instrument(tracing::info_span!("Deleting file", file_name = %file.path().display(), size = meta.size()))
+            .await?;
         total_size_bytes -= meta.size() as usize;
     }
     Ok(())

@@ -33,7 +33,10 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         log_error!(handle_techsupport_post(ctx.clone(), &msg).await);
     }
 
-    if msg.channel_id != config.channel_bot_messages && !msg.content.starts_with("!emojistats") {
+    if !msg.is_private()
+        && msg.channel_id != config.channel_bot_messages
+        && !msg.content.starts_with("!emojistats")
+    {
         match handle_msg_emoji_logging(&ctx, &msg).await {
             Ok(emoji_used) => {
                 tracing::Span::current().record("message_create.emoji_used", &emoji_used);
@@ -214,7 +217,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     Ok(handled_users.len())
 }
 
-#[tracing::instrument(skip_all, fields(msg_emoji_logging.emoji_used))]
+#[tracing::instrument(skip_all, fields(msg_emoji_logging.emoji_used, guild_id = ?msg.guild_id))]
 async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<usize> {
     let actual_emojis = util::find_emojis(&msg.content);
     if actual_emojis.is_empty() {
