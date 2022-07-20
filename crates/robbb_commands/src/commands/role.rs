@@ -1,5 +1,5 @@
 use futures::StreamExt;
-use poise::serenity_prelude::RoleId;
+use poise::serenity_prelude::{interaction::InteractionResponseType, RoleId};
 use robbb_util::embeds;
 
 use super::*;
@@ -43,6 +43,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
     let mut roles_msg = handle.message().await?;
 
     if let Some(interaction) = roles_msg
+        .to_mut()
         .await_component_interactions(&ctx.discord())
         .author_id(ctx.author().id)
         .timeout(std::time::Duration::from_secs(10))
@@ -54,11 +55,11 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         if let Some(role_id) = interaction.data.values.first() {
             let mut member = ctx.author_member().await.user_error("Not a member")?;
 
-            member.remove_roles(&ctx.discord(), &config.roles_color).await?;
+            member.to_mut().remove_roles(&ctx.discord(), &config.roles_color).await?;
 
             let response_embed = if role_id != ROLE_OPTION_NONE {
                 let role_id = RoleId(role_id.parse()?);
-                member.add_role(&ctx.discord(), role_id).await?;
+                member.to_mut().add_role(&ctx.discord(), role_id).await?;
 
                 embeds::make_success_embed(
                     ctx.discord(),
@@ -71,16 +72,18 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
 
             interaction
                 .create_interaction_response(&ctx.discord(), |ir| {
-                    ir.kind(poise::serenity_prelude::InteractionResponseType::UpdateMessage)
-                        .interaction_response_data(|d| {
-                            d.set_embed(response_embed).components(|c| c)
-                        })
+                    ir.kind(InteractionResponseType::UpdateMessage).interaction_response_data(|d| {
+                        d.set_embed(response_embed).components(|c| c)
+                    })
                 })
                 .await?;
         }
     } else {
         let timed_out_embed = embeds::make_error_embed(ctx.discord(), "No role chosen").await;
-        roles_msg.edit(&ctx.discord(), |e| e.set_embed(timed_out_embed).components(|c| c)).await?;
+        roles_msg
+            .to_mut()
+            .edit(&ctx.discord(), |e| e.set_embed(timed_out_embed).components(|c| c))
+            .await?;
     }
 
     Ok(())

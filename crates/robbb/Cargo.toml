@@ -31,7 +31,7 @@ futures = "0.3"
 unicase = "2.6.0"
 
 cpu-monitor = "0.1.1"
-poise = "0.2.0"
+poise = "0.2"
 parking_lot = "0.12"
 
 tracing = "0.1.31"

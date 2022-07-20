@@ -38,7 +38,8 @@ pub async fn note_add(
 ) -> Res<()> {
     let db = ctx.get_db();
 
-    let success_msg = ctx.say_success("Noting...").await?.message().await?;
+    let success_msg = ctx.say_success("Noting...").await?;
+    let success_msg = success_msg.message().await?;
 
     db.add_mod_action(
         ctx.author().id,

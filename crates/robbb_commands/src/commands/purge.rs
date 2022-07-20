@@ -28,13 +28,12 @@ pub async fn purge(
     let count = count.unwrap_or(MAX_BULK_DELETE_CNT);
     let too_old_timestamp = now_timestamp - MAX_BULK_DELETE_AGO_SECS;
 
-    let mut response_msg = ctx
+    let response_msg = ctx
         .send_embed(|e| {
             e.description("Purging their messages...");
         })
-        .await?
-        .message()
         .await?;
+    let mut response_msg = response_msg.message().await?;
 
     let _working = ctx.defer_or_broadcast().await?;
 
@@ -58,6 +57,6 @@ pub async fn purge(
         &format!("Successfully deleted {} messages", recent_messages.len()),
     )
     .await;
-    response_msg.edit(&ctx.discord(), |e| e.set_embed(success_embed)).await?;
+    response_msg.to_mut().edit(&ctx.discord(), |e| e.set_embed(success_embed)).await?;
     Ok(())
 }

@@ -73,9 +73,8 @@ async fn do_mute(
             duration,
             reason.as_ref().map(|x| format!("\nReason: {}", x)).unwrap_or_default()
         ))
-        .await?
-        .message()
         .await?;
+    let success_msg = success_msg.message().await?;
 
     apply_mute(
         ctx.discord(),

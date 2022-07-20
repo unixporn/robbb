@@ -63,9 +63,8 @@ async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
             util::format_count(warn_count + 1),
             reason,
         ))
-        .await?
-        .message()
         .await?;
+    let success_msg = success_msg.message().await?;
 
     db.add_mod_action(
         ctx.author().id,

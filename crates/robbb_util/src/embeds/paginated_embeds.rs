@@ -2,7 +2,9 @@ use crate::{extensions::PoiseContextExt, log_error, prelude::Ctx, util::ellipsis
 
 use anyhow::Result;
 use itertools::Itertools;
-use poise::serenity_prelude::{CreateActionRow, CreateComponents, UserId};
+use poise::serenity_prelude::{
+    interaction::InteractionResponseType, CreateActionRow, CreateComponents, UserId,
+};
 use serenity::{builder::CreateEmbed, client, model::channel::Message};
 
 const PAGINATION_LEFT: &str = "LEFT";
@@ -49,19 +51,19 @@ impl PaginatedEmbed {
         PaginatedEmbed { pages, base_embed }
     }
 
-    #[tracing::instrument(name = "send_paginated_embed", skip_all, fields(paginated_embed.page_cnt = %self.pages.len()))]
+    //#[tracing::instrument(name = "send_paginated_embed", skip_all, fields(paginated_embed.page_cnt = %self.pages.len()))]
     pub async fn reply_to(&self, ctx: Ctx<'_>, ephemeral: bool) -> Result<Message> {
         let pages = self.pages.clone();
         match pages.len() {
             0 => {
                 let handle =
                     ctx.send_embed_full(ephemeral, |e| e.clone_from(&self.base_embed)).await?;
-                Ok(handle.message().await?)
+                Ok(handle.message().await?.into_owned())
             }
             1 => {
                 let page = self.pages.first().unwrap();
                 let handle = ctx.send_embed_full(ephemeral, |e| e.clone_from(page)).await?;
-                Ok(handle.message().await?)
+                Ok(handle.message().await?.into_owned())
             }
             _ => {
                 let created_msg_handle = ctx
@@ -72,7 +74,7 @@ impl PaginatedEmbed {
                         m
                     })
                     .await?;
-                let created_msg = created_msg_handle.message().await?;
+                let created_msg = created_msg_handle.message().await?.into_owned();
 
                 tokio::spawn({
                     let serenity_ctx = ctx.discord().clone();
@@ -123,7 +125,7 @@ async fn handle_pagination_interactions(
         }
         interaction
             .create_interaction_response(&serenity_ctx, |ir| {
-                ir.kind(poise::serenity_prelude::InteractionResponseType::UpdateMessage);
+                ir.kind(InteractionResponseType::UpdateMessage);
                 ir.interaction_response_data(|d| {
                     d.set_embed(pages.get(current_page_idx).unwrap().clone());
                     d.set_components(make_paginate_components(current_page_idx, pages.len()))

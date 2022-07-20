@@ -75,7 +75,7 @@ async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> 
             }
         })
         .await?;
-    Ok(handle.message().await?)
+    Ok(handle.message().await?.into_owned())
 }
 
 async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -> Res<Message> {

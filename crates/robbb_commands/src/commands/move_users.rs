@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use poise::serenity_prelude::{Channel, ChannelId, CreateEmbed, Message};
 
 use robbb_util::{abort_with, embeds::make_create_embed};
@@ -65,9 +67,9 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
     // and one that doesn't yet.
     // Because slash commands aren't messages, we need to first send a message that we can then link to.
     // Because we want two-way links, we need to edit one of the messages to edit in the link later on.
-    async fn make_continuation_embed(
+    async fn make_continuation_embed<'a>(
         ctx: Ctx<'_>,
-        continuation_msg: Option<Message>,
+        continuation_msg: Option<Cow<'a, Message>>,
     ) -> CreateEmbed {
         make_create_embed(ctx.discord(), |e| {
             e.author_user(ctx.author());
@@ -109,9 +111,8 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
                 police = police_emote,
             ));
         })
-        .await?
-        .message()
         .await?;
+    let move_message = move_message.message().await?;
 
     let new_continuation_embed = make_continuation_embed(ctx, Some(move_message)).await;
     continuation_msg.edit(&ctx.discord(), |m| m.set_embed(new_continuation_embed)).await?;

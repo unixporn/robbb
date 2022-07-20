@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use futures::StreamExt;
 use poise::serenity_prelude::{
-    ComponentInteractionCollector, InteractionResponseType, Message, MessageComponentInteraction,
-    UserId,
+    interaction::{message_component::MessageComponentInteraction, InteractionResponseType},
+    ComponentInteractionCollector, Message, UserId,
 };
 use serenity::client;
 

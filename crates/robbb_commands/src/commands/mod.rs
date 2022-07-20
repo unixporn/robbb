@@ -92,12 +92,14 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
 
 pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
     if let Some(meta) = command.custom_data.downcast_ref::<CmdMeta>() {
-        command.check = match meta.perms {
-            PermissionLevel::Mod => Some(|ctx| Box::pin(crate::checks::check_is_moderator(ctx))),
-            PermissionLevel::Helper => {
-                Some(|ctx| Box::pin(crate::checks::check_is_helper_or_mod(ctx)))
+        match meta.perms {
+            PermissionLevel::Mod => {
+                command.checks.push(|ctx| Box::pin(crate::checks::check_is_moderator(ctx)))
             }
-            PermissionLevel::User => None,
+            PermissionLevel::Helper => {
+                command.checks.push(|ctx| Box::pin(crate::checks::check_is_helper_or_mod(ctx)))
+            }
+            PermissionLevel::User => {}
         };
         command.default_member_permissions = match meta.perms {
             PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
@@ -140,7 +142,7 @@ pub async fn member_or_self(ctx: Ctx<'_>, member: Option<Member>) -> Res<Member>
     if let Some(member) = member {
         Ok(member)
     } else {
-        Ok(ctx.author_member().await.user_error("failed to fetch message author")?)
+        Ok(ctx.author_member().await.user_error("failed to fetch message author")?.into_owned())
     }
 }
 
