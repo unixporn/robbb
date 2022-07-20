@@ -135,13 +135,13 @@ pub async fn tag_set(
 
 /// Autocomplete all tags, but also provide whatever the user has already typed as one of the options.
 /// Used in /tag set, to provide completion for edits, but also allow adding new tags
-async fn tag_autocomplete(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
-    let last = if partial.is_empty() { vec![] } else { vec![partial.clone()] };
-    tag_autocomplete_existing(ctx, partial.clone()).await.chain(last).dedup() // when the partial fully matches a value, we otherwise get a duplicate
+async fn tag_autocomplete(ctx: Ctx<'_>, partial: &str) -> impl Iterator<Item = String> {
+    let last = if partial.is_empty() { vec![] } else { vec![partial.to_string()] };
+    tag_autocomplete_existing(ctx, partial).await.chain(last).dedup() // when the partial fully matches a value, we otherwise get a duplicate
 }
 
 /// Autocomplete all tags
-async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: String) -> impl Iterator<Item = String> {
+async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: &str) -> impl Iterator<Item = String> {
     let db = ctx.get_db();
     let tags = match db.list_tags().await {
         Ok(tags) => tags,

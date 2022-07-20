@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use anyhow::Context;
 use poise::{
-    serenity_prelude::{CollectModalInteraction, InteractionResponseType, MessageId, ReactionType},
+    serenity_prelude::{
+        interaction::{Interaction, InteractionResponseType},
+        CollectModalInteraction, MessageId, ReactionType,
+    },
     Modal,
 };
 use serenity::client;
@@ -119,11 +122,11 @@ pub async fn ask(
 #[tracing::instrument(skip_all)]
 pub async fn handle_ask_button_clicked(
     ctx: &client::Context,
-    interaction: &poise::serenity_prelude::Interaction,
+    interaction: &Interaction,
 ) -> Res<bool> {
     let config = ctx.get_config().await;
     let interaction = match interaction {
-        poise::serenity_prelude::Interaction::MessageComponent(x) => x,
+        Interaction::MessageComponent(x) => x,
         _ => return Ok(false),
     };
     if !interaction.data.custom_id.starts_with("ask-edit")

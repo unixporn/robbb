@@ -29,9 +29,8 @@ pub async fn kick(
 
     let success_msg = ctx
         .say_success_mod_action(format!("{} has been kicked from the server", user.id.mention()))
-        .await?
-        .message()
         .await?;
+    let success_msg = success_msg.message().await?;
 
     db.add_mod_action(
         ctx.author().id,

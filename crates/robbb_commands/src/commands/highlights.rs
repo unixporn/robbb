@@ -145,7 +145,7 @@ async fn try_dm_or_ephemeral_response(
     Ok(())
 }
 
-async fn autocomplete_highlights(ctx: Ctx<'_>, partial: String) -> Vec<String> {
+async fn autocomplete_highlights(ctx: Ctx<'_>, partial: &str) -> Vec<String> {
     let db = ctx.get_db();
     if let Ok(highlights) = db.get_highlights().await {
         highlights

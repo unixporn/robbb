@@ -1,5 +1,5 @@
 use chrono::Utc;
-use poise::serenity_prelude::message_component::ActionRowComponent;
+use poise::serenity_prelude::application::component::ActionRowComponent;
 use robbb_commands::{
     checks::{self, PermissionLevel},
     commands::blocklist::SHOULD_NEVER_TRIGGER_BLOCKLIST,
@@ -228,8 +228,9 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
 
 /// Recursively traverse an `ApplicationCommandInteractionDataOption`
 /// to get all the `ApplicationCommandInteractionDataOptionValue`s of it and it's subcommands / groups
+#[allow(deprecated)]
 fn get_options_from_option(
-    option: &application_command::ApplicationCommandInteractionDataOption,
+    option: &poise::serenity_prelude::ApplicationCommandInteractionDataOption,
 ) -> Vec<&str> {
     let mut values = Vec::new();
     if let Some(value) = option.value.as_ref().and_then(|x| x.as_str()) {

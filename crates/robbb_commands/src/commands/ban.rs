@@ -98,7 +98,8 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
         .say_success_mod_action(format!("Banning {}...", users.iter().map(|x| x.tag()).join(", ")))
         .await?
         .message()
-        .await?;
+        .await?
+        .into_owned();
 
     for user in users {
         match handle_single_ban(

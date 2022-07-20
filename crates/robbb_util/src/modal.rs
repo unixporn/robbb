@@ -1,6 +1,9 @@
 use poise::serenity_prelude::{
-    ApplicationCommandInteraction, CollectModalInteraction, InteractionResponseType,
-    MessageComponentInteraction, UserId,
+    interaction::{
+        application_command::ApplicationCommandInteraction,
+        message_component::MessageComponentInteraction, InteractionResponseType,
+    },
+    CollectModalInteraction, UserId,
 };
 
 use crate::prelude::{AppCtx, Res};

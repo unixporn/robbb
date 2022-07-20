@@ -1,5 +1,5 @@
 use poise::{
-    serenity_prelude::{ApplicationCommandOptionType, CreateApplicationCommandOption},
+    serenity_prelude::{command::CommandOptionType, CreateApplicationCommandOption},
     ApplicationCommandOrAutocompleteInteraction, SlashArgument,
 };
 use serde::{Deserialize, Serialize};
@@ -114,7 +114,7 @@ impl SlashArgument for FetchField {
         })?)
     }
     fn create(builder: &mut CreateApplicationCommandOption) {
-        builder.kind(ApplicationCommandOptionType::String);
+        builder.kind(CommandOptionType::String);
         for value in FETCH_KEY_ORDER.iter() {
             builder.add_string_choice(value.to_string(), value.to_string());
         }

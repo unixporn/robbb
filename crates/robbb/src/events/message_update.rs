@@ -1,3 +1,5 @@
+use poise::serenity_prelude::MessageUpdateEvent;
+
 use super::*;
 
 pub async fn message_update(

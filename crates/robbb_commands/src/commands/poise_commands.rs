@@ -1,4 +1,5 @@
-use poise::serenity_prelude::ApplicationCommand;
+#[allow(deprecated)]
+use poise::serenity_prelude::application::command::Command;
 
 use super::*;
 
@@ -20,12 +21,11 @@ pub async fn delete(
     global: bool,
 ) -> Res<()> {
     if global {
-        let global_commands =
-            ApplicationCommand::get_global_application_commands(ctx.discord()).await?;
+        #[allow(deprecated)]
+        let global_commands = Command::get_global_application_commands(ctx.discord()).await?;
         for command in &global_commands {
             tracing::debug!(deleted_command_name = %command.name, "Deleting global application command {}", command.name);
-            ApplicationCommand::delete_global_application_command(ctx.discord(), command.id)
-                .await?;
+            Command::delete_global_application_command(ctx.discord(), command.id).await?;
         }
 
         ctx.say_success(format!(
@@ -67,7 +67,7 @@ pub async fn register(
     let commands_builder = poise::builtins::create_application_commands(new_commands);
     println!("{:?}", new_commands);
     if global {
-        ApplicationCommand::set_global_application_commands(ctx.discord(), |b| {
+        Command::set_global_application_commands(ctx.discord(), |b| {
             *b = commands_builder;
             b
         })

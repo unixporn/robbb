@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use poise::serenity_prelude::{Action, AttachmentType, AuditLogEntry, MessageAction};
 
 use super::*;
 
@@ -144,7 +145,7 @@ async fn find_deletor(
     let result = await_audit_log(
         ctx,
         &config.guild,
-        guild::Action::Message(MessageAction::Delete).num(),
+        Action::Message(MessageAction::Delete).num(),
         None,
         |entry| {
             entry.target_id == Some(msg.author.id.0)
