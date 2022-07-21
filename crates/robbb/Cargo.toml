@@ -37,7 +37,7 @@ parking_lot = "0.12"
 tracing = "0.1.31"
 tracing-log = "0.1.2"
 tracing-futures = "0.2.5"
-tracing-subscriber = { version = "0.3.0", features = [ "std", "env-filter" ] }
+tracing-subscriber = { version = "0.3.15", features = [ "std", "env-filter" ] }
 # we're using my fork of tracing-honeycomb, as we want to use an unreleased version of libhoney-rust (which tracing-honeycomb also transitively depends on)
 # this is because libhoney-rusts latest released version still depends on an old version of tokio, which is affected by https://github.com/advisories/GHSA-fg7r-2g4j-5cgr
 tracing-honeycomb = { git = "https://github.com/elkowar/tracing-honeycomb", branch = "latest" }
