@@ -146,7 +146,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
             ctx.discord(),
             &format!(
                 "successfully yote\n{}",
-                successful_bans.iter().map(|x| format!("- {} ({})", x.tag(), x.id)).join("\n")
+                successful_bans.iter().map(|x| format!("- {} ({}).\nReason: {}", x.tag(), x.id, reason)).join("\n")
             ),
         )
         .await;
