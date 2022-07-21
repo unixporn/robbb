@@ -22,35 +22,42 @@
           inherit system;
           overlays = [ (import rust-overlay) ];
         };
-        rust-toolchain =
-          pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
-        craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
+
+        # Common Args
         commonArgs = {
+          pname = "robbb";
+          # Will Require `--impure` to be passed to it can read that ENV VAR
+          version = if builtins.getEnv "VERSION" != "" then
+            builtins.getEnv "VERSION"
+          else
+            "0.0.1";
           src = ./.;
           nativeBuildInputs = with pkgs; [ rust-toolchain pkg-config ];
-          buildInputs = with pkgs; [
-            openssl
-            sqlx-cli
-            rust-analyzer
-            sqlitebrowser
-            sqlite
-          ];
+          buildInputs = with pkgs; [ openssl sqlx-cli rust-analyzer sqlite ];
         };
+        # Use the toolchain from the `rust-toolchain` file
+        rust-toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
+        craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
+
         # Build Deps so We don't have to build them everytime
-        cargoArtifacts =
-          craneLib.buildDepsOnly (commonArgs // { pname = "robbb-deps"; });
-        # Run Clippy
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+        # Run Cargo Fmt
+        robbbFmt = craneLib.cargoFmt (commonArgs // { inherit cargoArtifacts; });
+
+        # Run Clippy (only if cargo fmt passes)
         robbbClippy = craneLib.cargoClippy (commonArgs // {
-          inherit cargoArtifacts;
+          cargoArtifacts = robbbFmt;
           cargoClippyExtraArgs = "-- -D warnings";
         });
-        robbb = craneLib.buildPackage (commonArgs // {
-          inherit cargoArtifacts;
-          pname = "robbb";
-        });
+
+        # Build Robb (only if all above tests pass)
+        robbb = craneLib.buildPackage
+          (commonArgs // { cargoArtifacts = robbbClippy; });
       in {
-        # Run Checks
-        checks = { inherit robbb robbbClippy; };
+        # `nix flake check` (build, fmt and clippy)
+        checks = { inherit robbb; };
+
         # `nix build`
         packages.default = robbb;
 
@@ -65,8 +72,7 @@
             export $(cat .env)
           '';
           # Extra inputs can be added here
-          inherit (commonArgs) nativeBuildInputs;
-          inherit (commonArgs) buildInputs;
+          inherit (commonArgs) nativeBuildInputs buildInputs;
         };
       });
 }
