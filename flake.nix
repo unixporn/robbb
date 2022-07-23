@@ -20,7 +20,7 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ (import rust-overlay) ];
+          overlays = [ rust-overlay.overlays.default ];
         };
 
         # Common Args
@@ -31,7 +31,7 @@
             builtins.getEnv "VERSION"
           else
             "0.0.1";
-          src = ./.;
+          src = builtins.path { path = pkgs.lib.cleanSource ./.; name = "robbb"; };
           nativeBuildInputs = with pkgs; [ rust-toolchain pkg-config ];
           buildInputs = with pkgs; [ openssl sqlx-cli rust-analyzer sqlite ];
         };
@@ -72,7 +72,7 @@
             export $(cat .env)
           '';
           # Extra inputs can be added here
-          inherit (commonArgs) nativeBuildInputs buildInputs;
+          packages = commonArgs.nativeBuildInputs ++ commonArgs.buildInputs;
         };
       });
 }
