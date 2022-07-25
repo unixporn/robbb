@@ -1634,7 +1634,7 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.11.4"
-source = "git+https://github.com/serenity-rs/serenity?rev=5363f2a8a362dc9bc210c9a87da985d43ab7faca#5363f2a8a362dc9bc210c9a87da985d43ab7faca"
+source = "git+https://github.com/bumblepie/serenity?rev=1fba7ba6bcf0a9fd4f645c265b42fe9bf8c45bc4#1fba7ba6bcf0a9fd4f645c265b42fe9bf8c45bc4"
 dependencies = [
  "async-trait",
  "async-tungstenite",

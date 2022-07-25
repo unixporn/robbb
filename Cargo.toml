@@ -11,4 +11,5 @@ split-debuginfo = "unpacked"
 
 [patch.crates-io]
 poise = { git = "https://github.com/kangalioo/poise", rev = "0f2eb876397d1712d38432adc759ca3b9186d7ff" }
-serenity = { git = "https://github.com/serenity-rs/serenity", rev = "5363f2a8a362dc9bc210c9a87da985d43ab7faca" }
+serenity = { git = "https://github.com/bumblepie/serenity", rev = "1fba7ba6bcf0a9fd4f645c265b42fe9bf8c45bc4" }
+#serenity = { git = "https://github.com/serenity-rs/serenity", rev = "5363f2a8a362dc9bc210c9a87da985d43ab7faca" }
