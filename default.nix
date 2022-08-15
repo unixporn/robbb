@@ -1,32 +1,10 @@
-{ callPackage
-, pkg-config
-, openssl
-, cacert
-, dockerTools
-, robbbSrc
-, robbbRev
-, robbbVersion ? robbbRev
-, sources ? import ./nix/sources.nix
-, naersk ? callPackage sources.naersk { }
-,
-}: rec {
-  robbb = naersk.buildPackage rec {
-    name = "robbb";
-    version = "master";
-    src = robbbSrc;
-    nativeBuildInputs = [ pkg-config ];
-    buildInputs = [ openssl ];
-    VERSION = robbbVersion;
-  };
-
-  image = dockerTools.buildImage {
-    name = "robbb";
-    tag = robbbRev;
-    config = {
-      Cmd = [ "${robbb}/bin/robbb" ];
-      Env = [
-        "NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt"
-      ];
-    };
-  };
-}
+(import
+  (
+    let lock = builtins.fromJSON (builtins.readFile ./flake.lock); in
+    fetchTarball {
+      url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
+      sha256 = lock.nodes.flake-compat.locked.narHash;
+    }
+  )
+  { src = ./.; }
+).defaultNix
