@@ -122,23 +122,11 @@ impl Db {
         }
         match ordering {
             Ordering::Ascending => process_emoji_stats_query!(
-                r#"select emoji_name,
-                animated as "animated!: i32",
-                emoji_id as "emoji_id!: i32",
-                in_text_usage as "in_text_usage!: i32",
-                reaction_usage as "reaction_usage!: i32",
-                in_text_usage + reaction_usage as "usage!: i32"
-                FROM emoji_stats order by "usage!: i32" ASC limit ?"#,
+                r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!: i32" ASC limit ?"#,
                 count
             ),
             Ordering::Descending => process_emoji_stats_query!(
-                r#"select emoji_name,
-                animated as "animated!: i32",
-                emoji_id as "emoji_id!: i32",
-                in_text_usage as "in_text_usage!: i32",
-                reaction_usage as "reaction_usage!: i32",
-                in_text_usage + reaction_usage as "usage!: i32"
-                FROM emoji_stats order by "usage!: i32" DESC limit ?"#,
+                r#"select *, in_text_usage + reaction_usage as "usage!: i32" FROM emoji_stats order by "usage!: i32" DESC limit ?"#,
                 count
             ),
         }
