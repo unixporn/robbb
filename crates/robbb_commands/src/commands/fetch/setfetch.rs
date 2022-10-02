@@ -1,8 +1,9 @@
+use anyhow::Context;
 use chrono::Utc;
-use poise::serenity_prelude::Attachment;
+use poise::serenity_prelude::{Attachment, AttachmentType, ChannelId, Http};
 
 use super::*;
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
     Run this: 
@@ -59,7 +60,17 @@ pub async fn set_fetch_update(
     #[description = "Git"] git: Option<String>,
     #[description = "Memory"] memory: Option<String>,
 ) -> Res<()> {
-    let image = image.map(|i| i.url);
+    let config = ctx.get_config();
+    let image = match (image, config.channel_attachment_dump) {
+        (Some(image), Some(dump_channel)) => {
+            Some(dump_attachment(&ctx.discord(), dump_channel, image).await?)
+        }
+        (None, _) => None,
+        (Some(image), None) => {
+            tracing::warn!("Setfetch called with image, but there is no attachment dump configured. Discord will delete the image after a while. Please configure an attachment_dump channel.");
+            Some(image.url)
+        }
+    };
 
     let memory = if let Some(memory) = memory {
         Some(
@@ -120,4 +131,20 @@ pub async fn set_fetch_clear(
         ctx.say_success("Successfully cleared your fetch data!").await?;
     }
     Ok(())
+}
+
+pub async fn dump_attachment(
+    http: impl AsRef<Http>,
+    dump_channel: ChannelId,
+    attachment: Attachment,
+) -> anyhow::Result<String> {
+    let file = attachment.download().await?;
+    let message = dump_channel
+        .send_files(
+            http,
+            [AttachmentType::Bytes { data: Cow::from(file), filename: attachment.filename }],
+            |m| m,
+        )
+        .await?;
+    Ok(message.attachments.first().context("No attachment in dump message, weird")?.url.to_string())
 }

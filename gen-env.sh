@@ -100,6 +100,7 @@ export CHANNEL_MOD_BOT_STUFF=$botstuff
 export CHANNEL_BOT_TRAFFIC=$humantrafficking
 export CHANNEL_TECH_SUPPORT=$techsupport
 export CHANNEL_MOD_POLLS=$polls
+export CHANNEL_ATTACHMENT_DUMP=""
 export ATTACHMENT_CACHE_PATH=./cache
 export ATTACHMENT_CACHE_MAX_SIZE=50000000
 
