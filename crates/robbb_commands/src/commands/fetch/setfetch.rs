@@ -63,6 +63,7 @@ pub async fn set_fetch_update(
     let config = ctx.get_config();
     let image = match (image, config.channel_attachment_dump) {
         (Some(image), Some(dump_channel)) => {
+            ctx.defer().await?;
             Some(dump_attachment(&ctx.discord(), dump_channel, image).await?)
         }
         (None, _) => None,
@@ -133,6 +134,7 @@ pub async fn set_fetch_clear(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn dump_attachment(
     http: impl AsRef<Http>,
     dump_channel: ChannelId,
