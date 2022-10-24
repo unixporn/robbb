@@ -34,7 +34,7 @@ cpu-monitor = "0.1.1"
 poise = "0.2"
 parking_lot = "0.12"
 
-tracing = "0.1.36"
+tracing = "0.1.37"
 tracing-log = "0.1.2"
 tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.0", features = [ "std", "env-filter" ] }
