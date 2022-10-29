@@ -124,7 +124,7 @@ async fn handle_argument_parse_error(
 
 async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
     match err.downcast_ref::<commands::UserErr>() {
-        Some(err) => match err {
+        Some(inner_err) => match inner_err {
             commands::UserErr::MentionedUserNotFound => {
                 let _ = ctx.say_error("No user found with that name").await;
             }
@@ -137,19 +137,21 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
                 );
             }
         },
-        None => match err.downcast::<serenity::Error>() {
-            Ok(err) => {
+        None => match err.downcast_ref::<serenity::Error>() {
+            Some(inner_err) => {
                 tracing::warn!(
                     error.command_name = %ctx.command().qualified_name.as_str(),
                     error.message = %err,
+                    error.root_cause = %err.root_cause(),
                     "Serenity error [handling {}]: {} ({:?})",
                     ctx.command().name,
                     &err,
-                    &err
+                    &inner_err
                 );
-                match err {
+                match inner_err {
                     serenity::Error::Http(err) => {
-                        if let serenity::http::error::Error::UnsuccessfulRequest(res) = *err {
+                        if let serenity::http::error::Error::UnsuccessfulRequest(res) = err.as_ref()
+                        {
                             if res.status_code == serenity::http::StatusCode::NOT_FOUND
                                 && res.error.message.to_lowercase().contains("unknown user")
                             {
@@ -167,11 +169,12 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
                     }
                 }
             }
-            Err(err) => {
+            None => {
                 let _ = ctx.say_error("Something went wrong").await;
                 tracing::warn!(
                     error.command_name = %ctx.command().qualified_name.as_str(),
                     error.message = %err,
+                    error.root_cause = %err.root_cause(),
                     "Internal error [handling {}]: {} ({:#?})",
                     ctx.command().name,
                     &err,
