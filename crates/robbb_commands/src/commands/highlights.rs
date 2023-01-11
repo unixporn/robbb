@@ -151,7 +151,7 @@ async fn autocomplete_highlights(ctx: Ctx<'_>, partial: &str) -> Vec<String> {
     if let Ok(highlights) = db.get_highlights().await {
         highlights
             .triggers_for_user(ctx.author().id)
-            .filter(|x| x.contains(&partial))
+            .filter(|x| x.contains(partial))
             .map(|x| x.to_string())
             .collect_vec()
     } else {
