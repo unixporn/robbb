@@ -42,11 +42,17 @@ impl ModActionKind {
 
 #[derive(Debug, Eq, Copy, Clone, PartialEq, Hash, poise::ChoiceParameter)]
 pub enum ModActionType {
+    #[name = "Moderator Note"]
     ManualNote,
+    #[name = "[AUTO] - Blocklist Violation"]
     BlocklistViolation,
+    #[name = "Warning"]
     Warn,
+    #[name = "Mute"]
     Mute,
+    #[name = "Ban"]
     Ban,
+    #[name = "Kick"]
     Kick,
 }
 impl ModActionType {
@@ -70,19 +76,6 @@ impl ModActionType {
             ModActionType::Mute => 3,
             ModActionType::Ban => 4,
             ModActionType::Kick => 5,
-        }
-    }
-}
-
-impl std::fmt::Display for ModActionType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ModActionType::ManualNote => write!(f, "Moderator Note"),
-            ModActionType::BlocklistViolation => write!(f, "[AUTO] - Blocklist Violation"),
-            ModActionType::Warn => write!(f, "Warning"),
-            ModActionType::Mute => write!(f, "Mute"),
-            ModActionType::Ban => write!(f, "Ban"),
-            ModActionType::Kick => write!(f, "Kick"),
         }
     }
 }

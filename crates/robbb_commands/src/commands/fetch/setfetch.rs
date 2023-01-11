@@ -64,7 +64,7 @@ pub async fn set_fetch_update(
     let image = match (image, config.channel_attachment_dump) {
         (Some(image), Some(dump_channel)) => {
             ctx.defer().await?;
-            Some(dump_attachment(&ctx.discord(), dump_channel, image).await?)
+            Some(dump_attachment(&ctx.serenity_context(), dump_channel, image).await?)
         }
         (None, _) => None,
         (Some(image), None) => {

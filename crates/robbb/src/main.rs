@@ -105,8 +105,11 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
         poise::Context::Application(_) => "<slash command>".to_string(),
         poise::Context::Prefix(prefix) => prefix.msg.content.to_string(),
     };
-    let channel_name =
-        ctx.channel_id().to_channel_cached(&ctx.discord()).and_then(|x| x.guild()).map(|x| x.name);
+    let channel_name = ctx
+        .channel_id()
+        .to_channel_cached(&ctx.serenity_context())
+        .and_then(|x| x.guild())
+        .map(|x| x.name);
 
     let span = tracing::Span::current();
     span.record("command_name", &ctx.command().qualified_name.as_str());

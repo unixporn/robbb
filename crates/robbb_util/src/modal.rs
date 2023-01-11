@@ -12,11 +12,11 @@ async fn wait_for_modal_ir_response<T: poise::Modal>(ctx: AppCtx<'_>, user_id: U
     ctx.has_sent_initial_response.store(true, std::sync::atomic::Ordering::SeqCst);
     // Wait for user to submit
     let response =
-        CollectModalInteraction::new(&ctx.discord.shard).author_id(user_id).await.unwrap();
+        CollectModalInteraction::new(ctx.serenity_context()).author_id(user_id).await.unwrap();
 
     // Send acknowledgement so that the pop-up is closed
     response
-        .create_interaction_response(ctx.discord, |b| {
+        .create_interaction_response(ctx.serenity_context(), |b| {
             b.kind(InteractionResponseType::DeferredUpdateMessage)
         })
         .await?;
@@ -30,8 +30,8 @@ pub async fn create_modal_component_ir<T: poise::Modal>(
     defaults: Option<T>,
 ) -> Res<T> {
     interaction
-        .create_interaction_response(&ctx.discord, |ir| {
-            *ir = T::create(defaults);
+        .create_interaction_response(&ctx.serenity_context(), |ir| {
+            *ir = T::create(defaults, String::new());
             ir
         })
         .await?;
@@ -44,8 +44,8 @@ pub async fn create_modal_command_ir<T: poise::Modal>(
     defaults: Option<T>,
 ) -> Res<T> {
     interaction
-        .create_interaction_response(&ctx.discord, |ir| {
-            *ir = T::create(defaults);
+        .create_interaction_response(&ctx.serenity_context(), |ir| {
+            *ir = T::create(defaults, String::new());
             ir
         })
         .await?;

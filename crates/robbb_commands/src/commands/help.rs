@@ -33,7 +33,8 @@ pub async fn help(
             .user_error(&format!("Unknown command `{}`", desired_command))?;
         reply_help_single(ctx, command).await?;
     } else {
-        let permission_level = checks::get_permission_level(ctx.discord(), ctx.author()).await?;
+        let permission_level =
+            checks::get_permission_level(ctx.serenity_context(), ctx.author()).await?;
         let available_commands: Vec<_> = commands
             .filter(|command| {
                 command
@@ -52,9 +53,9 @@ async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> 
     let handle = ctx
         .send_embed_full(true, move |e| {
             e.title(format!("Help for {}", command.name));
-            if let Some(desc) = command.multiline_help {
+            if let Some(desc) = command.help_text {
                 e.description(desc());
-            } else if let Some(help) = command.inline_help {
+            } else if let Some(help) = &command.description {
                 e.description(help);
             }
 
@@ -63,7 +64,7 @@ async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> 
                     .subcommands
                     .iter()
                     .map(|subcommand| {
-                        if let Some(usage) = subcommand.inline_help {
+                        if let Some(usage) = &subcommand.description {
                             format!("**/{} {}** - ``{} ``", command.name, subcommand.name, usage)
                         } else {
                             format!("**/{} {}**", command.name, subcommand.name)
@@ -85,14 +86,19 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
         } else {
             format!("**!{}**", command.name)
         };
-        let description = command.inline_help.unwrap_or("No description").to_string();
+        let description = command
+            .description
+            .as_ref()
+            .map(|x| x.as_str())
+            .unwrap_or("No description")
+            .to_string();
         (name, description)
     });
 
     embeds::PaginatedEmbed::create_from_fields(
         "Help".to_string(),
         fields,
-        embeds::make_create_embed(ctx.discord(), |e| e).await,
+        embeds::make_create_embed(ctx.serenity_context(), |e| e).await,
     )
     .await
     .reply_to(ctx, true)

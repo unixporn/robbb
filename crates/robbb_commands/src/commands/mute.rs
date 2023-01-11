@@ -26,7 +26,7 @@ struct MuteModal {
 )]
 pub async fn menu_mute(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
     let ctx = Ctx::Application(app_ctx);
-    let member = ctx.guild().unwrap().member(&ctx.discord(), user.id).await?;
+    let member = ctx.guild().unwrap().member(&ctx.serenity_context(), user.id).await?;
     let ctx = Ctx::Application(app_ctx);
     let interaction = match app_ctx.interaction {
         poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
@@ -77,7 +77,7 @@ async fn do_mute(
     let success_msg = success_msg.message().await?;
 
     apply_mute(
-        ctx.discord(),
+        ctx.serenity_context(),
         ctx.author().id,
         member.clone(),
         *duration,

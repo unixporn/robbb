@@ -25,7 +25,7 @@ pub async fn kick(
 ) -> Res<()> {
     let db = ctx.get_db();
     let guild = ctx.guild().context("Failed to fetch guild")?;
-    do_kick(ctx.discord(), guild, &user, &reason).await?;
+    do_kick(ctx.serenity_context(), guild, &user, &reason).await?;
 
     let success_msg = ctx
         .say_success_mod_action(format!("{} has been kicked from the server", user.id.mention()))

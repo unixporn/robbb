@@ -77,7 +77,7 @@ pub async fn ban_many(
             .trim()
             .parse::<UserId>()
             .with_user_error(|_| format!("{} is not a valid user id", user_id))?
-            .to_user(&ctx.discord())
+            .to_user(&ctx.serenity_context())
             .await?;
         users.push(user_id);
     }
@@ -92,7 +92,8 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
     let mut disallowed_bans = Vec::new();
     let mut successful_bans = Vec::new();
 
-    let permission_level = checks::get_permission_level(ctx.discord(), ctx.author()).await?;
+    let permission_level =
+        checks::get_permission_level(ctx.serenity_context(), ctx.author()).await?;
 
     let mut main_response = ctx
         .say_success_mod_action(format!("Banning {}...", users.iter().map(|x| x.tag()).join(", ")))
@@ -143,7 +144,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
 
     if !successful_bans.is_empty() {
         let embed = embeds::make_success_mod_action_embed(
-            ctx.discord(),
+            ctx.serenity_context(),
             &format!(
                 "successfully yote\n{}",
                 successful_bans
@@ -154,7 +155,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
         )
         .await;
 
-        main_response.edit(&ctx.discord(), |e| e.set_embed(embed)).await?;
+        main_response.edit(&ctx.serenity_context(), |e| e.set_embed(embed)).await?;
 
         crate::modlog::log_ban(ctx, &main_response, &successful_bans, &reason).await;
     }
@@ -182,7 +183,7 @@ async fn handle_single_ban(
     ctx_message: &Message,
 ) -> Result<User, BanFailedReason> {
     let ban_allowed = if permission_level == PermissionLevel::Helper {
-        let member = guild.member(&ctx.discord(), user.id).await;
+        let member = guild.member(&ctx.serenity_context(), user.id).await;
         let join_or_create_date =
             member.ok().and_then(|x| x.joined_at).unwrap_or_else(|| user.created_at());
         Utc::now().signed_duration_since(*join_or_create_date) < Duration::days(3)
@@ -195,7 +196,7 @@ async fn handle_single_ban(
     }
 
     let _ = user
-        .dm(&ctx.discord(), |m| {
+        .dm(&ctx.serenity_context(), |m| {
             m.embed(|e| {
                 e.title(format!("You were banned from {}", guild.name));
                 e.field("Reason", reason, false)
@@ -205,7 +206,7 @@ async fn handle_single_ban(
 
     let db = ctx.get_db();
     guild
-        .ban_with_reason(&ctx.discord(), &user, delete_days, reason)
+        .ban_with_reason(&ctx.serenity_context(), &user, delete_days, reason)
         .await
         .context("Ban failed")?;
 

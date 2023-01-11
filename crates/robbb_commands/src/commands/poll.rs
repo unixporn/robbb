@@ -1,4 +1,5 @@
 use super::*;
+use anyhow::Context;
 use poise::{serenity_prelude::ReactionType, Modal};
 use regex::Regex;
 
@@ -43,15 +44,15 @@ pub async fn poll_vote(
         .await?;
 
     let poll_msg = poll_msg.message().await?;
-    poll_msg.react(&ctx.discord(), ReactionType::Unicode("✅".to_string())).await?;
-    poll_msg.react(&ctx.discord(), ReactionType::Unicode("🤷".to_string())).await?;
-    poll_msg.react(&ctx.discord(), ReactionType::Unicode("❎".to_string())).await?;
+    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("✅".to_string())).await?;
+    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("🤷".to_string())).await?;
+    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("❎".to_string())).await?;
 
     let config = ctx.get_config();
     if ctx.channel_id() == config.channel_mod_polls {
         poll_msg
             .create_thread(
-                ctx.discord(),
+                ctx.serenity_context(),
                 util::thread_title_from_text(&question).unwrap_or_else(|_| "Poll".to_string()),
             )
             .await?;
@@ -83,7 +84,7 @@ struct MultiPollModal {
 pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     let ctx = poise::Context::Application(app_ctx);
 
-    let modal_result = MultiPollModal::execute(app_ctx).await?;
+    let modal_result = MultiPollModal::execute(app_ctx).await?.context("Modal timed out")?;
 
     let options_lines = modal_result.options.lines().collect_vec();
 
@@ -115,15 +116,15 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     let poll_msg = poll_msg.message().await?;
 
     for (emoji, _) in options.into_iter() {
-        poll_msg.react(&ctx.discord(), ReactionType::Unicode(emoji.to_string())).await?;
+        poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode(emoji.to_string())).await?;
     }
-    poll_msg.react(&ctx.discord(), ReactionType::Unicode("🤷".to_string())).await?;
+    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("🤷".to_string())).await?;
 
     let config = ctx.get_config();
     if ctx.channel_id() == config.channel_mod_polls {
         poll_msg
             .create_thread(
-                ctx.discord(),
+                ctx.serenity_context(),
                 util::thread_title_from_text(&modal_result.title)
                     .unwrap_or_else(|_| "Poll".to_string()),
             )

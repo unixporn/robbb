@@ -22,10 +22,11 @@ pub async fn delete(
 ) -> Res<()> {
     if global {
         #[allow(deprecated)]
-        let global_commands = Command::get_global_application_commands(ctx.discord()).await?;
+        let global_commands =
+            Command::get_global_application_commands(ctx.serenity_context()).await?;
         for command in &global_commands {
             tracing::debug!(deleted_command_name = %command.name, "Deleting global application command {}", command.name);
-            Command::delete_global_application_command(ctx.discord(), command.id).await?;
+            Command::delete_global_application_command(ctx.serenity_context(), command.id).await?;
         }
 
         ctx.say_success(format!(
@@ -34,10 +35,10 @@ pub async fn delete(
         ))
         .await?;
     } else if let Some(guild) = ctx.guild() {
-        let commands = guild.get_application_commands(ctx.discord()).await?;
+        let commands = guild.get_application_commands(ctx.serenity_context()).await?;
         for command in &commands {
             tracing::debug!(deleted_command_name = %command.name, "Deleting application command {}", command.name);
-            guild.delete_application_command(ctx.discord(), command.id).await?;
+            guild.delete_application_command(ctx.serenity_context(), command.id).await?;
         }
         ctx.say_success(format!(
             "Deleted application commands: {}",
@@ -67,14 +68,14 @@ pub async fn register(
     let commands_builder = poise::builtins::create_application_commands(new_commands);
     println!("{:?}", new_commands);
     if global {
-        Command::set_global_application_commands(ctx.discord(), |b| {
+        Command::set_global_application_commands(ctx.serenity_context(), |b| {
             *b = commands_builder;
             b
         })
         .await?;
     } else if let Some(guild) = ctx.guild() {
         guild
-            .set_application_commands(ctx.discord(), |b| {
+            .set_application_commands(ctx.serenity_context(), |b| {
                 *b = commands_builder;
                 b
             })
@@ -83,7 +84,7 @@ pub async fn register(
 
     ctx.say_success(format!(
         "Registered commands: {}",
-        new_commands.iter().map(|x| x.name).join(", ")
+        new_commands.iter().map(|x| x.name.as_str()).join(", ")
     ))
     .await?;
 

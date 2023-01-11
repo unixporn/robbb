@@ -48,15 +48,17 @@ pub async fn ask(
         AskModal { title: String::new(), details: question.unwrap_or_default() },
     )
     .instrument(tracing::info_span!("wait for modal response"))
-    .await?;
+    .await?
+    .context("Modal timed out")?;
 
-    let webhooks = app_ctx.discord.http.get_channel_webhooks(config.channel_tech_support.0).await?;
+    let webhooks =
+        app_ctx.serenity_context().http.get_channel_webhooks(config.channel_tech_support.0).await?;
     let webhook = match webhooks.into_iter().next() {
         Some(webhook) => webhook,
         None => {
             let webhook_json = &serde_json::json!({"name": "Techsupport"});
             app_ctx
-                .discord
+                .serenity_context()
                 .http
                 .create_webhook(config.channel_tech_support.0, webhook_json, None)
                 .instrument(tracing::info_span!("create techsupport webhook"))
@@ -65,7 +67,7 @@ pub async fn ask(
     };
 
     let post = webhook
-        .execute(app_ctx.discord, true, |w| {
+        .execute(app_ctx.serenity_context(), true, |w| {
             w.username(&ctx.author().name);
             w.avatar_url(ctx.author().face());
             w.content(format!("**{}**\n{}", title, details))
@@ -76,17 +78,17 @@ pub async fn ask(
 
     let thread = ctx
         .channel_id()
-        .to_channel(&ctx.discord())
+        .to_channel(&ctx.serenity_context())
         .await
         .context("Failed to request message channel")?
         .guild()
         .context("Failed to request guild channel")?
-        .create_public_thread(&ctx.discord(), &post, |e| e.name(title.clone()))
+        .create_public_thread(&ctx.serenity_context(), &post, |e| e.name(title.clone()))
         .await
         .context("Failed to create thread for tech-support question")?;
 
     thread
-        .send_message(&ctx.discord(), |m| {
+        .send_message(&ctx.serenity_context(), |m| {
             m.content(ctx.author().mention());
             m.components(|c| {
                 c.create_action_row(|r| {
@@ -169,7 +171,7 @@ pub async fn handle_ask_button_clicked(
     if action == QuestionButtonKind::Edit {
         interaction
             .create_interaction_response(&ctx, |ir| {
-                *ir = AskModal::create(Some(AskModal { title, details }));
+                *ir = AskModal::create(Some(AskModal { title, details }), String::new());
                 ir
             })
             .await?;
