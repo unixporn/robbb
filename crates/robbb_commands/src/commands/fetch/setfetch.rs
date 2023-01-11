@@ -75,7 +75,7 @@ pub async fn set_fetch_update(
 
     let memory = if let Some(memory) = memory {
         Some(
-            byte_unit::Byte::from_str(&memory)
+            byte_unit::Byte::from_str(memory)
                 .user_error("Malformed value provided for Memory")?
                 .get_bytes()
                 .to_string(),

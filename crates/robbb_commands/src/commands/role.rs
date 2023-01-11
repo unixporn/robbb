@@ -44,7 +44,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
 
     if let Some(interaction) = roles_msg
         .to_mut()
-        .await_component_interactions(&ctx.serenity_context())
+        .await_component_interactions(ctx.serenity_context())
         .author_id(ctx.author().id)
         .timeout(std::time::Duration::from_secs(10))
         .collect_limit(1)

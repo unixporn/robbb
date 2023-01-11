@@ -86,12 +86,7 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
         } else {
             format!("**!{}**", command.name)
         };
-        let description = command
-            .description
-            .as_ref()
-            .map(|x| x.as_str())
-            .unwrap_or("No description")
-            .to_string();
+        let description = command.description.as_deref().unwrap_or("No description").to_string();
         (name, description)
     });
 

@@ -99,7 +99,7 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
         field_values.counts()
     };
 
-    let total_field_values: usize = field_value_counts.iter().map(|(_, n)| n).sum();
+    let total_field_values: usize = field_value_counts.values().sum();
 
     let top_ten_field_value_counts =
         field_value_counts.into_iter().sorted_by_key(|(_, cnt)| *cnt).rev().take(10);
