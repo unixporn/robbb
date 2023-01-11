@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 RUN apt-get -y update && apt-get -y install ca-certificates && rm -rf /var/lib/apt/lists/*
 
