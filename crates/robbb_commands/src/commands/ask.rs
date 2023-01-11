@@ -45,7 +45,10 @@ pub async fn ask(
 
     let AskModal { title, details } = AskModal::execute_with_defaults(
         app_ctx,
-        AskModal { title: String::new(), details: question.unwrap_or_default() },
+        AskModal {
+            title: "<Summarize your question>".to_string(),
+            details: question.unwrap_or_else(|| "Provide some details...".to_string()),
+        },
     )
     .instrument(tracing::info_span!("wait for modal response"))
     .await?
