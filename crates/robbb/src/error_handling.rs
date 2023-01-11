@@ -18,10 +18,10 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
         Command { error, ctx } => {
             handle_command_error(ctx, error).await;
         }
-        Setup { error } => {
+        Setup { error, .. } => {
             tracing::error!(error = %error, "Error during setup: {}", error)
         }
-        Listener { error, event, ctx: _, framework: _ } => {
+        EventHandler { error, event, ctx: _, framework: _ } => {
             tracing::error!(event = ?event, error = %error, "Error in event listener: {}", error);
         }
         ArgumentParse { input, ctx, error } => {
@@ -89,7 +89,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 );
             }
         }
-        DynamicPrefix { error } => {
+        DynamicPrefix { error, .. } => {
             tracing::error!(error = %error, "Error in dynamic prefix");
         }
         other => {

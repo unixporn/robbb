@@ -18,9 +18,9 @@ pub async fn unban(
     user_id: UserId,
 ) -> Res<()> {
     let guild = ctx.guild().context("Failed to load guild")?;
-    let user = user_id.to_user(&ctx.discord()).await?;
+    let user = user_id.to_user(&ctx.serenity_context()).await?;
 
-    guild.unban(&ctx.discord(), user_id).await?;
+    guild.unban(&ctx.serenity_context(), user_id).await?;
 
     ctx.say_success(format!("Succesfully deyote {}", user_id.mention())).await?;
 

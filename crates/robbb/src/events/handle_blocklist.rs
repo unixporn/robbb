@@ -229,9 +229,7 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
 /// Recursively traverse an `ApplicationCommandInteractionDataOption`
 /// to get all the `ApplicationCommandInteractionDataOptionValue`s of it and it's subcommands / groups
 #[allow(deprecated)]
-fn get_options_from_option(
-    option: &poise::serenity_prelude::ApplicationCommandInteractionDataOption,
-) -> Vec<&str> {
+fn get_options_from_option(option: &poise::serenity_prelude::CommandDataOption) -> Vec<&str> {
     let mut values = Vec::new();
     if let Some(value) = option.value.as_ref().and_then(|x| x.as_str()) {
         values.push(value);

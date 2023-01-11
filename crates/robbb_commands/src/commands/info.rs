@@ -13,7 +13,7 @@ use super::*;
     custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
-    let member = ctx.guild().unwrap().member(ctx.discord(), &user).await?;
+    let member = ctx.guild().unwrap().member(ctx.serenity_context(), &user).await?;
     let embed = if check_is_moderator(ctx).await? {
         make_mod_info_embed(ctx, member).await?
     } else {
@@ -62,8 +62,8 @@ pub async fn modinfo(ctx: Ctx<'_>, #[description = "User"] user: Member) -> Res<
 
 async fn make_info_embed(ctx: Ctx<'_>, member: Member) -> CreateEmbed {
     let created_at = member.user.created_at();
-    let color = member.colour(ctx.discord());
-    embeds::make_create_embed(ctx.discord(), |e| {
+    let color = member.colour(ctx.serenity_context());
+    embeds::make_create_embed(ctx.serenity_context(), |e| {
         e.title(member.user.tag());
         e.thumbnail(member.user.face());
         e.color_opt(color);

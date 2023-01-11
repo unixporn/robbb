@@ -1,3 +1,4 @@
+use anyhow::Context;
 use chrono::Utc;
 use poise::Modal;
 use tracing_futures::Instrument;
@@ -22,7 +23,7 @@ pub async fn tag(
 
     let tag = db.get_tag(&tag_name).await?.user_error("No tag with this name exists")?;
 
-    let moderator = tag.moderator.to_user(&ctx.discord()).await?;
+    let moderator = tag.moderator.to_user(&ctx.serenity_context()).await?;
 
     if util::validate_url(&tag.content) {
         ctx.say(&tag.content).await?;
@@ -126,7 +127,8 @@ pub async fn tag_set(
 
     let result = TagModal::execute_with_defaults(app_ctx, TagModal { content: default_content })
         .instrument(tracing::info_span!("wait for modal response"))
-        .await?;
+        .await?
+        .context("Modal timed out")?;
 
     db.set_tag(ctx.author().id, tag_name, result.content, true, Some(Utc::now())).await?;
     ctx.say_success("Succesfully set!").await?;

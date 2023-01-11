@@ -24,7 +24,7 @@ pub async fn fetch(
 
     let create_date = fetch_info.create_date;
     let fetch_data: Vec<(FetchField, String)> = fetch_info.get_values_ordered();
-    let color = user.colour(&ctx.discord());
+    let color = user.colour(&ctx.serenity_context());
 
     match field {
         // Handle fetching a single field

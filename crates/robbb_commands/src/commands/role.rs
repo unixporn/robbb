@@ -44,7 +44,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
 
     if let Some(interaction) = roles_msg
         .to_mut()
-        .await_component_interactions(&ctx.discord())
+        .await_component_interactions(&ctx.serenity_context())
         .author_id(ctx.author().id)
         .timeout(std::time::Duration::from_secs(10))
         .collect_limit(1)
@@ -55,23 +55,27 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         if let Some(role_id) = interaction.data.values.first() {
             let mut member = ctx.author_member().await.user_error("Not a member")?;
 
-            member.to_mut().remove_roles(&ctx.discord(), &config.roles_color).await?;
+            member.to_mut().remove_roles(&ctx.serenity_context(), &config.roles_color).await?;
 
             let response_embed = if role_id != ROLE_OPTION_NONE {
                 let role_id = RoleId(role_id.parse()?);
-                member.to_mut().add_role(&ctx.discord(), role_id).await?;
+                member.to_mut().add_role(&ctx.serenity_context(), role_id).await?;
 
                 embeds::make_success_embed(
-                    ctx.discord(),
+                    ctx.serenity_context(),
                     &format!("Success! You're now {}", role_id.mention()),
                 )
                 .await
             } else {
-                embeds::make_success_embed(ctx.discord(), "Success! Removed your colorrole").await
+                embeds::make_success_embed(
+                    ctx.serenity_context(),
+                    "Success! Removed your colorrole",
+                )
+                .await
             };
 
             interaction
-                .create_interaction_response(&ctx.discord(), |ir| {
+                .create_interaction_response(&ctx.serenity_context(), |ir| {
                     ir.kind(InteractionResponseType::UpdateMessage).interaction_response_data(|d| {
                         d.set_embed(response_embed).components(|c| c)
                     })
@@ -79,10 +83,11 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
                 .await?;
         }
     } else {
-        let timed_out_embed = embeds::make_error_embed(ctx.discord(), "No role chosen").await;
+        let timed_out_embed =
+            embeds::make_error_embed(ctx.serenity_context(), "No role chosen").await;
         roles_msg
             .to_mut()
-            .edit(&ctx.discord(), |e| e.set_embed(timed_out_embed).components(|c| c))
+            .edit(&ctx.serenity_context(), |e| e.set_embed(timed_out_embed).components(|c| c))
             .await?;
     }
 

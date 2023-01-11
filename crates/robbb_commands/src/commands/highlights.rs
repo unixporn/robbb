@@ -25,10 +25,11 @@ pub async fn highlights_add(
     }
 
     let db = ctx.get_db();
-    let max_highlight_cnt = match checks::get_permission_level(ctx.discord(), ctx.author()).await? {
-        PermissionLevel::Mod => 20,
-        _ => 4,
-    };
+    let max_highlight_cnt =
+        match checks::get_permission_level(ctx.serenity_context(), ctx.author()).await? {
+            PermissionLevel::Mod => 20,
+            _ => 4,
+        };
 
     let highlights = db.get_highlights().await?;
     let highlights_by_user_cnt = highlights.triggers_for_user(ctx.author().id).count();
@@ -42,10 +43,10 @@ pub async fn highlights_add(
 
     ctx.author()
         .id
-        .create_dm_channel(&ctx.discord())
+        .create_dm_channel(&ctx.serenity_context())
         .await
         .user_error("Couldn't open a DM to you - do you have me blocked?")?
-        .send_message(&ctx.discord(), |m| {
+        .send_message(&ctx.serenity_context(), |m| {
             m.embed(|e| {
                 e.title("Test to see if you can receive DMs");
                 e.description(format!(
@@ -129,10 +130,10 @@ async fn try_dm_or_ephemeral_response(
         poise::Context::Prefix(_) => {
             ctx.author()
                 .id
-                .create_dm_channel(&ctx.discord())
+                .create_dm_channel(&ctx.serenity_context())
                 .await
                 .user_error("Couldn't open a DM to you - do you have me blocked?")?
-                .send_message(&ctx.discord(), |m| {
+                .send_message(&ctx.serenity_context(), |m| {
                     m.embed(|e| {
                         build(e);
                         e

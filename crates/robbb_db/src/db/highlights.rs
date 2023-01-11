@@ -57,7 +57,7 @@ impl HighlightsData {
         if user_list.is_empty() {
             self.entries.remove(&trigger.to_lowercase());
             self.combined_regex =
-                combine_multitrigger_regex(self.entries.iter().map(|(x, _)| x.as_str()))?;
+                combine_multitrigger_regex(self.entries.keys().map(|x| x.as_str()))?;
         }
         Ok(())
     }
@@ -72,7 +72,7 @@ impl HighlightsData {
             .or_insert_with(|| vec![user]);
         if !already_in_regex {
             self.combined_regex =
-                combine_multitrigger_regex(self.entries.iter().map(|(x, _)| x.as_str()))?;
+                combine_multitrigger_regex(self.entries.keys().map(|x| x.as_str()))?;
         }
         Ok(())
     }
@@ -88,7 +88,7 @@ impl HighlightsData {
         // update the regex if some words have been removed
         if self.entries.len() != old_length {
             self.combined_regex =
-                combine_multitrigger_regex(self.entries.iter().map(|(x, _)| x.as_str()))?;
+                combine_multitrigger_regex(self.entries.keys().map(|x| x.as_str()))?;
         }
         Ok(())
     }

@@ -1,3 +1,4 @@
+use anyhow::Context;
 use chrono::Utc;
 use poise::{
     serenity_prelude::{Mentionable, User},
@@ -101,7 +102,8 @@ pub async fn note_edit(
 
     let NoteEditModal { reason } =
         NoteEditModal::execute_with_defaults(app_ctx, NoteEditModal { reason: action.reason })
-            .await?;
+            .await?
+            .context("Modal timed out")?;
     let reason = reason.trim().trim_matches('\n');
 
     db.edit_mod_action_reason(action.id, ctx.author().id, reason.to_string()).await?;
@@ -149,7 +151,7 @@ pub async fn note_list(
         )
     });
 
-    let base_embed = embeds::make_create_embed(ctx.discord(), |e| {
+    let base_embed = embeds::make_create_embed(ctx.serenity_context(), |e| {
         e.description(format!("{} notes about {}", notes.len(), user.mention()));
         e.author_user(&user)
     })

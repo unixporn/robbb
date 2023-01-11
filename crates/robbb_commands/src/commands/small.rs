@@ -13,7 +13,7 @@ use super::*;
 )]
 pub async fn restart(ctx: Ctx<'_>) -> Res<()> {
     let _ = ctx.say_success("Shutting down").await;
-    ctx.discord().shard.shutdown_clean();
+    ctx.serenity_context().shard.shutdown_clean();
     std::process::exit(1);
 }
 
@@ -29,7 +29,7 @@ pub async fn say(
     #[description = "What you,.. ummmm. I mean _I_ should say"] message: String,
 ) -> Res<()> {
     ctx.send(|m| m.content("Sure thing!").ephemeral(true)).await?;
-    ctx.channel_id().say(&ctx.discord(), message).await?;
+    ctx.channel_id().say(&ctx.serenity_context(), message).await?;
     Ok(())
 }
 

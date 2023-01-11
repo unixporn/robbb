@@ -1192,8 +1192,9 @@ checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
 
 [[package]]
 name = "poise"
-version = "0.2.1"
-source = "git+https://github.com/kangalioo/poise?rev=0f2eb876397d1712d38432adc759ca3b9186d7ff#0f2eb876397d1712d38432adc759ca3b9186d7ff"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ca787e4e516076de1995a83ee05fbdfed71d072ea0da3df018318db42a87803"
 dependencies = [
  "async-trait",
  "derivative",
@@ -1201,6 +1202,7 @@ dependencies = [
  "futures-util",
  "log",
  "once_cell",
+ "parking_lot 0.12.1",
  "poise_macros",
  "regex",
  "serenity",
@@ -1209,8 +1211,9 @@ dependencies = [
 
 [[package]]
 name = "poise_macros"
-version = "0.2.1"
-source = "git+https://github.com/kangalioo/poise?rev=0f2eb876397d1712d38432adc759ca3b9186d7ff#0f2eb876397d1712d38432adc759ca3b9186d7ff"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b80c1f4e04114527f9d41ed6bb31707a095276f51bb0aef3ca11f062b25a67c4"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1663,8 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "serenity"
-version = "0.11.4"
-source = "git+https://github.com/bumblepie/serenity?rev=1fba7ba6bcf0a9fd4f645c265b42fe9bf8c45bc4#1fba7ba6bcf0a9fd4f645c265b42fe9bf8c45bc4"
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82fd5e7b5858ad96e99d440138f34f5b98e1b959ebcd3a1036203b30e78eb788"
 dependencies = [
  "async-trait",
  "async-tungstenite",

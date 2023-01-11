@@ -59,7 +59,7 @@ pub impl<'a> Ctx<'a> {
     where
         F: FnOnce(&mut CreateEmbed) + Send + Sync,
     {
-        let embed = embeds::make_create_embed(self.discord(), |e| {
+        let embed = embeds::make_create_embed(self.serenity_context(), |e| {
             build(e);
             e
         })
@@ -67,8 +67,8 @@ pub impl<'a> Ctx<'a> {
         self.send(|f| {
             match self {
                 poise::Context::Application(_) => {}
-                poise::Context::Prefix(prefix) => {
-                    f.reference_message(prefix.msg);
+                poise::Context::Prefix(_) => {
+                    f.reply(true);
                 }
             }
             f.embed(|e| {
@@ -90,7 +90,8 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending success message to user"
         );
-        let create_embed = embeds::make_success_embed(self.discord(), &text.to_string()).await;
+        let create_embed =
+            embeds::make_success_embed(self.serenity_context(), &text.to_string()).await;
         self.send_embed_full(true, |e| {
             e.clone_from(&create_embed);
         })
@@ -107,7 +108,8 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending error message to user"
         );
-        let create_embed = embeds::make_error_embed(self.discord(), &text.to_string()).await;
+        let create_embed =
+            embeds::make_error_embed(self.serenity_context(), &text.to_string()).await;
         self.send_embed_full(true, |e| {
             e.clone_from(&create_embed);
         })
@@ -124,7 +126,7 @@ pub impl<'a> Ctx<'a> {
             "Sending success_mod_action message to user"
         );
         let create_embed =
-            embeds::make_success_mod_action_embed(self.discord(), &text.to_string()).await;
+            embeds::make_success_mod_action_embed(self.serenity_context(), &text.to_string()).await;
         self.send_embed(|e| {
             e.clone_from(&create_embed);
         })
@@ -134,7 +136,7 @@ pub impl<'a> Ctx<'a> {
     async fn guild_channel(&self) -> anyhow::Result<GuildChannel> {
         Ok(self
             .channel_id()
-            .to_channel(&self.discord())
+            .to_channel(&self.serenity_context())
             .await
             .context("Failed to load channel")?
             .guild()

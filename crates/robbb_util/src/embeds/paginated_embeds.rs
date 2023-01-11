@@ -77,7 +77,7 @@ impl PaginatedEmbed {
                 let created_msg = created_msg_handle.message().await?.into_owned();
 
                 tokio::spawn({
-                    let serenity_ctx = ctx.discord().clone();
+                    let serenity_ctx = ctx.serenity_context().clone();
                     let user_id = ctx.author().id;
                     let created_msg = created_msg.clone();
                     async move {

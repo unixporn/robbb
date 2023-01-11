@@ -38,7 +38,7 @@ pub async fn purge(
     let _working = ctx.defer_or_broadcast().await?;
 
     let recent_messages = channel
-        .messages(&ctx.discord(), |m| m.limit(100).before(response_msg.id))
+        .messages(&ctx.serenity_context(), |m| m.limit(100).before(response_msg.id))
         .await?
         .into_iter()
         .filter(|msg| msg.author.id == user)
@@ -50,13 +50,13 @@ pub async fn purge(
         .take(count)
         .collect_vec();
 
-    channel.delete_messages(&ctx.discord(), &recent_messages).await?;
+    channel.delete_messages(&ctx.serenity_context(), &recent_messages).await?;
 
     let success_embed = embeds::make_success_mod_action_embed(
-        ctx.discord(),
+        ctx.serenity_context(),
         &format!("Successfully deleted {} messages", recent_messages.len()),
     )
     .await;
-    response_msg.to_mut().edit(&ctx.discord(), |e| e.set_embed(success_embed)).await?;
+    response_msg.to_mut().edit(&ctx.serenity_context(), |e| e.set_embed(success_embed)).await?;
     Ok(())
 }
