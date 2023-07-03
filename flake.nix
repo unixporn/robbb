@@ -72,7 +72,7 @@
             export $(cat .env)
           '';
           # Extra inputs can be added here
-          packages = commonArgs.nativeBuildInputs ++ commonArgs.buildInputs;
+          packages = [ pkgs.darwin.apple_sdk.frameworks.Security ] ++ commonArgs.nativeBuildInputs ++ commonArgs.buildInputs;
         };
       });
 }

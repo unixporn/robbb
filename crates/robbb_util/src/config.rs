@@ -20,6 +20,8 @@ pub struct Config {
     pub roles_color: Vec<RoleId>,
 
     pub category_mod_private: ChannelId,
+    pub channel_announcements: ChannelId,
+    pub channel_rules: ChannelId,
     pub channel_showcase: ChannelId,
     pub channel_feedback: ChannelId,
     pub channel_modlog: ChannelId,
@@ -50,6 +52,8 @@ impl Config {
                 .map(|x| Ok(RoleId(x.trim().parse()?)))
                 .collect::<anyhow::Result<_>>()?,
             category_mod_private: ChannelId(parse_required_env_var("CATEGORY_MOD_PRIVATE")?),
+            channel_announcements: ChannelId(parse_required_env_var("CHANNEL_ANNOUNCEMENTS")?),
+            channel_rules: ChannelId(parse_required_env_var("CHANNEL_RULES")?),
             channel_showcase: ChannelId(parse_required_env_var("CHANNEL_SHOWCASE")?),
             channel_feedback: ChannelId(parse_required_env_var("CHANNEL_FEEDBACK")?),
             channel_modlog: ChannelId(parse_required_env_var("CHANNEL_MODLOG")?),

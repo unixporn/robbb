@@ -19,7 +19,7 @@ EOF
 
 # clean the env
 unset mod intern mute col start
-unset feedback showcase techsupport modcat botstuff modlog botmod botlog humantrafficking polls
+unset announcements rules feedback showcase techsupport modcat botstuff modlog botmod botlog humantrafficking polls
 
 
 #
@@ -65,6 +65,8 @@ channels=$(curl -s -X GET \
 # note: posix sh doesn't support escape codes in variables
 while IFS=$(printf '\t') read -r id name; do
 	case $name in
+		announcements)   announcements=$id;;
+		rules)           rules=$id;;
 		server-feedback) feedback=$id;;
 		showcase)        showcase=$id;;
 		tech-support)    techsupport=$id;;
@@ -91,6 +93,8 @@ export ROLE_HELPER=$intern
 export ROLE_MUTE=$mute
 export ROLES_COLOR=$col
 export CATEGORY_MOD_PRIVATE=$modcat
+export CHANNEL_ANNOUNCEMENTS=$announcements
+export CHANNEL_RULES=$rules
 export CHANNEL_SHOWCASE=$showcase
 export CHANNEL_FEEDBACK=$feedback
 export CHANNEL_MODLOG=$modlog
