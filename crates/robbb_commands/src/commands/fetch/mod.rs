@@ -42,7 +42,7 @@ pub static DISTRO_IMAGES: [(&str, &str); 90] = [
     ("nixos", "https://nixos.org/logo/nixos-hires.png"),
     ("android", "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Android_new_logo_2019.svg/320px-Android_new_logo_2019.svg.png"),
     ("antix", "https://antixlinux.com/wp-content/uploads/2017/03/logo_antiX.png"),
-    ("arch", "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Arch_Linux_logo.svg/250px-Arch_Linux_logo.svg.png"),
+    ("arch", "https://archlinux.org/static/logos/archlinux-logo-dark-1200dpi.b42bd35d5916.png"),
     ("archbang", "https://upload.wikimedia.org/wikipedia/commons/2/2c/ArchBangLogo.png"),
     ("archlabs", "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Default_desktop.png/300px-Default_desktop.png"),
     ("artix", "https://artixlinux.org/img/artix-logo.png"),
