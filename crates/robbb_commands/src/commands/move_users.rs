@@ -21,7 +21,10 @@ pub async fn move_users(
 
     if target_channel == ctx.channel_id() {
         abort_with!("You're already here!")
-    } else if target_channel == config.channel_showcase || target_channel == config.channel_feedback
+    } else if target_channel == config.channel_showcase
+        || target_channel == config.channel_feedback
+        || target_channel == config.channel_announcements
+        || target_channel == config.channel_rules
     {
         abort_with!("I won't move you there");
     }
