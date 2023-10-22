@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into highlights (word, usr) values (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "9e2430ec7c7296b889637d6c19650f55374ead1e588a84651402bb5918fda54d"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from highlights where usr=?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "2bdeb084c05e060d999359fc517d8d0adfee9fdebeeb9ffba3862a1f7544a318"
+}

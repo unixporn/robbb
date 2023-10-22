@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?)\n                on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "5e7e1c0e6bc30fcaae882395e46cb1f3af61733077fe0525d0ff4e7096d0154a"
+}

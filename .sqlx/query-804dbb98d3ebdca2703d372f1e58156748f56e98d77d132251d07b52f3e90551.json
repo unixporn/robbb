@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update mod_action set reason=?, moderator=? where id=?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "804dbb98d3ebdca2703d372f1e58156748f56e98d77d132251d07b52f3e90551"
+}

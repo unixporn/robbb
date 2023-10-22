@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update mute set active = false where mod_action = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "fc050199c34fcc2b659e3aac42252c661a3ca10c7d64fdb2c7b5195c7dc25451"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from blocked_regexes where pattern=?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "bde2664f709df5f73347676ebf4f1833307327428d791838d963898d08080c0d"
+}

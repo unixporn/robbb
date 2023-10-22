@@ -11,8 +11,8 @@ serenity = { version = "0.11.5", default-features = false, features = ["collecto
 anyhow = "1.0"
 chrono = "0.4"
 chrono-humanize = "0.2"
-itertools = "0.10"
-indoc = "1.0"
+itertools = "0.11.0"
+indoc = "2.0.4"
 lazy_static = "1.4"
 rand = "0.8"
 humantime = "2"
@@ -30,7 +30,6 @@ futures = "0.3"
 
 unicase = "2.6.0"
 
-cpu-monitor = "0.1.1"
 poise = "0.5.2"
 parking_lot = "0.12"
 
@@ -49,3 +48,6 @@ libhoney-rust = { git = "https://github.com/nlopes/libhoney-rust", rev = "f64def
 robbb_db = { path = "../robbb_db" }
 robbb_util = { path = "../robbb_util" }
 robbb_commands = { path = "../robbb_commands" }
+
+[target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
+cpu-monitor = "0.1.1"

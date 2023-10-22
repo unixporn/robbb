@@ -4,7 +4,7 @@ use poise::{serenity_prelude::ReactionType, Modal};
 use regex::Regex;
 
 lazy_static::lazy_static! {
-    static ref POLL_OPTION_START_OF_LINE_PATTERN: Regex = Regex::new(r#"^\s*-|^\s*\d\.|^\s*\*"#).unwrap();
+    static ref POLL_OPTION_START_OF_LINE_PATTERN: Regex = Regex::new(r"^\s*-|^\s*\d\.|^\s*\*").unwrap();
 }
 
 /// Get people to vote on your question

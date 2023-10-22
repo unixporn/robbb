@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "select * from fetch",
+  "describe": {
+    "columns": [
+      {
+        "name": "usr",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "info",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "create_date",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7193a2b848e2268d56a3dcb4b925014d951f30c1aec8f572230375a2ec9feb39"
+}

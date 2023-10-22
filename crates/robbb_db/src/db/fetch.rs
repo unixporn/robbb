@@ -36,7 +36,6 @@ impl Db {
         info: HashMap<FetchField, String>,
         create_date: Option<DateTime<Utc>>,
     ) -> Result<Fetch> {
-        let mut conn = self.pool.acquire().await?;
         {
             let user = user.0 as i64;
             let info = serde_json::to_string(&info)?;
@@ -47,7 +46,7 @@ impl Db {
                 info,
                 create_date,
             )
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
         }
 
@@ -56,10 +55,10 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_fetch(&self, user: UserId) -> Result<Option<Fetch>> {
-        let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
-        let value =
-            sqlx::query!("select * from fetch where usr=?", user).fetch_optional(&mut conn).await?;
+        let value = sqlx::query!("select * from fetch where usr=?", user)
+            .fetch_optional(&self.pool)
+            .await?;
         if let Some(x) = value {
             let create_date =
                 x.create_date.map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
@@ -90,9 +89,8 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_all_fetches(&self) -> Result<Vec<Fetch>> {
-        let mut conn = self.pool.acquire().await?;
         sqlx::query!("select * from fetch")
-            .fetch_all(&mut conn)
+            .fetch_all(&self.pool)
             .await?
             .into_iter()
             .map(|x| {

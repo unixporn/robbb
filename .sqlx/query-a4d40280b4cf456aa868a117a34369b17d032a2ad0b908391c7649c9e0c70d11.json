@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into fetch (usr, info, create_date) values (?1, ?2, ?3) on conflict(usr) do update set info=?2, create_date=?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "a4d40280b4cf456aa868a117a34369b17d032a2ad0b908391c7649c9e0c70d11"
+}

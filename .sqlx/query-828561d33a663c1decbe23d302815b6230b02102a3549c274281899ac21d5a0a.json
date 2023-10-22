@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT * FROM mod_action\n                LEFT JOIN mute ON mod_action.id = mute.mod_action\n                WHERE id=?1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "moderator",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "usr",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "reason",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "context",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "action_type",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "create_date",
+        "ordinal": 6,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "mod_action",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "end_time",
+        "ordinal": 8,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "active",
+        "ordinal": 9,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "828561d33a663c1decbe23d302815b6230b02102a3549c274281899ac21d5a0a"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into mod_action (moderator, usr, reason, create_date, context, action_type) values(?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "8b784af44fc9e1a8edd626c6e41096a80c91d6675ad5758ecc6f59cc944b9a25"
+}

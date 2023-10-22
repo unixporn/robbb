@@ -28,12 +28,11 @@ impl Db {
         amount: i64,
         emoji: &EmojiIdentifier,
     ) -> Result<EmojiStats> {
-        let mut conn = self.pool.acquire().await?;
         let emoji_str = &emoji.name;
         let id = emoji.id.0 as i64;
         sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage + ?3)",
             id, emoji_str, amount, emoji.animated)
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
         self.get_emoji_usage_by_id(emoji).await
     }
@@ -44,22 +43,20 @@ impl Db {
         amount: i64,
         emoji: &EmojiIdentifier,
     ) -> Result<EmojiStats> {
-        let mut conn = self.pool.acquire().await?;
         let id = emoji.id.0 as i64;
         let emoji_str = &emoji.name;
         sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set in_text_usage=max(0, in_text_usage + ?3)",
             id, emoji_str, amount, emoji.animated)
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
         self.get_emoji_usage_by_id(emoji).await
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn get_emoji_usage_by_id(&self, emoji: &EmojiIdentifier) -> Result<EmojiStats> {
-        let mut conn = self.pool.acquire().await?;
         let emoji_id = emoji.id.0 as i64;
         let value = sqlx::query!("select * from emoji_stats where emoji_id=?", emoji_id)
-            .fetch_optional(&mut conn)
+            .fetch_optional(&self.pool)
             .await?;
         Ok(value
             .map(|x| EmojiStats {
@@ -76,9 +73,8 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_emoji_usage_by_name(&self, emoji: &str) -> Result<EmojiStats> {
-        let mut conn = self.pool.acquire().await?;
         let value = sqlx::query!("select * from emoji_stats where emoji_name=?", emoji)
-            .fetch_optional(&mut conn)
+            .fetch_optional(&self.pool)
             .await?;
         value
             .map(|x| EmojiStats {
@@ -103,8 +99,7 @@ impl Db {
         // and cannot be used in a match without also constructing the struct
         macro_rules! process_emoji_stats_query {
             ($query:expr,$limit:tt) => {{
-                let mut conn = self.pool.acquire().await?;
-                let records = sqlx::query!($query, $limit).fetch_all(&mut conn).await?;
+                let records = sqlx::query!($query, $limit).fetch_all(&self.pool).await?;
 
                 Ok(records
                     .into_iter()

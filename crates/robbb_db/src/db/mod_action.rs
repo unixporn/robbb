@@ -157,7 +157,7 @@ impl Db {
                 context,
                 action_type,
             )
-            .execute(&mut trans)
+            .execute(&mut *trans)
             .await?
             .last_insert_rowid()
         };
@@ -169,7 +169,7 @@ impl Db {
                 end_time,
                 active
             )
-            .execute(&mut trans)
+            .execute(&mut *trans)
             .await?;
         }
         trans.commit().await?;
@@ -191,7 +191,6 @@ impl Db {
         user_id: UserId,
         filter: Option<ModActionType>,
     ) -> Result<Vec<ModAction>> {
-        let mut conn = self.pool.acquire().await?;
         let user_id = user_id.0 as i64;
 
         let note_type_value = filter.map(|x| x.as_i32());
@@ -206,7 +205,7 @@ impl Db {
             user_id,
             note_type_value,
         )
-        .fetch_all(&mut conn)
+        .fetch_all(&self.pool)
         .await?
         .into_iter()
         .map(|x| x.into_mod_action())
@@ -217,7 +216,6 @@ impl Db {
 
     #[tracing::instrument(skip_all, fields(mod_action.id = %id))]
     pub async fn get_mod_action(&self, id: i64) -> Result<ModAction> {
-        let mut conn = self.pool.acquire().await?;
         let action = sqlx::query_as!(
             DbModActionFields,
             r#"
@@ -227,14 +225,13 @@ impl Db {
             "#,
             id,
         )
-        .fetch_one(&mut conn)
+        .fetch_one(&self.pool)
         .await?;
         action.into_mod_action()
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn count_mod_actions(&self, user: UserId, action_type: ModActionType) -> Result<i32> {
-        let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
         let action_type = action_type.as_i32();
         Ok(sqlx::query_scalar!(
@@ -242,19 +239,18 @@ impl Db {
             id,
             action_type
         )
-        .fetch_one(&mut conn)
+        .fetch_one(&self.pool)
         .await?)
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn count_all_mod_actions(&self, user: UserId) -> Result<HashMap<ModActionType, i32>> {
-        let mut conn = self.pool.acquire().await?;
         let id = user.0 as i64;
         sqlx::query!(
             r#"SELECT action_type, COUNT(*) as "count!: i32" FROM mod_action WHERE usr=? GROUP BY action_type"#,
             id,
         )
-        .fetch_all(&mut conn)
+        .fetch_all(&self.pool)
         .await?
         .into_iter()
         .map(|x| Ok((ModActionType::from_i32(x.action_type as i32)?, x.count)))
@@ -263,10 +259,9 @@ impl Db {
 
     #[tracing::instrument(skip_all, fields(mod_action.id = %id))]
     pub async fn remove_mod_action(&self, user: UserId, id: i64) -> Result<bool> {
-        let mut conn = self.pool.acquire().await?;
         let user = user.0 as i64;
         let result = sqlx::query!("delete from mod_action where id=? AND usr=?", id, user)
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
         Ok(result.rows_affected() > 0)
     }
@@ -278,7 +273,6 @@ impl Db {
         moderator: UserId,
         new_reason: String,
     ) -> Result<bool> {
-        let mut conn = self.pool.acquire().await?;
         let moderator = moderator.0 as i64;
         let result = sqlx::query!(
             "update mod_action set reason=?, moderator=? where id=?",
@@ -286,7 +280,7 @@ impl Db {
             moderator,
             id,
         )
-        .execute(&mut conn)
+        .execute(&self.pool)
         .await?;
         Ok(result.rows_affected() > 0)
     }

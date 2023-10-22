@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * from mute, mod_action\n             WHERE mute.mod_action = mod_action.id\n               AND cast(strftime('%s', end_time) as integer) < cast(strftime('%s', datetime('now')) as integer)\n               AND active",
+  "describe": {
+    "columns": [
+      {
+        "name": "mod_action",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "end_time",
+        "ordinal": 1,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "active",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "moderator",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "usr",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "reason",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "context",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "action_type",
+        "ordinal": 8,
+        "type_info": "Int64"
+      },
+      {
+        "name": "create_date",
+        "ordinal": 9,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "0fc74ffeaa8a6811f271b7905bfb0980929c0999657ba8d778d9f46f1da3613f"
+}

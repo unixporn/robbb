@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "select * from emoji_stats where emoji_name=?",
+  "describe": {
+    "columns": [
+      {
+        "name": "emoji_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "emoji_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "animated",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "in_text_usage",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "reaction_usage",
+        "ordinal": 4,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "119359a3b3ee926414647c50404ecf27cf2a9ba7bf0b676f827735d1c24941fc"
+}

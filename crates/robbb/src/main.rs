@@ -28,6 +28,7 @@ async fn main() -> anyhow::Result<()> {
     let _enter = span.enter();
 
     if std::env::var("ROBBB_LOG_CPU_USAGE") == Ok("1".to_string()) {
+        #[cfg(any(target_os = "linux", target_os = "windows"))]
         init_cpu_logging().await;
     }
 

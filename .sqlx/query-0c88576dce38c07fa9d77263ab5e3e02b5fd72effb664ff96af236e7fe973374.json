@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage + ?3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "0c88576dce38c07fa9d77263ab5e3e02b5fd72effb664ff96af236e7fe973374"
+}

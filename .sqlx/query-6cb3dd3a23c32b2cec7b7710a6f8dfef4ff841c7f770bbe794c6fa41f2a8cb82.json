@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update mute set active=false\n            from mute m\n            join mod_action on mod_action.id = m.mod_action\n            where mod_action.usr=? and m.active=true\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "6cb3dd3a23c32b2cec7b7710a6f8dfef4ff841c7f770bbe794c6fa41f2a8cb82"
+}

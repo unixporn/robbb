@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT action_type, COUNT(*) as \"count!: i32\" FROM mod_action WHERE usr=? GROUP BY action_type",
+  "describe": {
+    "columns": [
+      {
+        "name": "action_type",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "count!: i32",
+        "ordinal": 1,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "eb9ebcf83026a19e6038024031823ee1c7bb5ed452543dbe510b8ce4d285a630"
+}

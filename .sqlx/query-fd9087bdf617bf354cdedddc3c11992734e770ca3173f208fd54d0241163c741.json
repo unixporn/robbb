@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from tag where name=? COLLATE NOCASE",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "fd9087bdf617bf354cdedddc3c11992734e770ca3173f208fd54d0241163c741"
+}

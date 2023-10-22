@@ -23,8 +23,6 @@ impl Db {
         official: bool,
         create_date: Option<DateTime<Utc>>,
     ) -> Result<Tag> {
-        let mut conn = self.pool.acquire().await?;
-
         let moderator_id = moderator.0 as i64;
         sqlx::query!(
             "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?)
@@ -39,7 +37,7 @@ impl Db {
             official,
             create_date,
         )
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
 
         // Insert into the cache if there are already things in the cache.
@@ -53,12 +51,11 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_tag(&self, name: &str) -> Result<Option<Tag>> {
-        let mut conn = self.pool.acquire().await?;
         Ok(sqlx::query!(
             r#"select name as "name!", moderator, content, official, create_date from tag where name=? COLLATE NOCASE"#,
             name
         )
-        .fetch_optional(&mut conn)
+        .fetch_optional(&self.pool)
         .await?
         .map(|x| {
             let create_date = x
@@ -75,9 +72,8 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn delete_tag(&self, name: String) -> Result<()> {
-        let mut conn = self.pool.acquire().await?;
         sqlx::query!(r#"delete from tag where name=? COLLATE NOCASE"#, name)
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
 
         if let Some(tag_names) = self.tag_name_cache.write().await.as_mut() {
@@ -94,9 +90,8 @@ impl Db {
             Ok(tag_names.clone().into_iter().collect())
         } else {
             std::mem::drop(tag_name_cache);
-            let mut conn = self.pool.acquire().await?;
             let tag_names = sqlx::query_scalar(r#"select name as "name!" from tag"#)
-                .fetch_all(&mut conn)
+                .fetch_all(&self.pool)
                 .await?;
 
             let mut tag_name_cache = self.tag_name_cache.write().await;

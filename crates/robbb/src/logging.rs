@@ -1,5 +1,4 @@
 use robbb_util::log_error;
-use tracing_futures::Instrument;
 use tracing_subscriber::{
     filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, EnvFilter,
 };
@@ -63,15 +62,16 @@ pub async fn send_honeycomb_deploy_marker(api_key: &str) {
     );
 }
 
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 pub async fn init_cpu_logging() {
-    use cpu_monitor::CpuInstant;
     use std::time::Duration;
+    use tracing_futures::Instrument;
     tokio::spawn(
         async {
             loop {
-                let start = CpuInstant::now();
+                let start = cpu_monitor::CpuInstant::now();
                 tokio::time::sleep(Duration::from_millis(4000)).await;
-                let end = CpuInstant::now();
+                let end = cpu_monitor::CpuInstant::now();
                 if let (Ok(start), Ok(end)) = (start, end) {
                     let duration = end - start;
                     let percentage = duration.non_idle() * 100.;
