@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "select *, in_text_usage + reaction_usage as \"usage!: i32\" FROM emoji_stats order by \"usage!: i32\" ASC limit ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "emoji_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "emoji_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "animated",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "in_text_usage",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "reaction_usage",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "usage!: i32",
+        "ordinal": 5,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4278ea9047d1443e8dc2c1fc64da762a219d0ec00d6e402d01463692ed8c94d5"
+}

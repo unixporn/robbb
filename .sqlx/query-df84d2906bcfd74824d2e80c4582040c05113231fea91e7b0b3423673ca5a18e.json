@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "select * from highlights",
+  "describe": {
+    "columns": [
+      {
+        "name": "word",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "usr",
+        "ordinal": 1,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "df84d2906bcfd74824d2e80c4582040c05113231fea91e7b0b3423673ca5a18e"
+}

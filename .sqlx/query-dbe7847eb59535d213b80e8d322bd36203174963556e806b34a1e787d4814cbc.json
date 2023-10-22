@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into blocked_regexes(pattern, added_by) values (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "dbe7847eb59535d213b80e8d322bd36203174963556e806b34a1e787d4814cbc"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into mute (mod_action, end_time, active) VALUES(?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "6aa8181feb59cd5c6dc942060b18518ebe7f37a4d07bb4b0b5fde0c21b20fb6f"
+}

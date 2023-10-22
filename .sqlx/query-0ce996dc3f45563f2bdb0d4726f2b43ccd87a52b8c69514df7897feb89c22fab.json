@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from mod_action where id=? AND usr=?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "0ce996dc3f45563f2bdb0d4726f2b43ccd87a52b8c69514df7897feb89c22fab"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select pattern as \"pattern!\" from blocked_regexes",
+  "describe": {
+    "columns": [
+      {
+        "name": "pattern!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "270180bd034c0134635b29bc20bebab94d2ba8f613a79a49eaf999c8ac805d81"
+}
