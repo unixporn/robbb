@@ -5,6 +5,7 @@ members = [
     "crates/robbb_commands",
     "crates/robbb_util"
 ]
+resolver = "2"
 [profile.dev]
 split-debuginfo = "unpacked"
 

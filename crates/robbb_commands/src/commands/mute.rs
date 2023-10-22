@@ -122,9 +122,9 @@ pub async fn apply_mute(
     let latest_possible_timeout = Utc::now()
         .checked_add_signed(chrono::Duration::days(TIMEOUT_MAX_DAYS))
         .context("Overflow calculating max date")?
-        .date();
+        .date_naive();
 
-    if end_time.date() <= latest_possible_timeout {
+    if end_time.date_naive() <= latest_possible_timeout {
         member.disable_communication_until_datetime(&ctx, end_time.into()).await?;
     }
 

@@ -102,14 +102,16 @@ impl DbModActionFields {
             moderator: UserId(self.moderator as u64),
             user: UserId(self.usr as u64),
             reason: self.reason.unwrap_or_default(),
-            create_date: self.create_date.map(|x| chrono::DateTime::from_utc(x, Utc)),
+            create_date: self
+                .create_date
+                .map(|x| chrono::DateTime::from_naive_utc_and_offset(x, Utc)),
             context: self.context,
             kind: match ModActionType::from_i32(self.action_type as i32)? {
                 ModActionType::ManualNote => ModActionKind::ManualNote,
                 ModActionType::BlocklistViolation => ModActionKind::BlocklistViolation,
                 ModActionType::Warn => ModActionKind::Warn,
                 ModActionType::Mute => ModActionKind::Mute {
-                    end_time: chrono::DateTime::from_utc(
+                    end_time: chrono::DateTime::from_naive_utc_and_offset(
                         self.end_time.context("no mute item for mute in database")?,
                         Utc,
                     ),

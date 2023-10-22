@@ -31,8 +31,8 @@ impl Db {
             moderator: UserId(x.moderator as u64),
             user: UserId(x.usr as u64),
             reason: x.reason.unwrap_or_default(),
-            start_time: DateTime::<Utc>::from_utc(x.create_date.context("no create date")?, Utc),
-            end_time: DateTime::<Utc>::from_utc(x.end_time, Utc),
+            start_time: DateTime::<Utc>::from_naive_utc_and_offset(x.create_date.context("no create date")?, Utc),
+            end_time: DateTime::<Utc>::from_naive_utc_and_offset(x.end_time, Utc),
             context: x.context,
         }))
         .collect::<Result<_>>()
@@ -54,11 +54,11 @@ impl Db {
                 moderator: UserId(x.moderator as u64),
                 user: UserId(x.usr as u64),
                 reason: x.reason.unwrap_or_default(),
-                start_time: DateTime::<Utc>::from_utc(
+                start_time: DateTime::<Utc>::from_naive_utc_and_offset(
                     x.create_date.context("no create date")?,
                     Utc,
                 ),
-                end_time: DateTime::<Utc>::from_utc(x.end_time, Utc),
+                end_time: DateTime::<Utc>::from_naive_utc_and_offset(x.end_time, Utc),
                 context: x.context,
             })
         })
@@ -76,8 +76,8 @@ impl Db {
             moderator: UserId(x.moderator as u64),
             user: UserId(x.usr as u64),
             reason: x.reason.unwrap_or_default(),
-            start_time: DateTime::<Utc>::from_utc(x.create_date.context("no create date")?, Utc),
-            end_time: DateTime::<Utc>::from_utc(x.end_time, Utc),
+            start_time: DateTime::<Utc>::from_naive_utc_and_offset(x.create_date.context("no create date")?, Utc),
+            end_time: DateTime::<Utc>::from_naive_utc_and_offset(x.end_time, Utc),
             context: x.context,
         }))
         .transpose()

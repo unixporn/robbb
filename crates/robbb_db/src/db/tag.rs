@@ -60,7 +60,7 @@ impl Db {
         .map(|x| {
             let create_date = x
                 .create_date
-                .map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
+                .map(|date| chrono::DateTime::from_naive_utc_and_offset(date, chrono::Utc));
             Tag {
             name: x.name,
             moderator: UserId(x.moderator as u64),
