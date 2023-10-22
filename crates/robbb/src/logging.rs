@@ -1,5 +1,4 @@
 use robbb_util::log_error;
-use tracing_futures::Instrument;
 use tracing_subscriber::{
     filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, EnvFilter,
 };
@@ -66,6 +65,7 @@ pub async fn send_honeycomb_deploy_marker(api_key: &str) {
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 pub async fn init_cpu_logging() {
     use std::time::Duration;
+    use tracing_futures::Instrument;
     tokio::spawn(
         async {
             loop {

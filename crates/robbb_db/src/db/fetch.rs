@@ -56,8 +56,9 @@ impl Db {
     #[tracing::instrument(skip_all)]
     pub async fn get_fetch(&self, user: UserId) -> Result<Option<Fetch>> {
         let user = user.0 as i64;
-        let value =
-            sqlx::query!("select * from fetch where usr=?", user).fetch_optional(&self.pool).await?;
+        let value = sqlx::query!("select * from fetch where usr=?", user)
+            .fetch_optional(&self.pool)
+            .await?;
         if let Some(x) = value {
             let create_date =
                 x.create_date.map(|date| chrono::DateTime::from_utc(date, chrono::Utc));
