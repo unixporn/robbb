@@ -23,7 +23,14 @@ pub fn init_tracing(honeycomb_api_key: Option<String>) {
     let sub = tracing_subscriber::registry::Registry::default()
         .with(log_filter)
         .with(remove_presence_update_filter)
-        .with(tracing_subscriber::fmt::Layer::default());
+        .with(
+            tracing_logfmt::builder()
+                .with_level(true)
+                .with_target(true)
+                .with_span_name(true)
+                .with_span_path(true)
+                .layer(),
+        );
 
     if let Some(api_key) = honeycomb_api_key {
         tracing::info!("honeycomb api key is set, initializing honeycomb layer");
