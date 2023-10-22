@@ -18,14 +18,13 @@ pub struct Mute {
 impl Db {
     #[tracing::instrument(skip_all)]
     pub async fn get_newly_expired_mutes(&self) -> Result<Vec<Mute>> {
-        let mut conn = self.pool.acquire().await?;
         sqlx::query!(
             "SELECT * from mute, mod_action
              WHERE mute.mod_action = mod_action.id
                AND cast(strftime('%s', end_time) as integer) < cast(strftime('%s', datetime('now')) as integer)
                AND active"
         )
-        .fetch_all(&mut conn).await?
+        .fetch_all(&self.pool).await?
         .into_iter()
         .map(|x| Ok(Mute {
             id: x.id,
@@ -41,13 +40,12 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_mutes(&self, user_id: UserId) -> Result<Vec<Mute>> {
-        let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
         sqlx::query!(
             "select * from mute, mod_action where mute.mod_action = mod_action.id AND usr=?",
             id
         )
-        .fetch_all(&mut conn)
+        .fetch_all(&self.pool)
         .await?
         .into_iter()
         .map(|x| {
@@ -69,10 +67,9 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_active_mute(&self, user_id: UserId) -> Result<Option<Mute>> {
-        let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
         sqlx::query!("select * from mute, mod_action where mute.mod_action = mod_action.id AND usr=? AND active=true", id)
-        .fetch_optional(&mut conn)
+        .fetch_optional(&self.pool)
         .await?
         .map(|x| Ok(Mute {
             id: x.id,
@@ -88,7 +85,6 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn remove_active_mutes(&self, user_id: UserId) -> Result<()> {
-        let mut conn = self.pool.acquire().await?;
         let id = user_id.0 as i64;
         sqlx::query!(
             "update mute set active=false
@@ -98,16 +94,15 @@ impl Db {
             ",
             id
         )
-        .execute(&mut conn)
+        .execute(&self.pool)
         .await?;
         Ok(())
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn set_mute_inactive(&self, id: i64) -> Result<()> {
-        let mut conn = self.pool.acquire().await?;
         sqlx::query!("update mute set active = false where mod_action = ?", id)
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
         Ok(())
     }

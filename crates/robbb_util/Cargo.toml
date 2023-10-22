@@ -15,7 +15,7 @@ thiserror = "1.0"
 lazy_static = "1.4"
 chrono = "0.4"
 chrono-humanize = "0.2"
-itertools = "0.10"
+itertools = "0.11.0"
 tokio-util = { version = "0.7", features = ["compat"] }
 tokio = { version = "1.21", features = ["macros", "fs", "rt-multi-thread"]}
 futures = "0.3"

@@ -3,16 +3,14 @@ name = "robbb_db"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 serenity = { version = "0.11.5", default-features = false, features = ["collector", "builder", "cache", "chrono", "client", "gateway", "model", "http", "utils"]}
 poise = "0.5.2"
 thiserror = "1.0"
-sqlx = { version ="0.6", features = ["runtime-tokio-rustls", "sqlite", "chrono", "offline"] }
+sqlx = { version ="0.7.2", features = ["runtime-tokio-rustls", "sqlite", "chrono"] }
 anyhow = "1.0"
 chrono = "0.4"
-itertools = "0.10"
+itertools = "0.11.0"
 regex = "1"
 tracing = "0.1.37"
 serde_json = "1"

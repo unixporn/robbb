@@ -17,15 +17,13 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_blocklist(&self) -> Result<Vec<String>> {
-        let mut conn = self.pool.acquire().await?;
-
         let mut cache = self.blocklist_cache.write().await;
 
         if let Some(cache) = cache.as_ref() {
             Ok(cache.clone())
         } else {
             let rows = sqlx::query_scalar!(r#"select pattern as "pattern!" from blocked_regexes"#)
-                .fetch_all(&mut conn)
+                .fetch_all(&self.pool)
                 .await?;
             *cache = Some(rows.clone());
             Ok(rows)
@@ -33,10 +31,9 @@ impl Db {
     }
 
     pub async fn add_blocklist_entry(&self, user_id: UserId, s: &str) -> Result<()> {
-        let mut conn = self.pool.acquire().await?;
         let user_id = user_id.0 as i64;
         sqlx::query!("insert into blocked_regexes(pattern, added_by) values (?, ?)", s, user_id)
-            .execute(&mut conn)
+            .execute(&self.pool)
             .await?;
 
         let mut cache = self.blocklist_cache.write().await;
@@ -48,8 +45,7 @@ impl Db {
     }
 
     pub async fn remove_blocklist_entry(&self, s: &str) -> Result<()> {
-        let mut conn = self.pool.acquire().await?;
-        sqlx::query!("delete from blocked_regexes where pattern=?", s).execute(&mut conn).await?;
+        sqlx::query!("delete from blocked_regexes where pattern=?", s).execute(&self.pool).await?;
 
         let mut cache = self.blocklist_cache.write().await;
         if let Some(ref mut cache) = cache.as_mut() {

@@ -63,8 +63,8 @@ pub async fn send_honeycomb_deploy_marker(api_key: &str) {
     );
 }
 
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 pub async fn init_cpu_logging() {
-    use cpu_monitor::CpuInstant;
     use std::time::Duration;
     tokio::spawn(
         async {
