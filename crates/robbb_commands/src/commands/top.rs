@@ -130,7 +130,7 @@ async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
     let mut data: HashMap<FetchField, Vec<String>> = HashMap::new();
     for fetch in fetches {
         for field_name in FETCH_KEY_ORDER.iter().filter(|&x| !EXCLUDED_FETCH_FIELDS.contains(x)) {
-            let data_value = data.entry(field_name.clone()).or_insert_with(Vec::new);
+            let data_value = data.entry(field_name.clone()).or_default();
             if let Some(field) = fetch.info.get(field_name) {
                 data_value.push(field.clone());
             }

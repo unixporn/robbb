@@ -69,9 +69,9 @@ pub async fn init_cpu_logging() {
     tokio::spawn(
         async {
             loop {
-                let start = CpuInstant::now();
+                let start = cpu_monitor::CpuInstant::now();
                 tokio::time::sleep(Duration::from_millis(4000)).await;
-                let end = CpuInstant::now();
+                let end = cpu_monitor::CpuInstant::now();
                 if let (Ok(start), Ok(end)) = (start, end) {
                     let duration = end - start;
                     let percentage = duration.non_idle() * 100.;

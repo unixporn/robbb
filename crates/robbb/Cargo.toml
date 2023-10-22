@@ -49,5 +49,5 @@ robbb_db = { path = "../robbb_db" }
 robbb_util = { path = "../robbb_util" }
 robbb_commands = { path = "../robbb_commands" }
 
-[target.'cfg(any(windows, linux))'.dependencies]
+[target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
 cpu-monitor = "0.1.1"

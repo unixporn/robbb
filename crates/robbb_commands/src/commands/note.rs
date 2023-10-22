@@ -139,7 +139,7 @@ pub async fn note_list(
             .context
             .clone()
             .map(|link| format!(" - [(context)]({})", link))
-            .unwrap_or_else(String::new);
+            .unwrap_or_default();
         (
             format!(
                 "[{}] {} - {} ",
