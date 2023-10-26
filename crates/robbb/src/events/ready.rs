@@ -8,7 +8,7 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
     let config = ctx.get_config().await;
 
     let bot_version = util::bot_version();
-    tracing::info!("Robbb is ready! Running version {}", &bot_version);
+    tracing::info!(robbb_version = %bot_version, "Robbb is ready! Running version {}", &bot_version);
 
     let _ = config
         .channel_mod_bot_stuff

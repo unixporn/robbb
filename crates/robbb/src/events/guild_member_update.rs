@@ -25,6 +25,7 @@ pub async fn dehoist_member(ctx: client::Context, member: Member) -> Result<()> 
     } else {
         cleaned_name.to_string()
     };
+    tracing::info!(user.old_name = %display_name, user.cleaned_name = %cleaned_name, "Dehoisting user");
     member
         .edit(&ctx, |edit| edit.nickname(&cleaned_name))
         .instrument(tracing::info_span!("dehoist-edit-nickname", member.tag = %member.user.tag(), dehoist.old_nick = %display_name, dehoist.new_nick = %cleaned_name))

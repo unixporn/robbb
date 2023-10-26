@@ -40,7 +40,7 @@ pub async fn store_attachments(
 /// Store a single attachment in the given directory path.
 async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachment) -> Result<()> {
     let file_path = dir_path.as_ref().join(attachment.filename);
-    tracing::debug!("Storing file {}", &file_path.display());
+    tracing::debug!(file_path = %file_path.display(), "Storing file {}", &file_path.display());
 
     let resp = reqwest::get(&attachment.url).await.context("Failed to load attachment")?;
     let mut body = resp
@@ -104,10 +104,11 @@ pub async fn cleanup(config: &Config) -> Result<()> {
         files.sort_by_key(|(_, meta)| meta.modified().expect("Unsupported platform"));
     }
 
-    tracing::info!("{} bytes currently occupied by attachment logging", total_size_bytes);
+    tracing::info!(attachment_logs.total_size_bytes = %total_size_bytes, "Performing attachment cleanup");
 
     while total_size_bytes > config.attachment_cache_max_size && !files.is_empty() {
         let (file, meta) = files.remove(0);
+        tracing::trace!(file_name = %file.path().display(), size = meta.size(), "Deleting file");
         tokio::fs::remove_file(file.path())
             .instrument(tracing::info_span!("Deleting file", file_name = %file.path().display(), size = meta.size()))
             .await?;
