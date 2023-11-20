@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from hard_to_moderate where usr=?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "f0d2ab5f212ef40d1ecec2a5424d5b861b09058f7527712ef343fc117237847c"
+}
