@@ -8,6 +8,26 @@ use robbb_util::{
 };
 use std::time::SystemTime;
 
+async fn handle_htm_evasion(ctx: &client::Context, new_member: &mut Member) -> Result<()> {
+    let (config, db) = ctx.get_config_and_db().await;
+    let is_htm = db.check_user_htm(new_member.user.id).await?;
+    if is_htm {
+        config
+            .channel_modlog
+            .send_embed(&ctx, |e| {
+                e.author(|a| a.name("HTM evasion caught").icon_url(new_member.user.face()));
+                e.title(new_member.user.name_with_disc_and_id());
+                e.description(format!(
+                    "User {} was HTM and rejoined.\n Re-applying HTM role.",
+                    new_member.mention()
+                ));
+            })
+            .await?;
+        new_member.add_role(&ctx, config.role_htm).await?;
+    }
+    Ok(())
+}
+
 /// check if there's an active mute of a user that just joined.
 /// if so, reapply the mute and log their mute-evasion attempt in modlog
 async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Result<()> {
@@ -33,12 +53,13 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
     Ok(())
 }
 
-pub async fn guild_member_addition(ctx: client::Context, new_member: Member) -> Result<()> {
+pub async fn guild_member_addition(ctx: client::Context, mut new_member: Member) -> Result<()> {
     let config = ctx.get_config().await;
     if config.guild != new_member.guild_id {
         return Ok(());
     }
 
+    log_error!(handle_htm_evasion(&ctx, &mut new_member).await);
     log_error!(handle_mute_evasion(&ctx, &new_member).await);
 
     config

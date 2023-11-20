@@ -9,7 +9,14 @@ pub async fn guild_member_update(
     _old: Option<Member>,
     new: Member,
 ) -> Result<()> {
-    dehoist_member(ctx, new).await?;
+    let (config, db) = ctx.get_config_and_db().await;
+    dehoist_member(ctx.clone(), new.clone()).await?;
+
+    let roles = new.roles(&ctx).unwrap_or_default();
+    if roles.iter().any(|x| x.id == config.role_htm) {
+        log_error!(db.add_htm(new.user.id).await);
+    }
+
     Ok(())
 }
 
