@@ -18,7 +18,7 @@ async fn handle_htm_evasion(ctx: &client::Context, new_member: &mut Member) -> R
                 e.author(|a| a.name("HTM evasion caught").icon_url(new_member.user.face()));
                 e.title(new_member.user.name_with_disc_and_id());
                 e.description(format!(
-                    "User {} was HTM and rejoined.\n Re-applying HTM role.",
+                    "User {} was HTM and rejoined.\nRe-applying HTM role.",
                     new_member.mention()
                 ));
             })
