@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select * from hard_to_moderate where usr=?",
+  "describe": {
+    "columns": [
+      {
+        "name": "usr",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3b3211af0c35f19ad8c32a048456b2adbb47775cec208ce1aebd543f38a1bfef"
+}

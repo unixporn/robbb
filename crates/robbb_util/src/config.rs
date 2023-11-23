@@ -17,6 +17,7 @@ pub struct Config {
     pub role_mod: RoleId,
     pub role_helper: RoleId,
     pub role_mute: RoleId,
+    pub role_htm: RoleId,
     pub roles_color: Vec<RoleId>,
 
     pub category_mod_private: ChannelId,
@@ -47,6 +48,7 @@ impl Config {
             role_mod: RoleId(parse_required_env_var("ROLE_MOD")?),
             role_helper: RoleId(parse_required_env_var("ROLE_HELPER")?),
             role_mute: RoleId(parse_required_env_var("ROLE_MUTE")?),
+            role_htm: RoleId(parse_required_env_var("ROLE_HTM")?),
             roles_color: required_env_var("ROLES_COLOR")?
                 .split(',')
                 .map(|x| Ok(RoleId(x.trim().parse()?)))

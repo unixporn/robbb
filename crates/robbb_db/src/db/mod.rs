@@ -13,6 +13,7 @@ pub mod emoji_logging;
 pub mod fetch;
 pub mod fetch_field;
 pub mod highlights;
+pub mod htm;
 pub mod mod_action;
 pub mod mute;
 pub mod tag;
@@ -41,7 +42,7 @@ impl Db {
     }
 
     pub async fn run_migrations(&self) -> Result<()> {
-        sqlx::migrate!("./migrations")
+        sqlx::migrate!("../../migrations")
             .run(&self.pool)
             .await
             .context("Failed to run database migrations")?;
