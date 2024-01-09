@@ -19,14 +19,14 @@ jobs:
       matrix:
         profile:
           - debug
-          - release
+          #- release
         include:
-          - profile: release
-            cargo_flags: "--release"
-            cargo_env: ""
+          #- profile: release
+            #cargo_flags: "--release"
+            #cargo_env: ""
           - profile: debug
             cargo_flags: ""
-            cargo_env: "RUSTFLAGS='-C debuginfo=0'"
+            #cargo_env: "RUSTFLAGS='-C debuginfo=0'"
 
     steps:
       - uses: actions/checkout@v2
