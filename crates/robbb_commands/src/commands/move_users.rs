@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use poise::serenity_prelude::{Channel, ChannelId, CreateEmbed, Message};
 
-use robbb_util::{abort_with, embeds::make_create_embed};
+use robbb_util::{abort_with, embeds};
+use serenity::builder::{CreateMessage, EditMessage};
 
 use super::*;
 
@@ -52,14 +53,13 @@ async fn send_ask_in_tech_support(
         .map(|emotes| emotes.police.to_string())
         .unwrap_or_default();
 
-    ctx.send_embed(|e| {
-        e.author_user(ctx.author());
-        e.description(indoc::formatdoc!(
+    ctx.reply_embed_builder(|e| {
+        e.author_user(ctx.author()).description(indoc::formatdoc!(
             "{police}{police}**Please {} use `/ask` to ask your question in {}**{police}{police}",
             mentions,
             target_channel.mention(),
             police = police_emote,
-        ));
+        ))
     })
     .await?;
     Ok(())
@@ -74,24 +74,23 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
         ctx: Ctx<'_>,
         continuation_msg: Option<Cow<'a, Message>>,
     ) -> CreateEmbed {
-        make_create_embed(ctx.serenity_context(), |e| {
-            e.author_user(ctx.author());
-            e.description(indoc::formatdoc!(
+        embeds::base_embed(ctx.serenity_context()).await.author_user(ctx.author()).description(
+            indoc::formatdoc!(
                 "Continuation from {}
                     [Conversation]({})",
                 ctx.channel_id().mention(),
                 continuation_msg.map(|x| x.link()).unwrap_or_default(),
-            ))
-        })
-        .await
+            ),
+        )
     }
 
     let mut continuation_msg = {
         let continuation_embed = make_continuation_embed(ctx, None).await;
         target_channel
-            .send_message(&ctx.serenity_context(), |m| {
-                m.content(mentions).set_embed(continuation_embed)
-            })
+            .send_message(
+                &ctx.serenity_context(),
+                CreateMessage::default().content(mentions).embed(continuation_embed),
+            )
             .await?
     };
 
@@ -105,22 +104,23 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
         .unwrap_or_default();
 
     let move_message = ctx
-        .send_embed(|e| {
-            e.author_user(ctx.author());
-            e.description(indoc::formatdoc!(
+        .reply_embed_builder(|e| {
+            e.author_user(ctx.author()).description(indoc::formatdoc!(
                 "{police}{police}**MOVE THIS CONVERSATION!**{police}{police}
                 Continued at {}: [Conversation]({})
                 Please continue your conversation **there**!",
                 target_channel.mention(),
                 continuation_msg.link(),
                 police = police_emote,
-            ));
+            ))
         })
         .await?;
     let move_message = move_message.message().await?;
 
     let new_continuation_embed = make_continuation_embed(ctx, Some(move_message)).await;
-    continuation_msg.edit(&ctx.serenity_context(), |m| m.set_embed(new_continuation_embed)).await?;
+    continuation_msg
+        .edit(&ctx.serenity_context(), EditMessage::default().embed(new_continuation_embed))
+        .await?;
 
     if let poise::Context::Prefix(ctx) = ctx {
         ctx.msg.delete(&ctx.serenity_context()).await?;

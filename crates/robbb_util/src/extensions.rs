@@ -1,26 +1,21 @@
-use crate::{
-    config::Config,
-    embeds::{self, make_create_embed},
-    prelude::{BoxedCreateEmbedBuilder, BoxedCreateMessageBuilder, Ctx},
-    UpEmotes,
-};
+use crate::{config::Config, embeds, prelude::Ctx, UpEmotes};
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use poise::ReplyHandle;
+use poise::{CreateReply, ReplyHandle};
 use robbb_db::Db;
 use serenity::{
     async_trait,
-    builder::CreateEmbed,
+    builder::{CreateAllowedMentions, CreateEmbed, CreateEmbedAuthor, CreateMessage, CreateThread},
     client,
     model::{
         channel::{GuildChannel, Message},
         guild::Emoji,
         id::{ChannelId, EmojiId, GuildId},
         prelude::User,
+        Colour,
     },
     prelude::Mentionable,
-    utils::Colour,
 };
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
@@ -41,43 +36,32 @@ pub impl<'a> Ctx<'a> {
         self.data().up_emotes.read().clone()
     }
 
-    async fn send_embed<F>(&self, build: F) -> StdResult<ReplyHandle<'_>, serenity::Error>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
-    {
-        let build_fn: BoxedCreateEmbedBuilder = Box::new(move |e| {
-            build(e);
-        });
-        self.send_embed_full(false, build_fn).await
+    fn is_prefix(&self) -> bool {
+        matches!(self, poise::Context::Prefix(_))
     }
 
-    async fn send_embed_full<F>(
+    /// Send an embed. Convenient simpler form of [`Self::send_embed_full`].
+    async fn reply_embed_builder(
+        &self,
+        build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        self.reply_embed_full(false, build(embeds::base_embed(self.serenity_context()).await)).await
+    }
+
+    /// Send an embed. Convenient simpler form of [`Self::send_embed_full`].
+    async fn reply_embed(&self, embed: CreateEmbed) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        self.reply_embed_full(false, embed).await
+    }
+
+    /// Send an embed, making it ephemeral optionally.
+    /// Will make message a reply unconditionally.
+    async fn reply_embed_full(
         &self,
         ephemeral: bool,
-        build: F,
-    ) -> StdResult<ReplyHandle<'_>, serenity::Error>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
-    {
-        let embed = embeds::make_create_embed(self.serenity_context(), |e| {
-            build(e);
-            e
-        })
-        .await;
-        self.send(|f| {
-            match self {
-                poise::Context::Application(_) => {}
-                poise::Context::Prefix(_) => {
-                    f.reply(true);
-                }
-            }
-            f.embed(|e| {
-                *e = embed;
-                e
-            })
-            .ephemeral(ephemeral)
-        })
-        .await
+        embed: CreateEmbed,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        let reply = CreateReply::default().ephemeral(ephemeral).embed(embed).reply(true);
+        self.send(reply).await
     }
 
     async fn say_success(
@@ -90,11 +74,10 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending success message to user"
         );
-        let create_embed =
-            embeds::make_success_embed(self.serenity_context(), &text.to_string()).await;
-        self.send_embed_full(true, |e| {
-            e.clone_from(&create_embed);
-        })
+        self.reply_embed_full(
+            true,
+            embeds::make_success_embed(self.serenity_context(), &text.to_string()).await,
+        )
         .await
     }
 
@@ -108,11 +91,10 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending error message to user"
         );
-        let create_embed =
-            embeds::make_error_embed(self.serenity_context(), &text.to_string()).await;
-        self.send_embed_full(true, |e| {
-            e.clone_from(&create_embed);
-        })
+        self.reply_embed_full(
+            true,
+            embeds::make_error_embed(self.serenity_context(), &text.to_string()).await,
+        )
         .await
     }
     async fn say_success_mod_action(
@@ -125,11 +107,9 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending success_mod_action message to user"
         );
-        let create_embed =
-            embeds::make_success_mod_action_embed(self.serenity_context(), &text.to_string()).await;
-        self.send_embed(|e| {
-            e.clone_from(&create_embed);
-        })
+        self.reply_embed(
+            embeds::make_success_mod_action_embed(self.serenity_context(), &text.to_string()).await,
+        )
         .await
     }
 
@@ -144,7 +124,7 @@ pub impl<'a> Ctx<'a> {
     }
 
     fn get_guild_emojis(&self) -> Option<HashMap<EmojiId, Emoji>> {
-        Some(self.guild()?.emojis)
+        Some(self.guild()?.emojis.clone())
     }
 
     fn get_random_stare(&self) -> Option<Emoji> {
@@ -156,11 +136,12 @@ pub impl<'a> Ctx<'a> {
 #[async_trait]
 pub impl client::Context {
     async fn get_guild_emojis(&self, id: GuildId) -> Result<HashMap<EmojiId, Emoji>> {
-        if let Some(emoji) = self.cache.guild_field(id, |guild| guild.emojis.clone()) {
-            Ok(emoji)
-        } else {
-            Ok(self.http.get_guild(*id.as_u64()).await?.emojis)
-        }
+        tracing::warn!("REQUESTING EMOJI VIA HTTP API WITHOUT CACHING");
+        //if let Some(emoji) = self.cache.guild_field(id, |guild| guild.emojis.clone()) {
+        //    Ok(emoji)
+        //} else {
+        Ok(self.http.get_guild(id.into()).await?.emojis)
+        //}
     }
 
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
@@ -194,22 +175,17 @@ pub impl User {
 #[extend::ext]
 #[async_trait]
 pub impl GuildId {
-    async fn send_embed<F>(
+    async fn send_embed(
         &self,
         ctx: &client::Context,
         channel_id: ChannelId,
-        build: F,
-    ) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
-    {
-        let create_embed = make_create_embed(ctx, |e| {
-            build(e);
-            e
-        })
-        .await;
-        let msg_fn: BoxedCreateMessageBuilder = Box::new(|m| m.set_embed(create_embed));
-        Ok(channel_id.send_message(&ctx, msg_fn).await.context("Failed to send embed message")?)
+        build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+    ) -> Result<Message> {
+        let embed = build(embeds::base_embed(ctx).await);
+        Ok(channel_id
+            .send_message(&ctx, CreateMessage::default().embed(embed))
+            .await
+            .context("Failed to send embed message")?)
     }
 }
 
@@ -230,19 +206,21 @@ pub impl Message {
             .collect_vec()
     }
 
-    async fn reply_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) -> &mut CreateEmbed + Send + Sync,
-    {
-        let create_embed = make_create_embed(ctx, |e| build(e)).await;
-        let msg = self.clone();
-        let msg_fn: BoxedCreateMessageBuilder = Box::new(move |m| {
-            m.allowed_mentions(|f| f.replied_user(false));
-            m.reference_message(&msg);
-            m.set_embed(create_embed)
-        });
-
-        self.channel_id.send_message(&ctx, msg_fn).await.context("Failed to send embed")
+    async fn reply_embed(
+        &self,
+        ctx: &client::Context,
+        build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+    ) -> Result<Message> {
+        self.channel_id
+            .send_message(
+                &ctx,
+                CreateMessage::default()
+                    .allowed_mentions(CreateAllowedMentions::default().replied_user(false))
+                    .reference_message(self)
+                    .embed(build(embeds::base_embed(ctx).await)),
+            )
+            .await
+            .context("Failed to send embed")
     }
 
     async fn reply_error(
@@ -250,12 +228,8 @@ pub impl Message {
         ctx: &client::Context,
         text: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
-        let create_embed = embeds::make_error_embed(ctx, &format!("{}", text)).await;
-        self.reply_embed(ctx, |e| {
-            e.clone_from(&create_embed);
-            e
-        })
-        .await
+        let embed = embeds::make_error_embed(ctx, &text.to_string()).await;
+        self.reply_embed(ctx, |_| embed).await
     }
 
     async fn create_thread(
@@ -268,7 +242,7 @@ pub impl Message {
             .context("Failed to fetch message channel")?
             .guild()
             .context("Failed to request guild channel")?
-            .create_public_thread(&ctx, self, |e| e.name(title))
+            .create_thread_from_message(&ctx, self, CreateThread::new(title.to_string()))
             .await
             .context("Failed to create a thread")
     }
@@ -281,34 +255,52 @@ pub impl Message {
 #[extend::ext]
 #[async_trait]
 pub impl ChannelId {
-    async fn send_embed<F>(&self, ctx: &client::Context, build: F) -> Result<Message>
-    where
-        F: FnOnce(&mut CreateEmbed) + Send + Sync,
-    {
-        let create_embed = make_create_embed(ctx, |e| {
-            build(e);
-            e
-        })
-        .await;
+    async fn send_embed(&self, ctx: &client::Context, embed: CreateEmbed) -> Result<Message> {
+        let msg = CreateMessage::default().embed(embed);
+        Ok(self.send_message(&ctx, msg).await.context("Failed to send embed message")?)
+    }
 
-        let msg_fn: BoxedCreateMessageBuilder = Box::new(|m| m.set_embed(create_embed));
-        Ok(self.send_message(&ctx, msg_fn).await.context("Failed to send embed message")?)
+    async fn send_embed_builder(
+        &self,
+        ctx: &client::Context,
+        build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+    ) -> Result<Message> {
+        let msg = CreateMessage::default().embed(build(embeds::base_embed(ctx).await));
+        Ok(self.send_message(&ctx, msg).await.context("Failed to send embed message")?)
     }
 }
 
 #[extend::ext]
 pub impl CreateEmbed {
-    fn color_opt(&mut self, c: Option<impl Into<Colour>>) -> &mut CreateEmbed {
-        if let Some(c) = c {
-            self.color(c);
+    fn field_opt(
+        self,
+        name: impl Into<String>,
+        value: Option<impl Into<String>>,
+        inline: bool,
+    ) -> Self {
+        match value {
+            Some(value) => self.field(name, value, inline),
+            None => self,
         }
-        self
     }
 
-    fn author_user(&mut self, u: &User) -> &mut Self {
-        self.author(|a| {
-            a.name(u.tag()).icon_url(u.face()).url(format!("https://discord.com/users/{}", u.id))
-        })
+    fn color_opt(self, c: Option<impl Into<Colour>>) -> CreateEmbed {
+        match c {
+            Some(c) => self.color(c),
+            None => self,
+        }
+    }
+
+    fn author_icon(self, name: impl Into<String>, icon_url: impl Into<String>) -> Self {
+        self.author(CreateEmbedAuthor::new(name).icon_url(icon_url))
+    }
+
+    fn author_user(self, u: &User) -> Self {
+        self.author(
+            CreateEmbedAuthor::new(u.tag())
+                .icon_url(u.face())
+                .url(format!("https://discord.com/users/{}", u.id)),
+        )
     }
 }
 

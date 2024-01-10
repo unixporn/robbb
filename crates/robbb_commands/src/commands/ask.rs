@@ -1,14 +1,9 @@
+/*
 use std::str::FromStr;
 
 use anyhow::Context;
-use poise::{
-    serenity_prelude::{
-        interaction::{Interaction, InteractionResponseType},
-        CollectModalInteraction, MessageId, ReactionType,
-    },
-    Modal,
-};
-use serenity::client;
+use poise::Modal;
+use serenity::{builder::CreateThread, client};
 use tracing_futures::Instrument;
 
 use super::*;
@@ -55,7 +50,7 @@ pub async fn ask(
     .context("Modal timed out")?;
 
     let webhooks =
-        app_ctx.serenity_context().http.get_channel_webhooks(config.channel_tech_support.0).await?;
+        app_ctx.serenity_context().http.get_channel_webhooks(config.channel_tech_support).await?;
     let webhook = match webhooks.into_iter().next() {
         Some(webhook) => webhook,
         None => {
@@ -63,7 +58,7 @@ pub async fn ask(
             app_ctx
                 .serenity_context()
                 .http
-                .create_webhook(config.channel_tech_support.0, webhook_json, None)
+                .create_webhook(config.channel_tech_support, webhook_json, None)
                 .instrument(tracing::info_span!("create techsupport webhook"))
                 .await?
         }
@@ -86,7 +81,11 @@ pub async fn ask(
         .context("Failed to request message channel")?
         .guild()
         .context("Failed to request guild channel")?
-        .create_public_thread(&ctx.serenity_context(), &post, |e| e.name(title.clone()))
+        .create_thread_from_message(
+            &ctx.serenity_context(),
+            &post,
+            CreateThread::new(title.clone()),
+        )
         .await
         .context("Failed to create thread for tech-support question")?;
 
@@ -258,3 +257,5 @@ impl FromStr for QuestionButtonId {
         ))
     }
 }
+
+ */

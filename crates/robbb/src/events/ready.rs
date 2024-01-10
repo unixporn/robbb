@@ -1,4 +1,4 @@
-use poise::serenity_prelude::{Activity, OnlineStatus};
+use poise::serenity_prelude::OnlineStatus;
 use robbb_commands::modlog;
 use serenity::futures::StreamExt;
 
@@ -12,14 +12,19 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
 
     let _ = config
         .channel_mod_bot_stuff
-        .send_embed(&ctx, |e| {
-            e.title("Bot is back!");
-            e.description("Hey guys, I'm back!");
-            e.field("version", bot_version, false);
+        .send_embed_builder(&ctx, |e| {
+            e.title("Bot is back!").description("Hey guys, I'm back!").field(
+                "version",
+                bot_version,
+                false,
+            )
         })
         .await;
 
-    ctx.set_presence(Some(Activity::listening("/help")), OnlineStatus::Online).await;
+    ctx.set_presence(
+        Some(serenity::gateway::ActivityData::listening("/help")),
+        OnlineStatus::Online,
+    );
 
     dehoist_everyone(ctx.clone(), config.guild).await;
 

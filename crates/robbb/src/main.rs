@@ -1,6 +1,6 @@
 #![allow(clippy::needless_borrow)]
 
-use poise::serenity_prelude::GatewayIntents;
+use poise::{serenity_prelude::GatewayIntents, CommandInteractionType};
 use robbb_commands::{checks, commands};
 use robbb_db::Db;
 
@@ -57,8 +57,8 @@ async fn main() -> anyhow::Result<()> {
         }),
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("!".into()),
-            edit_tracker: Some(poise::EditTracker::for_timespan(std::time::Duration::from_secs(
-                10,
+            edit_tracker: Some(Arc::new(poise::EditTracker::for_timespan(
+                std::time::Duration::from_secs(10),
             ))),
             execute_untracked_edits: true,
             execute_self_messages: false,
@@ -84,7 +84,11 @@ async fn main() -> anyhow::Result<()> {
 
     let mut client = serenity::Client::builder(&config.discord_token, gateway_intents)
         .event_handler_arc(event_handler.clone())
-        .cache_settings(|c| c.max_messages(500))
+        .cache_settings({
+            let mut settings = serenity::cache::Settings::default();
+            settings.max_messages = 500;
+            settings
+        })
         .await
         .expect("Error creating client");
 
@@ -108,16 +112,16 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
     };
     let channel_name = ctx
         .channel_id()
-        .to_channel_cached(ctx.serenity_context())
-        .and_then(|x| x.guild())
-        .map(|x| x.name);
+        .to_channel_cached(ctx.cache())
+        .and_then(|x| x.guild(&ctx))
+        .map(|x| x.name.to_string());
 
     let span = tracing::Span::current();
     span.record("command_name", ctx.command().qualified_name.as_str());
     span.record("msg.content", content.as_str());
     span.record("msg.author", ctx.author().tag().as_str());
     span.record("msg.id", ctx.id());
-    span.record("msg.channel_id", ctx.channel_id().0);
+    span.record("msg.channel_id", ctx.channel_id().get());
     span.record("msg.channel", channel_name.unwrap_or_default().as_str());
 
     tracing::info!(
@@ -135,10 +139,9 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
 
 fn is_autocomplete_interaction(ctx: &Ctx<'_>) -> bool {
     match ctx {
-        poise::Context::Application(ctx) => matches!(
-            ctx.interaction,
-            poise::ApplicationCommandOrAutocompleteInteraction::Autocomplete(_)
-        ),
+        poise::Context::Application(ctx) => {
+            matches!(ctx.interaction_type, CommandInteractionType::Autocomplete)
+        }
         _ => false,
     }
 }

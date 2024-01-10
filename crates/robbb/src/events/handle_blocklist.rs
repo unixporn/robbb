@@ -1,11 +1,16 @@
 use chrono::Utc;
-use poise::serenity_prelude::application::component::ActionRowComponent;
 use robbb_commands::{
     checks::{self, PermissionLevel},
     commands::blocklist::SHOULD_NEVER_TRIGGER_BLOCKLIST,
 };
 use robbb_db::mod_action::ModActionKind;
 use robbb_util::util::{generate_message_link, time_to_discord_snowflake};
+use serenity::{
+    all::ActionRowComponent,
+    builder::{
+        CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage,
+    },
+};
 use tracing_futures::Instrument;
 
 use super::*;
@@ -39,27 +44,27 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         let dm_future = async {
             let _ = msg
                 .author
-                .dm(&ctx, |m| {
-                    m.embed(|e| {
-                        e.description(&msg.content).title(format!(
-                            "Your message has been deleted for containing a blocked word: `{}`",
-                            word
-                        ))
-                    })
-                })
+                .dm(
+                    &ctx,
+                    CreateMessage::default().embed(
+                        CreateEmbed::default().description(&msg.content).title(format!(
+                            "Your message has been deleted for containing a blocked word: `{word}`",
+                        )),
+                    ),
+                )
                 .await;
         };
 
         let bot_log_future = config.log_automod_action(&ctx, |e| {
-            e.author_user(&msg.author);
-            e.title("Message Autodelete");
-            e.field("Deleted because of", word, false);
-            e.description(format!("{}\n{}", msg.content, msg.to_context_link()));
+            e.author_user(&msg.author)
+                .title("Message Autodelete")
+                .field("Deleted because of", word, false)
+                .description(format!("{}\n{}", msg.content, msg.to_context_link()))
         });
 
         let note_future = async {
-            let bot_id = ctx.cache.current_user_id();
-            let note_content = format!("Message deleted because of word `{}`", word);
+            let bot_id = ctx.cache.current_user().id;
+            let note_content = format!("Message deleted because of word `{word}`");
             let _ = db
                 .add_mod_action(
                     bot_id,
@@ -122,14 +127,14 @@ pub async fn handle_blocklist_in_interaction(
             );
 
             let bot_log_future = config.log_automod_action(&ctx, |e| {
-                e.author_user(&values.user);
-                e.title("Interaction aborted because of blocked word");
-                e.field("Aborted because of", word, false);
-                e.field("Interaction", values.title, false);
+                e.author_user(&values.user)
+                    .title("Interaction aborted because of blocked word")
+                    .field("Aborted because of", word, false)
+                    .field("Interaction", values.title, false)
             });
 
             let note_future = async {
-                let bot_id = ctx.cache.current_user_id();
+                let bot_id = ctx.cache.current_user().id;
                 let note_content = format!(
                     "Interaction `{}` interrupted because of word `{}`",
                     values.title, word
@@ -148,18 +153,24 @@ pub async fn handle_blocklist_in_interaction(
 
             let reply_future = async {
                 match interaction {
-                    Interaction::ApplicationCommand(x) => {
+                    Interaction::Command(x) => {
                         let _ = x
-                            .create_interaction_response(&ctx, |ir| {
-                                ir.interaction_response_data(|m| m.content("Bruh"))
-                            })
+                            .create_response(
+                                &ctx,
+                                CreateInteractionResponse::Message(
+                                    CreateInteractionResponseMessage::default().content("Bruh"),
+                                ),
+                            )
                             .await;
                     }
-                    Interaction::ModalSubmit(x) => {
+                    Interaction::Modal(x) => {
                         let _ = x
-                            .create_interaction_response(&ctx, |ir| {
-                                ir.interaction_response_data(|m| m.content("Bruh"))
-                            })
+                            .create_response(
+                                &ctx,
+                                CreateInteractionResponse::Message(
+                                    CreateInteractionResponseMessage::default().content("Bruh"),
+                                ),
+                            )
                             .await;
                     }
                     _ => {}
@@ -188,16 +199,9 @@ struct InteractionValues<'a> {
 
 fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionValues> {
     match interaction {
-        Interaction::Ping(_) | Interaction::MessageComponent(_) | Interaction::Autocomplete(_) => {
-            None
-        }
-        Interaction::ApplicationCommand(interaction) => {
-            let values = interaction
-                .data
-                .options
-                .iter()
-                .flat_map(|x| get_options_from_option(x).into_iter())
-                .collect();
+        Interaction::Ping(_) | Interaction::Component(_) | Interaction::Autocomplete(_) => None,
+        Interaction::Command(interaction) => {
+            let values = interaction.data.options.iter().filter_map(|x| x.value.as_str()).collect();
 
             Some(InteractionValues {
                 values,
@@ -207,14 +211,14 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
                 title: &interaction.data.name,
             })
         }
-        Interaction::ModalSubmit(interaction) => Some(InteractionValues {
+        Interaction::Modal(interaction) => Some(InteractionValues {
             values: interaction
                 .data
                 .components
                 .iter()
                 .flat_map(|x| x.components.iter())
                 .filter_map(|x| match x {
-                    ActionRowComponent::InputText(text) => Some(text.value.as_str()),
+                    ActionRowComponent::InputText(text) => text.value.as_ref().map(|x| x.as_str()),
                     _ => None,
                 })
                 .collect(),
@@ -223,19 +227,6 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
             guild_id: interaction.guild_id,
             title: "Modal",
         }),
+        _ => None,
     }
-}
-
-/// Recursively traverse an `ApplicationCommandInteractionDataOption`
-/// to get all the `ApplicationCommandInteractionDataOptionValue`s of it and it's subcommands / groups
-#[allow(deprecated)]
-fn get_options_from_option(option: &poise::serenity_prelude::CommandDataOption) -> Vec<&str> {
-    let mut values = Vec::new();
-    if let Some(value) = option.value.as_ref().and_then(|x| x.as_str()) {
-        values.push(value);
-    }
-    for option in &option.options {
-        values.append(&mut get_options_from_option(option));
-    }
-    values
 }

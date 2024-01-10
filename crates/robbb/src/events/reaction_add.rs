@@ -22,16 +22,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
         // with that emote, it'll error, but we don't really care :/
         for r in &msg.reactions {
             if r.reaction_type != event.emoji {
-                log_error!(
-                    ctx.http
-                        .delete_reaction(
-                            msg.channel_id.0,
-                            msg.id.0,
-                            Some(user.id.0),
-                            &r.reaction_type
-                        )
-                        .await
-                );
+                log_error!(msg.delete_reaction(&ctx, Some(user.id), r.reaction_type.clone()).await);
             }
         }
     }
@@ -59,7 +50,11 @@ async fn handle_reaction_emoji_logging(ctx: client::Context, event: Reaction) ->
     };
 
     let db = ctx.get_db().await;
-    db.alter_emoji_reaction_count(1, &EmojiIdentifier { animated, id, name }).await?;
+    db.alter_emoji_reaction_count(
+        1,
+        &robbb_db::emoji_logging::EmojiIdentifier { animated, id, name },
+    )
+    .await?;
 
     Ok(())
 }

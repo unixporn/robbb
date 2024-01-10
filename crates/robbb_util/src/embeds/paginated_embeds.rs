@@ -2,10 +2,18 @@ use crate::{extensions::PoiseContextExt, log_error, prelude::Ctx, util::ellipsis
 
 use anyhow::Result;
 use itertools::Itertools;
-use poise::serenity_prelude::{
-    interaction::InteractionResponseType, CreateActionRow, CreateComponents, UserId,
+use poise::{
+    serenity_prelude::{CreateActionRow, UserId},
+    CreateReply,
 };
-use serenity::{builder::CreateEmbed, client, model::channel::Message};
+use serenity::{
+    builder::{
+        CreateButton, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
+        EditMessage,
+    },
+    client,
+    model::channel::Message,
+};
 
 const PAGINATION_LEFT: &str = "LEFT";
 const PAGINATION_RIGHT: &str = "RIGHT";
@@ -39,12 +47,11 @@ impl PaginatedEmbed {
             .map(|(page_idx, fields)| {
                 let mut e = base_embed.clone();
                 if page_cnt < 2 {
-                    e.title(&title);
+                    e = e.title(&title);
                 } else {
-                    e.title(format!("{} ({}/{})", title, page_idx + 1, page_cnt));
+                    e = e.title(format!("{} ({}/{})", title, page_idx + 1, page_cnt));
                 }
-                e.fields(fields.map(|(k, v)| (k, ellipsis_text(&v, 500), false)).collect_vec());
-                e
+                e.fields(fields.map(|(k, v)| (k, ellipsis_text(&v, 500), false)).collect_vec())
             })
             .collect_vec();
 
@@ -56,23 +63,22 @@ impl PaginatedEmbed {
         let pages = self.pages.clone();
         match pages.len() {
             0 => {
-                let handle =
-                    ctx.send_embed_full(ephemeral, |e| e.clone_from(&self.base_embed)).await?;
+                let handle = ctx.reply_embed_full(ephemeral, self.base_embed.clone()).await?;
                 Ok(handle.message().await?.into_owned())
             }
             1 => {
                 let page = self.pages.first().unwrap();
-                let handle = ctx.send_embed_full(ephemeral, |e| e.clone_from(page)).await?;
+                let handle = ctx.reply_embed_full(ephemeral, page.clone()).await?;
                 Ok(handle.message().await?.into_owned())
             }
             _ => {
                 let created_msg_handle = ctx
-                    .send(|m| {
-                        m.embeds.push(self.pages.first().unwrap().clone());
-                        m.components = Some(make_paginate_components(0, pages.len()));
-                        m.ephemeral(ephemeral);
-                        m
-                    })
+                    .send(
+                        CreateReply::default()
+                            .ephemeral(ephemeral)
+                            .components(vec![make_paginate_row(0, pages.len())])
+                            .embed(self.pages.first().unwrap().clone()),
+                    )
                     .await?;
                 let created_msg = created_msg_handle.message().await?.into_owned();
 
@@ -116,7 +122,7 @@ async fn handle_pagination_interactions(
         std::time::Duration::from_secs(30),
     );
 
-    while let Some(interaction) = interactions.next(serenity_ctx).await {
+    while let Some(interaction) = interactions.next().await {
         let direction = interaction.data.clone().custom_id;
         if direction == PAGINATION_LEFT && current_page_idx > 0 {
             current_page_idx -= 1;
@@ -124,31 +130,28 @@ async fn handle_pagination_interactions(
             current_page_idx += 1;
         }
         interaction
-            .create_interaction_response(&serenity_ctx, |ir| {
-                ir.kind(InteractionResponseType::UpdateMessage);
-                ir.interaction_response_data(|d| {
-                    d.set_embed(pages.get(current_page_idx).unwrap().clone());
-                    d.set_components(make_paginate_components(current_page_idx, pages.len()))
-                })
-            })
+            .create_response(
+                &serenity_ctx,
+                CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::default()
+                        .embed(pages.get(current_page_idx).unwrap().clone())
+                        .components(vec![make_paginate_row(current_page_idx, pages.len())]),
+                ),
+            )
             .await?;
     }
     created_msg
-        .edit(&serenity_ctx, |e| {
-            e.set_embed(pages.get(current_page_idx).unwrap().clone());
-            e.components(|c| c)
-        })
+        .edit(
+            &serenity_ctx,
+            EditMessage::default().embed(pages.get(current_page_idx).unwrap().clone()),
+        )
         .await?;
     Ok(())
 }
 
-fn make_paginate_components(page_idx: usize, page_cnt: usize) -> CreateComponents {
-    let mut row = CreateActionRow::default();
-    row.create_button(|b| b.label("←").disabled(page_idx == 0).custom_id(PAGINATION_LEFT));
-    row.create_button(|b| {
-        b.label("→").disabled(page_idx >= page_cnt - 1).custom_id(PAGINATION_RIGHT)
-    });
-    let mut components = CreateComponents::default();
-    components.set_action_row(row);
-    components
+fn make_paginate_row(page_idx: usize, page_cnt: usize) -> CreateActionRow {
+    CreateActionRow::Buttons(vec![
+        CreateButton::new(PAGINATION_LEFT).label("←").disabled(page_idx == 0),
+        CreateButton::new(PAGINATION_RIGHT).label("→").disabled(page_idx >= page_cnt - 1),
+    ])
 }

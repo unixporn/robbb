@@ -9,10 +9,10 @@ pub mod util;
 use std::sync::Arc;
 
 use anyhow::Context;
-use poise::serenity_prelude::{Emoji, GuildId, TypeMapKey};
+use poise::serenity_prelude::{Emoji, GuildId};
 use rand::prelude::IteratorRandom;
 use robbb_db::Db;
-use serenity::client;
+use serenity::{client, prelude::TypeMapKey};
 
 #[derive(Debug, Clone)]
 pub struct UpEmotes {

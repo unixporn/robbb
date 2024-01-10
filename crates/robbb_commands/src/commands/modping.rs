@@ -1,3 +1,5 @@
+use poise::CreateReply;
+
 use super::*;
 
 /// Ping all online moderators. Do not abuse!
@@ -10,7 +12,7 @@ pub async fn modping(
 ) -> Res<()> {
     use poise::serenity_prelude::OnlineStatus::*;
     let config = ctx.get_config();
-    let guild = ctx.guild().user_error("not in a guild")?;
+    let guild = ctx.guild().user_error("not in a guild")?.to_owned();
 
     let mods_and_helpers = guild
         .members_with_status(Online)
@@ -29,11 +31,12 @@ pub async fn modping(
         mods_and_helpers.iter().map(|m| m.mention()).join(", ")
     };
 
-    ctx.send(|m| {
-        m.content(
-            format!("{} pinged staff {} for reason {}", ctx.author().mention(), mods, reason,),
-        )
-    })
+    ctx.send(CreateReply::default().content(format!(
+        "{} pinged staff {} for reason {}",
+        ctx.author().mention(),
+        mods,
+        reason
+    )))
     .await?;
 
     Ok(())

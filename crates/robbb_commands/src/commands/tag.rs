@@ -1,6 +1,7 @@
 use anyhow::Context;
 use chrono::Utc;
 use poise::Modal;
+use serenity::builder::CreateEmbedFooter;
 use tracing_futures::Instrument;
 
 use super::*;
@@ -28,13 +29,15 @@ pub async fn tag(
     if util::validate_url(&tag.content) {
         ctx.say(&tag.content).await?;
     } else {
-        ctx.send_embed(|e| {
-            e.title(&tag.name);
-            e.description(&tag.content);
-            e.footer(|f| f.text(format!("Written by {}", moderator.tag())));
+        ctx.reply_embed_builder(|mut e| {
+            e = e
+                .title(&tag.name)
+                .description(&tag.content)
+                .footer(CreateEmbedFooter::new(format!("Written by {}", moderator.tag())));
             if let Some(date) = tag.create_date {
-                e.timestamp(date);
+                e = e.timestamp(date);
             }
+            e
         })
         .await?;
     }
@@ -54,12 +57,7 @@ pub async fn taglist(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
 
     let tags = db.list_tags().await?;
-
-    ctx.send_embed(|e| {
-        e.title("Tags").description(&tags.join(", "));
-    })
-    .await?;
-
+    ctx.reply_embed_builder(|e| e.title("Tags").description(&tags.join(", "))).await?;
     Ok(())
 }
 

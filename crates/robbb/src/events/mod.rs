@@ -4,14 +4,14 @@ use anyhow::{Context, Result};
 
 use poise::async_trait;
 use poise::serenity_prelude::{
-    interaction::Interaction, ChannelId, EmojiIdentifier, GuildId, Member, Mentionable, Message,
-    MessageId, ShardManager, User, UserId,
+    ChannelId, GuildId, Member, Mentionable, Message, MessageId, ShardManager, User, UserId,
 };
 use poise::serenity_prelude::{MessageUpdateEvent, Reaction, Ready};
 use robbb_db::Db;
 use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
 use robbb_util::{extensions::*, UpEmotes};
 
+use serenity::all::{FullEvent, GuildMemberUpdateEvent, Interaction};
 use serenity::client;
 
 mod guild_member_addition;
@@ -27,7 +27,7 @@ pub mod ready;
 
 pub struct Handler {
     pub options: poise::FrameworkOptions<UserData, Error>,
-    pub shard_manager: parking_lot::RwLock<Option<Arc<tokio::sync::Mutex<ShardManager>>>>,
+    pub shard_manager: parking_lot::RwLock<Option<Arc<ShardManager>>>,
     pub bot_id: parking_lot::RwLock<Option<UserId>>,
     pub user_data: UserData,
 }
@@ -42,7 +42,7 @@ impl Handler {
         }
     }
 
-    pub fn set_shard_manager(&self, manager: Arc<tokio::sync::Mutex<ShardManager>>) {
+    pub fn set_shard_manager(&self, manager: Arc<ShardManager>) {
         *self.shard_manager.write() = Some(manager);
     }
 
@@ -59,7 +59,7 @@ impl Handler {
     }
 
     #[tracing::instrument(skip_all, fields(
-        event.name = %event.name(),
+        event.name = %event.snake_case_name(),
         command_name,
         custom_id,
         msg.content,
@@ -68,10 +68,10 @@ impl Handler {
         msg.channel_id,
         msg.channel,
     ))]
-    async fn dispatch_poise_event(&self, ctx: &client::Context, event: &poise::Event<'_>) {
+    async fn dispatch_poise_event(&self, ctx: &client::Context, event: serenity::all::FullEvent) {
         let shard_manager = (*self.shard_manager.read()).clone().unwrap();
         let framework_data = poise::FrameworkContext {
-            bot_id: self.bot_id.read().unwrap_or_else(|| UserId(0)),
+            bot_id: self.bot_id.read().unwrap_or_else(|| UserId::new(0)),
             options: &self.options,
             user_data: &self.user_data,
             shard_manager: &shard_manager,
@@ -113,7 +113,7 @@ impl client::EventHandler for Handler {
                 }
             };
         if !stop_event_handler {
-            self.dispatch_poise_event(&ctx, &poise::Event::Message { new_message: msg }).await;
+            self.dispatch_poise_event(&ctx, FullEvent::Message { new_message: msg }).await;
         }
     }
 
@@ -131,21 +131,22 @@ impl client::EventHandler for Handler {
             .unwrap();
         let user = match &interaction {
             Interaction::Ping(_) => None,
-            Interaction::ApplicationCommand(x) => Some(&x.user),
-            Interaction::MessageComponent(x) => Some(&x.user),
+            Interaction::Command(x) => Some(&x.user),
+            Interaction::Component(x) => Some(&x.user),
             Interaction::Autocomplete(x) => Some(&x.user),
-            Interaction::ModalSubmit(x) => Some(&x.user),
+            Interaction::Modal(x) => Some(&x.user),
+            _ => None,
         };
 
         match &interaction {
-            Interaction::ApplicationCommand(x) => {
+            Interaction::Command(x) => {
                 tracing::Span::current().record("command_name", x.data.name.as_str());
             }
-            Interaction::MessageComponent(x) => {
+            Interaction::Component(x) => {
                 tracing::Span::current()
                     .record("interaction_create.custom_id", x.data.custom_id.as_str());
             }
-            Interaction::ModalSubmit(x) => {
+            Interaction::Modal(x) => {
                 tracing::Span::current()
                     .record("interaction_create.custom_id", x.data.custom_id.as_str());
             }
@@ -169,22 +170,28 @@ impl client::EventHandler for Handler {
                 }
             };
 
-        log_error!(
-            robbb_commands::commands::ask::handle_ask_button_clicked(&ctx, &interaction).await
-        );
+        //log_error!(
+        //    robbb_commands::commands::ask::handle_ask_button_clicked(&ctx, &interaction).await
+        //);
 
         if !stop_event_handler {
-            self.dispatch_poise_event(&ctx, &poise::Event::InteractionCreate { interaction }).await;
+            self.dispatch_poise_event(&ctx, FullEvent::InteractionCreate { interaction }).await;
         }
     }
 
-    #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %new.user.tag()))]
-    async fn guild_member_update(&self, ctx: client::Context, old: Option<Member>, new: Member) {
+    #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %event.user.tag()))]
+    async fn guild_member_update(
+        &self,
+        ctx: client::Context,
+        old: Option<Member>,
+        new: Option<Member>,
+        event: GuildMemberUpdateEvent,
+    ) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(
             "Error while handling guild member update event",
-            guild_member_update::guild_member_update(ctx, old, new).await
+            guild_member_update::guild_member_update(ctx, old, new, event).await
         );
     }
 

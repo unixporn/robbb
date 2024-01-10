@@ -1,5 +1,6 @@
 use poise::serenity_prelude::Message;
 use robbb_util::embeds;
+use serenity::builder::CreateEmbed;
 
 use crate::checks;
 
@@ -27,10 +28,8 @@ pub async fn help(
 
     if let Some(desired_command) = command {
         let command = commands
-            .find(|c| {
-                c.name == desired_command.as_str() || c.aliases.contains(&desired_command.as_str())
-            })
-            .user_error(&format!("Unknown command `{}`", desired_command))?;
+            .find(|c| c.name == desired_command.as_str() || c.aliases.contains(&desired_command))
+            .user_error(&format!("Unknown command `{desired_command}`"))?;
         reply_help_single(ctx, command).await?;
     } else {
         let permission_level =
@@ -51,12 +50,12 @@ pub async fn help(
 
 async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> Res<Message> {
     let handle = ctx
-        .send_embed_full(true, move |e| {
-            e.title(format!("Help for {}", command.name));
-            if let Some(desc) = command.help_text {
-                e.description(desc());
+        .reply_embed_full(true, {
+            let mut e = CreateEmbed::default().title(format!("Help for {}", command.name));
+            if let Some(desc) = &command.help_text {
+                e = e.description(desc);
             } else if let Some(help) = &command.description {
-                e.description(help);
+                e = e.description(help);
             }
 
             if !command.subcommands.is_empty() {
@@ -72,8 +71,9 @@ async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> 
                     })
                     .join("\n");
 
-                e.field("Subcommands", subcommands_text, false);
+                e = e.field("Subcommands", subcommands_text, false)
             }
+            e
         })
         .await?;
     Ok(handle.message().await?.into_owned())
@@ -93,7 +93,7 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
     embeds::PaginatedEmbed::create_from_fields(
         "Help".to_string(),
         fields,
-        embeds::make_create_embed(ctx.serenity_context(), |e| e).await,
+        embeds::base_embed(ctx.serenity_context()).await,
     )
     .await
     .reply_to(ctx, true)

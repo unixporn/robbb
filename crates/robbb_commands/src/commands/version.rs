@@ -1,3 +1,5 @@
+
+
 use super::*;
 
 /// Get the currently running bot version
@@ -10,9 +12,6 @@ use super::*;
 )]
 pub async fn version(ctx: Ctx<'_>) -> Res<()> {
     let version = util::bot_version();
-    ctx.send_embed(|e| {
-        e.description(format!("Running version `{}`", version));
-    })
-    .await?;
+    ctx.reply_embed_builder(|e| e.description(format!("Running version `{}`", version))).await?;
     Ok(())
 }

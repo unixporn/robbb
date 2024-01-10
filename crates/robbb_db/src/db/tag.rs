@@ -23,7 +23,7 @@ impl Db {
         official: bool,
         create_date: Option<DateTime<Utc>>,
     ) -> Result<Tag> {
-        let moderator_id = moderator.0 as i64;
+        let moderator_id: i64 = moderator.into();
         sqlx::query!(
             "insert into tag (name, moderator, content, official, create_date) values (?, ?, ?, ?, ?)
                 on conflict(name) do update set moderator=?, content=?, official=?, create_date=?",
@@ -63,7 +63,7 @@ impl Db {
                 .map(|date| chrono::DateTime::from_naive_utc_and_offset(date, chrono::Utc));
             Tag {
             name: x.name,
-            moderator: UserId(x.moderator as u64),
+            moderator: UserId::new(x.moderator as u64),
             content: x.content,
             official: x.official,
             create_date,

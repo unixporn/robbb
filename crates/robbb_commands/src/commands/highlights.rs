@@ -1,4 +1,5 @@
 use poise::serenity_prelude::CreateEmbed;
+use serenity::builder::CreateMessage;
 
 use super::*;
 use crate::checks::{self, PermissionLevel};
@@ -46,15 +47,16 @@ pub async fn highlights_add(
         .create_dm_channel(&ctx.serenity_context())
         .await
         .user_error("Couldn't open a DM to you - do you have me blocked?")?
-        .send_message(&ctx.serenity_context(), |m| {
-            m.embed(|e| {
-                e.title("Test to see if you can receive DMs");
-                e.description(format!(
-                    "If everything went ok, you'll be notified whenever someone says `{}`",
-                    trigger
-                ))
-            })
-        })
+        .send_message(
+            &ctx.serenity_context(),
+            CreateMessage::default().embed(
+                CreateEmbed::default().title("Test to see if you can receive DMs").description(
+                    format!(
+                    "If everything went ok, you'll be notified whenever someone says `{trigger}`",
+                ),
+                ),
+            ),
+        )
         .await
         .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
 
@@ -62,7 +64,7 @@ pub async fn highlights_add(
         "Couldn't add highlight, something went wrong (highlight might already be present)",
     )?;
 
-    ctx.say_success(format!("You will be notified whenever someone says {}", trigger)).await?;
+    ctx.say_success(format!("You will be notified whenever someone says {trigger}")).await?;
 
     Ok(())
 }
@@ -78,10 +80,10 @@ pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
     if highlights_list.is_empty() {
         abort_with!("You don't seem to have set any highlights");
     } else {
-        try_dm_or_ephemeral_response(ctx, |e| {
-            e.title("Your highlights");
-            e.description(highlights_list);
-        })
+        try_dm_or_ephemeral_response(
+            ctx,
+            CreateEmbed::default().title("Your highlights").description(highlights_list),
+        )
         .await?;
     }
     Ok(())
@@ -116,16 +118,10 @@ pub async fn highlights_clear(ctx: Ctx<'_>) -> Res<()> {
 /// When in an `ApplicationContext`, send the reply as a ephemeral message.
 /// When in a `PrefixContext`, attempt to send the message in DMs,
 /// and give a generic error message when the user doesn't allow for that.
-async fn try_dm_or_ephemeral_response(
-    ctx: Ctx<'_>,
-    build: impl FnOnce(&mut CreateEmbed) + Send + Sync,
-) -> Res<()> {
+async fn try_dm_or_ephemeral_response(ctx: Ctx<'_>, embed: CreateEmbed) -> Res<()> {
     match ctx {
         poise::Context::Application(_) => {
-            ctx.send_embed_full(true, |e| {
-                build(e);
-            })
-            .await?;
+            ctx.reply_embed_full(true, embed).await?;
         }
         poise::Context::Prefix(_) => {
             ctx.author()
@@ -133,12 +129,7 @@ async fn try_dm_or_ephemeral_response(
                 .create_dm_channel(&ctx.serenity_context())
                 .await
                 .user_error("Couldn't open a DM to you - do you have me blocked?")?
-                .send_message(&ctx.serenity_context(), |m| {
-                    m.embed(|e| {
-                        build(e);
-                        e
-                    })
-                })
+                .send_message(&ctx.serenity_context(), CreateMessage::default().embed(embed))
                 .await
                 .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
         }

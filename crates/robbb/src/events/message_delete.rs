@@ -1,5 +1,11 @@
+use futures::StreamExt;
 use itertools::Itertools;
-use poise::serenity_prelude::{Action, AttachmentType, AuditLogEntry, MessageAction};
+use poise::serenity_prelude::{AuditLogEntry, MessageAction};
+use robbb_util::embeds;
+use serenity::{
+    all::audit_log,
+    builder::{CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage, GetMessages},
+};
 
 use super::*;
 
@@ -21,7 +27,7 @@ pub async fn message_delete(
     )
     .await?;
 
-    let msg = ctx.cache.message(channel_id, deleted_message_id);
+    let msg = ctx.cache.message(channel_id, deleted_message_id).map(|x| x.to_owned());
     // if the message can't be loaded, there's no need to try anything more,
     // so let's just give up. No need to error.
     let msg = match msg {
@@ -34,8 +40,10 @@ pub async fn message_delete(
     }
 
     if msg.content.starts_with('!') {
-        let close_messages =
-            msg.channel_id.messages(&ctx, |m| m.after(deleted_message_id).limit(5)).await?;
+        let close_messages = msg
+            .channel_id
+            .messages(&ctx, GetMessages::default().after(deleted_message_id).limit(5))
+            .await?;
         let bot_reply = close_messages.iter().find(|x| {
             x.message_reference.as_ref().and_then(|x| x.message_id) == Some(deleted_message_id)
                 && x.author.bot
@@ -49,27 +57,33 @@ pub async fn message_delete(
     let channel_name =
         util::channel_name(&ctx, channel_id).await.unwrap_or_else(|_| "unknown".to_string());
 
+    let attachments: Vec<_> = futures::stream::iter(attachments.iter())
+        .then(|(path, file)| {
+            CreateAttachment::file(
+                file,
+                path.file_name().and_then(|x| x.to_str()).unwrap_or("attachment").to_string(),
+            )
+        })
+        .collect()
+        .await;
+    let embed = CreateEmbed::default()
+        .author_icon("Message Deleted", msg.author.face())
+        .title(msg.author.name_with_disc_and_id())
+        .description(format!("{}\n\n{}", msg.content, msg.to_context_link()))
+        .footer(CreateEmbedFooter::new(format!(
+            "#{}{}",
+            channel_name,
+            deletor.map_or_else(String::new, |x| format!(", deleted by {}", x.tag()))
+        )));
+
     config
         .channel_bot_messages
-        .send_message(&ctx, |m| {
-            m.add_files(attachments.iter().map(|(path, file)| AttachmentType::File {
-                filename:
-                    path.file_name().and_then(|x| x.to_str()).unwrap_or("attachment").to_string(),
-                file,
-            }));
-            m.embed(|e| {
-                e.author(|a| a.name("Message Deleted").icon_url(msg.author.face()));
-                e.title(msg.author.name_with_disc_and_id());
-                e.description(format!("{}\n\n{}", msg.content, msg.to_context_link()));
-                e.footer(|f| {
-                    f.text(format!(
-                        "#{}{}",
-                        channel_name,
-                        deletor.map_or_else(String::new, |x| format!(", deleted by {}", x.tag()))
-                    ))
-                })
-            })
-        })
+        .send_message(
+            &ctx,
+            CreateMessage::default()
+                .add_files(attachments.into_iter().filter_map(|x| x.ok()))
+                .embed(embed),
+        )
         .await?;
     Ok(())
 }
@@ -92,22 +106,25 @@ pub async fn message_delete_bulk(
     }
 
     // Channel the messages where in
-    let channel_name = channel_id.name(&ctx).await.unwrap_or_else(|| "unknown".to_string());
+    let channel_name = channel_id.name(&ctx).await.unwrap_or_else(|_| "unknown".to_string());
 
     // Look through the cache to try to find the messages that where just deleted
-    let msgs: Vec<Message> =
-        deleted_message_ids.iter().filter_map(|id| ctx.cache.message(channel_id, id)).collect();
+    let msgs: Vec<_> = deleted_message_ids
+        .iter()
+        .filter_map(|id| ctx.cache.message(channel_id, id))
+        .map(|x| x.to_owned())
+        .collect();
 
     if msgs.is_empty() {
         config
             .channel_bot_messages
-            .send_embed(&ctx, |e| {
-                e.title("Message bulk-deletion");
-                e.description(format!(
+            .send_embed_builder(&ctx, |e| {
+                e.title("Message bulk-deletion")
+                .description(format!(
                     "Messages where bulk-deleted in {}. Sadly, I don't remember any of these messages :(",
                     channel_id.mention()
-                ));
-                e.footer(|f| f.text(format!("#{}", channel_name)));
+                ))
+                .footer(CreateEmbedFooter::new(format!("#{channel_name}")))
             })
             .await?;
     } else {
@@ -120,16 +137,21 @@ pub async fn message_delete_bulk(
 
         config
             .channel_bot_messages
-            .send_embed(&ctx, |e| {
-                e.author(|a| a.name("Message Bulk-deletion").icon_url(msg_author.face()));
-                e.title(msg_author.name_with_disc_and_id());
-                e.description(
-                    msgs.into_iter()
-                        .map(|m| format!("[{}]\n{}\n", util::format_date(*m.timestamp), m.content))
-                        .join("\n"),
-                );
-                e.footer(|f| f.text(format!("#{}", channel_name)));
-            })
+            .send_embed(
+                &ctx,
+                embeds::base_embed(&ctx)
+                    .await
+                    .author_icon("Message Bulk-deletion", msg_author.face())
+                    .title(msg_author.name_with_disc_and_id())
+                    .description(
+                        msgs.into_iter()
+                            .map(|m| {
+                                format!("[{}]\n{}\n", util::format_date(*m.timestamp), m.content)
+                            })
+                            .join("\n"),
+                    )
+                    .footer(CreateEmbedFooter::new(format!("#{channel_name}"))),
+            )
             .await?;
     }
     Ok(())
@@ -145,10 +167,10 @@ async fn find_deletor(
     let result = await_audit_log(
         ctx,
         &config.guild,
-        Action::Message(MessageAction::Delete).num(),
+        audit_log::Action::Message(MessageAction::Delete),
         None,
         |entry| {
-            entry.target_id == Some(msg.author.id.0)
+            entry.target_id.map(|x| x.get()) == Some(msg.author.id.get())
                 && entry
                     .options
                     .as_ref()
@@ -166,7 +188,7 @@ async fn find_deletor(
 async fn await_audit_log(
     ctx: &client::Context,
     guild: &GuildId,
-    action_type: u8,
+    action_type: audit_log::Action,
     user_id: Option<UserId>,
     filter: impl Fn(&AuditLogEntry) -> bool,
 ) -> Result<Option<(AuditLogEntry, std::collections::HashMap<UserId, User>)>> {

@@ -33,7 +33,11 @@ pub async fn handle_emoji_removal(ctx: client::Context, event: Reaction) -> Resu
     };
 
     let db = ctx.get_db().await;
-    db.alter_emoji_reaction_count(-1, &EmojiIdentifier { animated, id, name }).await?;
+    db.alter_emoji_reaction_count(
+        -1,
+        &robbb_db::emoji_logging::EmojiIdentifier { animated, id, name },
+    )
+    .await?;
 
     Ok(())
 }

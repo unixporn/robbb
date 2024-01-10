@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use robbb_db::{fetch::Fetch, fetch_field::FetchField};
+use robbb_util::embeds;
+use serenity::builder::CreateEmbedAuthor;
 
 use super::*;
 
@@ -33,49 +35,50 @@ pub async fn fetch(
                 .into_iter()
                 .find(|(k, _)| k == &desired_field)
                 .user_error("Failed to get that value. Maybe the user hasn't set it?")?;
-            ctx.send_embed(|e| {
-                e.author(|a| a.name(user.user.tag()).icon_url(user.user.face()));
-                e.title(format!("{}'s {}", user.user.name, field_name));
-                e.color_opt(color);
-                if let Some(date) = create_date {
-                    e.timestamp(date);
-                }
-                if desired_field == FetchField::Image {
-                    e.image(value);
-                } else if let Some(value) = format_fetch_field_value(&field_name, value) {
-                    e.description(value);
-                } else {
-                    e.description("Not set");
-                }
-            })
-            .await?;
+            let mut embed = embeds::base_embed(ctx.serenity_context())
+                .await
+                .author(CreateEmbedAuthor::new(user.user.tag()).icon_url(user.user.face()))
+                .title(format!("{}'s {}", user.user.name, field_name))
+                .color_opt(color);
+            if let Some(date) = create_date {
+                embed = embed.timestamp(date);
+            }
+            if desired_field == FetchField::Image {
+                embed = embed.image(value);
+            } else if let Some(value) = format_fetch_field_value(&field_name, value) {
+                embed = embed.description(value);
+            } else {
+                embed = embed.description("Not set");
+            }
+            ctx.reply_embed(embed).await?;
         }
 
         // Handle fetching all fields
         None => {
-            ctx.send_embed(|e| {
-                e.author_user(&user.user);
-                e.color_opt(color);
-                if let Some(date) = create_date {
-                    e.timestamp(date);
-                }
+            let mut embed = embeds::base_embed(ctx.serenity_context()).await;
+            embed = embed.author_user(&user.user);
+            embed = embed.color_opt(color);
+            if let Some(date) = create_date {
+                embed = embed.timestamp(date);
+            }
 
-                for (key, value) in fetch_data {
-                    if key == FetchField::Image {
-                        e.image(value);
-                    } else {
-                        if key == FetchField::Distro {
-                            if let Some(url) = find_distro_image(&value) {
-                                e.thumbnail(url);
-                            }
-                        }
-                        if let Some(val) = format_fetch_field_value(&key, value) {
-                            e.field(key, val, true);
+            for (key, value) in fetch_data {
+                if key == FetchField::Image {
+                    embed = embed.image(value);
+                } else {
+                    if key == FetchField::Distro {
+                        if let Some(url) = find_distro_image(&value) {
+                            embed = embed.thumbnail(url);
                         }
                     }
+                    embed = embed.field_opt(
+                        key.to_string(),
+                        format_fetch_field_value(&key, value),
+                        true,
+                    );
                 }
-            })
-            .await?;
+            }
+            ctx.reply_embed(embed).await?;
         }
     }
 

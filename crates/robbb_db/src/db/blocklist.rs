@@ -31,7 +31,7 @@ impl Db {
     }
 
     pub async fn add_blocklist_entry(&self, user_id: UserId, s: &str) -> Result<()> {
-        let user_id = user_id.0 as i64;
+        let user_id: i64 = user_id.into();
         sqlx::query!("insert into blocked_regexes(pattern, added_by) values (?, ?)", s, user_id)
             .execute(&self.pool)
             .await?;
