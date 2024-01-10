@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serenity = { version = "0.11.5", default-features = false, features = ["collector", "builder", "cache", "chrono", "client", "gateway", "model", "http", "utils"]}
-poise = "0.5.2"
+serenity.workspace = true
+poise.workspace = true
 thiserror = "1.0"
-sqlx = { version ="0.7.2", features = ["runtime-tokio-rustls", "sqlite", "chrono"] }
+sqlx = { version = "0.7.2", features = ["runtime-tokio-rustls", "sqlite", "chrono"] }
 anyhow = "1.0"
 chrono = "0.4"
 itertools = "0.11.0"

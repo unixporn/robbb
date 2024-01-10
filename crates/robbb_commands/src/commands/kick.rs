@@ -1,7 +1,11 @@
 use anyhow::Context;
 use chrono::Utc;
 use poise::serenity_prelude::User;
-use serenity::client;
+use serenity::{
+    all::GuildId,
+    builder::{CreateEmbed, CreateMessage},
+    client,
+};
 
 use crate::modlog;
 
@@ -24,8 +28,8 @@ pub async fn kick(
     reason: String,
 ) -> Res<()> {
     let db = ctx.get_db();
-    let guild = ctx.guild().context("Failed to fetch guild")?;
-    do_kick(ctx.serenity_context(), guild, &user, &reason).await?;
+    let guild = ctx.guild().context("Failed to fetch guild")?.clone();
+    do_kick(ctx.serenity_context(), guild.id, &user, &reason).await?;
 
     let success_msg = ctx
         .say_success_mod_action(format!("{} has been kicked from the server", user.id.mention()))
@@ -47,14 +51,14 @@ pub async fn kick(
     Ok(())
 }
 
-pub async fn do_kick(ctx: &client::Context, guild: Guild, user: &User, reason: &str) -> Res<()> {
+pub async fn do_kick(ctx: &client::Context, guild: GuildId, user: &User, reason: &str) -> Res<()> {
     let _ = user
-        .dm(&ctx, |m| -> &mut serenity::builder::CreateMessage {
-            m.embed(|e| {
-                e.title(format!("You were kicked from {}", guild.name));
-                e.field("Reason", reason, false)
-            })
-        })
+        .dm(
+            &ctx,
+            CreateMessage::default().embed(
+                CreateEmbed::default().title("You were kicked").field("Reason", reason, false),
+            ),
+        )
         .await;
     guild.kick_with_reason(&ctx, user, reason).await?;
     Ok(())

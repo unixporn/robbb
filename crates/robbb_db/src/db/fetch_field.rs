@@ -1,9 +1,10 @@
-use poise::{
-    serenity_prelude::{command::CommandOptionType, CreateApplicationCommandOption},
-    ApplicationCommandOrAutocompleteInteraction, SlashArgument,
-};
+use poise::SlashArgument;
 use serde::{Deserialize, Serialize};
-use serenity::{async_trait, client};
+use serenity::{
+    all::{CommandInteraction, CommandOptionType, ResolvedValue},
+    async_trait,
+    builder::CreateCommandOption,
+};
 use std::{fmt, str::FromStr};
 
 #[derive(Debug, Serialize, Deserialize, Hash, PartialEq, Eq, Clone)]
@@ -101,22 +102,23 @@ impl std::str::FromStr for FetchField {
 #[async_trait]
 impl SlashArgument for FetchField {
     async fn extract(
-        _: &client::Context,
-        _: ApplicationCommandOrAutocompleteInteraction<'_>,
-        value: &serde_json::Value,
+        _: &serenity::prelude::Context,
+        _: &CommandInteraction,
+        value: &ResolvedValue<'_>,
     ) -> Result<Self, poise::SlashArgError> {
-        let s = value
-            .as_str()
-            .ok_or(poise::SlashArgError::CommandStructureMismatch("Expected String"))?;
-        Ok(FetchField::from_str(s).map_err(|e| poise::SlashArgError::Parse {
-            error: Box::new(e),
-            input: s.to_string(),
-        })?)
-    }
-    fn create(builder: &mut CreateApplicationCommandOption) {
-        builder.kind(CommandOptionType::String);
-        for value in FETCH_KEY_ORDER.iter() {
-            builder.add_string_choice(value.to_string(), value.to_string());
+        match value {
+            ResolvedValue::String(s) => Ok(FetchField::from_str(s).map_err(|_e| {
+                poise::SlashArgError::new_command_structure_mismatch("Bad argument")
+            })?),
+            _ => Err(poise::SlashArgError::new_command_structure_mismatch("Expected String")),
         }
+    }
+
+    fn create(mut builder: CreateCommandOption) -> CreateCommandOption {
+        builder = builder.kind(CommandOptionType::String);
+        for value in FETCH_KEY_ORDER.iter() {
+            builder = builder.add_string_choice(value.to_string(), value.to_string());
+        }
+        builder
     }
 }

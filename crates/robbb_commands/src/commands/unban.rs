@@ -17,9 +17,8 @@ pub async fn unban(
     #[rename = "id"]
     user_id: UserId,
 ) -> Res<()> {
-    let guild = ctx.guild().context("Failed to load guild")?;
     let user = user_id.to_user(&ctx.serenity_context()).await?;
-
+    let guild = ctx.guild().context("Failed to load guild")?.to_owned();
     guild.unban(&ctx.serenity_context(), user_id).await?;
 
     ctx.say_success(format!("Succesfully deyote {}", user_id.mention())).await?;

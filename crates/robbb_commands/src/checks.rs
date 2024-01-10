@@ -48,7 +48,7 @@ pub async fn check_is_not_muted(ctx: Ctx<'_>) -> Res<bool> {
     check_role(ctx.serenity_context(), ctx.author(), config.role_mute).await.map(|x| !x)
 }
 
-#[tracing::instrument(skip_all, fields(user_id = %user.id.0, role_id = %role.0))]
+#[tracing::instrument(skip_all, fields(user_id = %user.id.get(), role_id = %role.get()))]
 async fn check_role(ctx: &client::Context, user: &User, role: RoleId) -> Res<bool> {
     let config = ctx.get_config().await;
     Ok(user.has_role(ctx, config.guild, role).await?)

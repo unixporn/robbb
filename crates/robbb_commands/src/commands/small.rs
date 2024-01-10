@@ -1,5 +1,8 @@
 use chrono::Utc;
+use poise::CreateReply;
 use robbb_db::fetch_field::FetchField;
+use robbb_util::embeds;
+
 
 use super::*;
 
@@ -28,7 +31,7 @@ pub async fn say(
     ctx: Ctx<'_>,
     #[description = "What you,.. ummmm. I mean _I_ should say"] message: String,
 ) -> Res<()> {
-    ctx.send(|m| m.content("Sure thing!").ephemeral(true)).await?;
+    ctx.send(CreateReply::default().content("Sure thing!").ephemeral(true)).await?;
     ctx.channel_id().say(&ctx.serenity_context(), message).await?;
     Ok(())
 }
@@ -42,7 +45,7 @@ pub async fn say(
 )]
 pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
     let shard_latency = {
-        let shard_manager = ctx.framework().shard_manager.as_ref().lock().await;
+        let shard_manager = ctx.framework().shard_manager.as_ref();
         let shard_runners = shard_manager.runners.lock().await;
         shard_runners.values().find_map(|runner| runner.latency)
     };
@@ -58,23 +61,21 @@ pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
         }
     };
 
-    ctx.send_embed(|e| {
-        e.title("Latency information");
-        if let Some(latency) = shard_latency {
-            e.field(
+    ctx.reply_embed(
+        embeds::base_embed(ctx.serenity_context())
+            .await
+            .title("Latency information")
+            .field_opt(
                 "Shard latency (last heartbeat send → ACK receive)",
-                humantime::Duration::from(latency),
+                shard_latency.map(|x| humantime::Duration::from(x).to_string()),
                 false,
-            );
-        }
-        if let Some(latency) = msg_latency {
-            e.field(
+            )
+            .field_opt(
                 "Message latency (message timestamp → message received)",
-                humantime::Duration::from(latency),
+                msg_latency.map(|x| humantime::Duration::from(x).to_string()),
                 false,
-            );
-        }
-    })
+            ),
+    )
     .await?;
 
     Ok(())
@@ -84,9 +85,10 @@ pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(prefix_command, slash_command, category = "Bot-Administration")]
 pub async fn uptime(ctx: Ctx<'_>) -> Res<()> {
     let config = ctx.get_config();
-    ctx.send_embed(|e| {
-        e.title("Uptime");
-        e.description(format!("Started {}", util::format_date_detailed(config.time_started)));
+
+    ctx.reply_embed_builder(|e| {
+        e.title("Uptime")
+            .description(format!("Started {}", util::format_date_detailed(config.time_started)))
     })
     .await?;
     Ok(())
@@ -116,10 +118,8 @@ pub async fn description(
     let db = ctx.get_db();
     let fetch = db.get_fetch(user.user.id).await?;
     if let Some(desc) = fetch.and_then(|x| x.info.get(&FetchField::Description).cloned()) {
-        ctx.send_embed(|e| {
-            e.author_user(&user.user);
-            e.title("Description");
-            e.description(desc);
+        ctx.reply_embed_builder(|e| {
+            e.author_user(&user.user).title("Description").description(desc)
         })
         .await?;
     } else {
@@ -134,12 +134,8 @@ pub async fn dotfiles(ctx: Ctx<'_>, #[description = "The user"] user: Option<Mem
     let db = ctx.get_db();
     let fetch = db.get_fetch(user.user.id).await?;
     if let Some(dots) = fetch.and_then(|x| x.info.get(&FetchField::Dotfiles).cloned()) {
-        ctx.send_embed(|e| {
-            e.author_user(&user.user);
-            e.title("Dotfiles");
-            e.description(dots);
-        })
-        .await?;
+        ctx.reply_embed_builder(|e| e.author_user(&user.user).title("Dotfiles").description(dots))
+            .await?;
     } else {
         ctx.say_error(format!("{} hasn't provided their dotfiles", user.user.tag())).await?;
     }
@@ -153,10 +149,8 @@ pub async fn git(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>)
     let db = ctx.get_db();
     let fetch = db.get_fetch(user.user.id).await?;
     if let Some(git) = fetch.and_then(|x| x.info.get(&FetchField::Git).cloned()) {
-        ctx.send_embed(|e| {
-            e.author_user(&user.user);
-            e.title("Git profile");
-            e.description(git);
+        ctx.reply_embed_builder(|e| {
+            e.author_user(&user.user).title("Git profile").description(git)
         })
         .await?;
     } else {

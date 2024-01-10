@@ -21,11 +21,7 @@ struct WarnModal {
 )]
 pub async fn menu_warn(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
     let ctx = Ctx::Application(app_ctx);
-    let interaction = match app_ctx.interaction {
-        poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
-        _ => anyhow::bail!("Menu interaction was not an application command?"),
-    };
-    let response = create_modal_command_ir::<WarnModal>(app_ctx, interaction, None).await?;
+    let response = create_modal_command_ir::<WarnModal>(app_ctx, app_ctx.interaction, None).await?;
     do_warn(ctx, user, response.reason).await?;
     Ok(())
 }
@@ -58,10 +54,9 @@ async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
 
     let success_msg = ctx
         .say(format!(
-            "{police}{police} Warning {} for the {} time. {police}{police}\nReason: {}",
+            "{police}{police} Warning {} for the {} time. {police}{police}\n**Reason: **{reason}",
             user.mention(),
             util::format_count(warn_count + 1),
-            reason,
         ))
         .await?;
     let success_msg = success_msg.message().await?;

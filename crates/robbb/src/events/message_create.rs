@@ -7,6 +7,10 @@ use poise::serenity_prelude::{MessageType, ReactionType};
 use regex::Regex;
 use robbb_commands::{commands, modlog};
 use robbb_db::fetch_field::FetchField;
+
+use serenity::builder::{
+    CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, CreateMessage, GetMessages,
+};
 use tracing::debug;
 use tracing_futures::Instrument;
 
@@ -89,13 +93,13 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
 #[tracing::instrument(skip_all)]
 async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<()> {
     let config = ctx.get_config().await;
-    let result = msg.author.dm(&ctx, |m| {
-        m.content(format!(
+    let result = msg.author.dm(&ctx, CreateMessage::default()
+        .content(format!(
             "Your message in {} has been deleted. Please use `/ask` to ask any questions, and respond in the thread.\nYour messages was:\n\n{}", 
             config.channel_tech_support.mention(),
             msg.content,
         ))
-    }).await;
+    ).await;
 
     if result.is_ok() {
         msg.delete(&ctx).await?;
@@ -157,26 +161,20 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
 
     let mut handled_users = HashSet::new();
     for (word, users) in highlight_matches {
-        let mut embed = serenity::builder::CreateEmbed::default();
-        embed
+        let embed = CreateEmbed::default()
             .title("Highlight notification")
             .description(indoc::formatdoc!(
-                "`{}` has been mentioned in {}
+                "`{word}` has been mentioned in {}
                 [link to message]({})
 
                 Don't care about this anymore?
-                Run `!highlights remove {}` in #bot to stop getting these notifications.",
-                word,
+                Run `!highlights remove {word}` in #bot to stop getting these notifications.",
                 msg.channel_id.mention(),
                 msg.link(),
-                word
             ))
-            .author(|a| {
-                a.name(&msg.author.tag());
-                a.icon_url(&msg.author.face())
-            })
+            .author(CreateEmbedAuthor::new(&msg.author.tag()).icon_url(&msg.author.face()))
             .timestamp(msg.timestamp)
-            .footer(|f| f.text(format!("#{}", channel.name)));
+            .footer(CreateEmbedFooter::new(format!("#{}", channel.name)));
 
         tracing::debug!(
             highlights.word = %word,
@@ -207,7 +205,8 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 let ctx = ctx.clone();
                 let embed = embed.clone();
                 tokio::spawn(async move {
-                    let _ = dm_channel.send_message(&ctx, |m| m.set_embed(embed)).await;
+                    let _ =
+                        dm_channel.send_message(&ctx, CreateMessage::default().embed(embed)).await;
                 })
                 .instrument(tracing::info_span!("send_highlight_notification"));
             }
@@ -245,7 +244,11 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
     for emoji in &actual_emojis {
         db.alter_emoji_text_count(
             1,
-            &EmojiIdentifier { name: emoji.name.clone(), id: emoji.id, animated: emoji.animated },
+            &robbb_db::emoji_logging::EmojiIdentifier {
+                name: emoji.name.clone(),
+                id: emoji.id,
+                animated: emoji.animated,
+            },
         )
         .await?;
     }
@@ -304,16 +307,13 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     debug!("Finished regex checking message for message link");
 
     let (guild_id, channel_id, message_id) = (
-        caps.get(1).unwrap().as_str().parse::<u64>()?,
-        caps.get(2).unwrap().as_str().parse::<u64>()?,
-        caps.get(3).unwrap().as_str().parse::<u64>()?,
+        caps.get(1).unwrap().as_str().parse::<GuildId>()?,
+        caps.get(2).unwrap().as_str().parse::<ChannelId>()?,
+        caps.get(3).unwrap().as_str().parse::<MessageId>()?,
     );
 
-    let channel = ChannelId(channel_id)
-        .to_channel(&ctx)
-        .await?
-        .guild()
-        .context("Message not in a guild-channel")?;
+    let channel =
+        channel_id.to_channel(&ctx).await?.guild().context("Message not in a guild-channel")?;
     let user_can_see_channel = channel
         .guild_id
         .member(&ctx, msg.author.id)
@@ -328,7 +328,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
 
     debug!("checked if user can see the channel");
 
-    if Some(GuildId(guild_id)) != msg.guild_id || !user_can_see_channel {
+    if Some(guild_id) != msg.guild_id || !user_can_see_channel {
         return Ok(false);
     }
 
@@ -347,16 +347,16 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         return Ok(false);
     }
 
-    msg.reply_embed(&ctx, |e| {
-        e.footer(|f| {
-            f.text(format!("Quote of {}", mentioned_msg.author.tag()));
-            f.icon_url(mentioned_msg.author.face())
-        });
+    msg.reply_embed(&ctx, |mut e| {
         if let Some(attachment) = image_attachment {
-            e.image(&attachment.url);
+            e = e.image(&attachment.url);
         }
-        e.description(&mentioned_msg.content);
-        e.timestamp(mentioned_msg.timestamp)
+        e.footer(
+            CreateEmbedFooter::new(format!("Quote of {}", mentioned_msg.author.tag()))
+                .icon_url(mentioned_msg.author.face()),
+        )
+        .description(&mentioned_msg.content)
+        .timestamp(mentioned_msg.timestamp)
     })
     .await?;
     Ok(true)
@@ -371,7 +371,8 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     }
 
     // TODO should the messages be cached here? given the previous checks this is rare enough to probably not matter.
-    let msgs = msg.channel_id.messages(&ctx, |m| m.before(msg.id).limit(10)).await?;
+    let msgs =
+        msg.channel_id.messages(&ctx, GetMessages::default().before(msg.id).limit(10)).await?;
 
     let spam_msgs =
         msgs.iter().filter(|x| x.author == msg.author && x.content == msg.content).collect_vec();
@@ -400,16 +401,16 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         };
 
     if is_spam || is_ping_spam {
-        let guild = msg.guild(ctx).context("Failed to load guild")?;
+        let guild = msg.guild(&ctx.cache).context("Failed to load guild")?.to_owned();
         let member = guild.member(&ctx, msg.author.id).await?;
-        let bot_id = ctx.cache.current_user_id();
+        let bot_id = ctx.cache.current_user().id;
 
         let duration = std::time::Duration::from_secs(60 * 30);
 
         commands::mute::apply_mute(
             &ctx,
             bot_id,
-            member,
+            member.into_owned(),
             duration,
             Some(format!("[AUTO] spamming \"{}\"", msg.content)),
             msg.link(),
@@ -435,12 +436,12 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
     } else if msg.attachments.is_empty() && msg.embeds.is_empty() && !msg.content.contains("http") {
         tracing::debug!(msg = ?msg, "Deleting invalid showcase post");
         msg.delete(&ctx).await.context("Failed to delete invalid showcase submission")?;
-        msg.author.direct_message(&ctx, |f| {
-                f.content(indoc::indoc!("
+        msg.author.direct_message(&ctx, CreateMessage::default()
+                .content(indoc::indoc!("
                     Your showcase submission was detected to be invalid. If you wanna comment on a rice, create a thread.
                     If this is a mistake, contact the moderators or open an issue on https://github.com/unixporn/robbb
                 "))
-            }).await.context("Failed to send DM about invalid showcase submission")?;
+            ).await.context("Failed to send DM about invalid showcase submission")?;
     } else {
         msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
             .await
@@ -477,7 +478,7 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
     }
 
     // retrieve the last keep-at-bottom message the bot wrote
-    let recent_messages = msg.channel_id.messages(&ctx, |m| m.before(msg)).await?;
+    let recent_messages = msg.channel_id.messages(&ctx, GetMessages::default().before(msg)).await?;
 
     let last_bottom_pin_msg = recent_messages.iter().find(|m| {
         m.author.bot && m.embeds.iter().any(|e| e.title == Some("CONTRIBUTING.md".to_string()))
@@ -486,15 +487,20 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
         bottom_pin_msg.delete(&ctx).await?;
     }
 
-    msg.channel_id.send_message(&ctx, |m| {
-        m.embed(|e| {
-            e.title("CONTRIBUTING.md").color(0xb8bb26);
-            e.description(indoc::indoc!(
-                    "Before posting, please make sure to check if your idea is a **repetitive topic**. (Listed in pins)
-                    Note that we have added a consequence for failure. The inability to delete repetitive feedback will result in an 'unsatisfactory' mark on your official testing record, followed by death. Good luck!"
-                ))
-            })
-        }
-).await?;
+    let description = indoc::indoc!(
+        "Before posting, please make sure to check if your idea is a **repetitive topic**. (Listed in pins)
+        Note that we have added a consequence for failure. The inability to delete repetitive feedback will result in an 'unsatisfactory' mark on your official testing record, followed by death. Good luck!"
+    );
+    msg.channel_id
+        .send_message(
+            &ctx,
+            CreateMessage::default().embed(
+                CreateEmbed::default()
+                    .title("CONTRIBUTING.md")
+                    .color(0xb8bb26)
+                    .description(description),
+            ),
+        )
+        .await?;
     Ok(())
 }

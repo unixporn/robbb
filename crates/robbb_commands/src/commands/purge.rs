@@ -1,5 +1,7 @@
+use anyhow::Context;
 use chrono::Utc;
 use robbb_util::embeds;
+use serenity::builder::{EditMessage, GetMessages};
 
 use super::*;
 
@@ -23,22 +25,22 @@ pub async fn purge(
     #[description = "How many messages should we delete?"]
     count: Option<usize>,
 ) -> Res<()> {
-    let channel = ctx.guild_channel().await?;
+    let channel = ctx.guild_channel().await.context("Not inside a guild")?;
     let now_timestamp = Utc::now().timestamp();
     let count = count.unwrap_or(MAX_BULK_DELETE_CNT);
     let too_old_timestamp = now_timestamp - MAX_BULK_DELETE_AGO_SECS;
 
-    let response_msg = ctx
-        .send_embed(|e| {
-            e.description("Purging their messages...");
-        })
-        .await?;
+    let response_msg =
+        ctx.reply_embed_builder(|e| e.description("Purging their messages...")).await?;
     let mut response_msg = response_msg.message().await?;
 
     let _working = ctx.defer_or_broadcast().await?;
 
     let recent_messages = channel
-        .messages(&ctx.serenity_context(), |m| m.limit(100).before(response_msg.id))
+        .messages(
+            &ctx.serenity_context(),
+            GetMessages::default().limit(100).before(response_msg.id),
+        )
         .await?
         .into_iter()
         .filter(|msg| msg.author.id == user)
@@ -57,6 +59,9 @@ pub async fn purge(
         &format!("Successfully deleted {} messages", recent_messages.len()),
     )
     .await;
-    response_msg.to_mut().edit(&ctx.serenity_context(), |e| e.set_embed(success_embed)).await?;
+    response_msg
+        .to_mut()
+        .edit(&ctx.serenity_context(), EditMessage::default().embed(success_embed))
+        .await?;
     Ok(())
 }

@@ -55,6 +55,19 @@ pub enum ModActionType {
     #[name = "Kick"]
     Kick,
 }
+
+impl std::fmt::Display for ModActionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ModActionType::ManualNote => write!(f, "Moderator Note"),
+            ModActionType::BlocklistViolation => write!(f, "Blocklist Violation"),
+            ModActionType::Warn => write!(f, "Warning"),
+            ModActionType::Mute => write!(f, "Mute"),
+            ModActionType::Ban => write!(f, "Ban"),
+            ModActionType::Kick => write!(f, "Kick"),
+        }
+    }
+}
 impl ModActionType {
     pub fn from_i32(n: i32) -> Result<Self> {
         match n {
@@ -99,8 +112,8 @@ impl DbModActionFields {
     fn into_mod_action(self) -> Result<ModAction> {
         Ok(ModAction {
             id: self.id,
-            moderator: UserId(self.moderator as u64),
-            user: UserId(self.usr as u64),
+            moderator: UserId::new(self.moderator as u64),
+            user: UserId::new(self.usr as u64),
             reason: self.reason.unwrap_or_default(),
             create_date: self
                 .create_date
@@ -127,8 +140,8 @@ impl DbModActionFields {
 impl Db {
     #[tracing::instrument(skip_all,
         fields(
-            mod_action.moderator = %moderator.0,
-            mod_action.user_id = %user.0,
+            mod_action.moderator = %moderator.get(),
+            mod_action.user_id = %user.get(),
             mod_action.reason = %reason,
             mod_action.create_date = %create_date,
             mod_action.context = %context,
@@ -147,8 +160,8 @@ impl Db {
         let mut trans = self.pool.begin().await?;
 
         let id = {
-            let moderator = moderator.0 as i64;
-            let user = user.0 as i64;
+            let moderator: i64 = moderator.into();
+            let user: i64 = user.into();
             let action_type = kind.to_action_type().as_i32();
             sqlx::query!(
                 "insert into mod_action (moderator, usr, reason, create_date, context, action_type) values(?, ?, ?, ?, ?, ?)",
@@ -193,7 +206,7 @@ impl Db {
         user_id: UserId,
         filter: Option<ModActionType>,
     ) -> Result<Vec<ModAction>> {
-        let user_id = user_id.0 as i64;
+        let user_id: i64 = user_id.into();
 
         let note_type_value = filter.map(|x| x.as_i32());
 
@@ -234,7 +247,7 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn count_mod_actions(&self, user: UserId, action_type: ModActionType) -> Result<i32> {
-        let id = user.0 as i64;
+        let id: i64 = user.into();
         let action_type = action_type.as_i32();
         Ok(sqlx::query_scalar!(
             "SELECT COUNT(*) FROM mod_action WHERE usr=? AND action_type=?",
@@ -247,7 +260,7 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn count_all_mod_actions(&self, user: UserId) -> Result<HashMap<ModActionType, i32>> {
-        let id = user.0 as i64;
+        let id: i64 = user.into();
         sqlx::query!(
             r#"SELECT action_type, COUNT(*) as "count!: i32" FROM mod_action WHERE usr=? GROUP BY action_type"#,
             id,
@@ -261,21 +274,21 @@ impl Db {
 
     #[tracing::instrument(skip_all, fields(mod_action.id = %id))]
     pub async fn remove_mod_action(&self, user: UserId, id: i64) -> Result<bool> {
-        let user = user.0 as i64;
+        let user: i64 = user.into();
         let result = sqlx::query!("delete from mod_action where id=? AND usr=?", id, user)
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected() > 0)
     }
 
-    #[tracing::instrument(skip_all, fields(mod_action.id = %id, mod_action.moderator = %moderator.0, mod_action.new_reason = %new_reason))]
+    #[tracing::instrument(skip_all, fields(mod_action.id = %id, mod_action.moderator = %moderator.get(), mod_action.new_reason = %new_reason))]
     pub async fn edit_mod_action_reason(
         &self,
         id: i64,
         moderator: UserId,
         new_reason: String,
     ) -> Result<bool> {
-        let moderator = moderator.0 as i64;
+        let moderator: i64 = moderator.into();
         let result = sqlx::query!(
             "update mod_action set reason=?, moderator=? where id=?",
             new_reason,

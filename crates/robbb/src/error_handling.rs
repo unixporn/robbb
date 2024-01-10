@@ -1,6 +1,6 @@
 use poise::{
     serenity_prelude::{MemberParseError, UserParseError},
-    TooFewArguments, TooManyArguments,
+    CreateReply, TooFewArguments, TooManyArguments,
 };
 use robbb_commands::commands;
 
@@ -14,78 +14,108 @@ use robbb_util::{
 /// Handler passed to poise
 pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>) {
     use poise::FrameworkError::*;
+    if let Some(ctx) = error.ctx() {
+        tracing::error!(
+            error = ?error,
+            command.name = %ctx.command().qualified_name,
+            command.invocation = %ctx.invocation_string(),
+            author.tag = %ctx.author().tag(),
+            "Error occured in context, more details will follow"
+        );
+    }
     match error {
-        Command { error, ctx } => {
+        Command { error, ctx, .. } => {
             handle_command_error(ctx, error).await;
+        }
+
+        CommandPanic { payload, ctx, .. } => {
+            tracing::error!(
+                error = ?payload,
+                command.name = ctx.command().qualified_name,
+                command.code_name = ctx.command().source_code_name,
+                command.invocation = %ctx.invocation_string(),
+                "Command panicked"
+            );
         }
         Setup { error, .. } => {
             tracing::error!(error = %error, "Error during setup: {}", error)
         }
-        EventHandler { error, event, ctx: _, framework: _ } => {
+        EventHandler { error, event, ctx: _, framework: _, .. } => {
             tracing::error!(event = ?event, error = %error, "Error in event listener: {}", error);
         }
-        ArgumentParse { input, ctx, error } => {
+        ArgumentParse { input, ctx, error, .. } => {
             log_error!(handle_argument_parse_error(ctx, error, input).await);
         }
-        CommandStructureMismatch { description, ctx } => {
+        CommandStructureMismatch { description, ctx, .. } => {
             log_error!(poise::Context::Application(ctx).say_error("Something went wrong").await);
-            tracing::error!(error="CommandStructureMismach", error.description=%description, "Error in command structure: {}", description);
+            tracing::error!(
+                error = "CommandStructureMismach",
+                error.description = %description,
+                command.invocation = %ctx.invocation_string(),
+                "Error in command structure: {description}"
+            );
         }
-        CooldownHit { remaining_cooldown, ctx } => log_error!(
+        CooldownHit { remaining_cooldown, ctx, .. } => log_error!(
             ctx.say_error(format!(
                 "You're doing this too much. Try again {}",
                 util::format_date_ago(util::time_after_duration(remaining_cooldown))
             ))
             .await
         ),
-        MissingBotPermissions { missing_permissions, ctx } => {
+        MissingBotPermissions { missing_permissions, ctx, .. } => {
             log_error!(
                 ctx.say_error(format!(
-                    "It seems like I am lacking the {} permission",
-                    missing_permissions
+                    "It seems like I am lacking the {missing_permissions} permission",
                 ))
                 .await
             );
             tracing::error!(
                 error = "Missing permissions",
-                "Bot missing permissions: {}",
-                missing_permissions
+                command.name = ctx.command().qualified_name,
+                command.invocation = %ctx.invocation_string(),
+                "Bot missing permissions: {missing_permissions}",
             )
         }
-        MissingUserPermissions { missing_permissions, ctx } => {
+        MissingUserPermissions { missing_permissions, ctx, .. } => {
             log_error!(ctx.say_error("Missing permissions").await);
             tracing::error!(
                 error = "User missing permissions",
                 error.missing_permissions = ?missing_permissions,
+                command.author = ctx.author().tag(),
+                command.invocation = %ctx.invocation_string(),
                 "User missing permissions: {:?}",
                 missing_permissions
             )
         }
-        NotAnOwner { ctx } => {
+        NotAnOwner { ctx, .. } => {
             log_error!(ctx.say_error("You need to be an owner to do this").await);
         }
-        GuildOnly { ctx } => {
+        GuildOnly { ctx, .. } => {
             log_error!(ctx.say_error("This can only be ran in a server").await);
         }
-        DmOnly { ctx } => {
+        DmOnly { ctx, .. } => {
             log_error!(ctx.say_error("This can only be used in DMs").await);
         }
-        NsfwOnly { ctx } => {
+        NsfwOnly { ctx, .. } => {
             log_error!(ctx.say_error("This can only be used in NSFW channels").await);
         }
-        CommandCheckFailed { error, ctx } => {
+        CommandCheckFailed { error, ctx, .. } => {
             if let Some(error) = error {
                 log_error!(
                     ctx.say_error("Something went wrong while checking your permissions").await
                 );
                 tracing::error!(
                     error = %error,
-                    command_name = %ctx.command().qualified_name.as_str(),
+                    command.name = %ctx.command().qualified_name.as_str(),
+                    command.invocation = %ctx.invocation_string(),
                     "Error while running command check: {}", error
                 );
             } else if matches!(ctx, poise::Context::Application(_)) {
                 log_error!(
-                    ctx.send(|m| m.ephemeral(true).content("Insufficient permissions")).await
+                    ctx.send(
+                        CreateReply::default().ephemeral(true).content("Insufficient permissions")
+                    )
+                    .await
                 );
             }
         }
@@ -93,7 +123,17 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
             tracing::error!(error = %error, "Error in dynamic prefix");
         }
         other => {
-            tracing::error!(error = ?other, "unhandled error received from poise");
+            if let Some(ctx) = other.ctx() {
+                tracing::error!(
+                    error = ?other,
+                    command.author.tag = ctx.author().tag(),
+                    command.name = ctx.command().qualified_name,
+                    command.invocation = %ctx.invocation_string(),
+                    "unhandled error received from poise"
+                );
+            } else {
+                tracing::error!(error = ?other, "unhandled error received from poise");
+            }
         }
     }
 }
@@ -133,6 +173,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
                 tracing::info!(
                     user_error.message=%issue,
                     user_error.command_name = %ctx.command().qualified_name.as_str(),
+                    user_error.invocation = %ctx.invocation_string(),
                     "User error"
                 );
             }
@@ -141,6 +182,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
             Some(inner_err) => {
                 tracing::warn!(
                     error.command_name = %ctx.command().qualified_name.as_str(),
+                    error.invocation = %ctx.invocation_string(),
                     error.message = %err,
                     error.root_cause = %err.root_cause(),
                     "Serenity error [handling {}]: {} ({:?})",
@@ -150,8 +192,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
                 );
                 match inner_err {
                     serenity::Error::Http(err) => {
-                        if let serenity::http::error::Error::UnsuccessfulRequest(res) = err.as_ref()
-                        {
+                        if let serenity::all::HttpError::UnsuccessfulRequest(res) = err {
                             if res.status_code == serenity::http::StatusCode::NOT_FOUND
                                 && res.error.message.to_lowercase().contains("unknown user")
                             {
@@ -173,6 +214,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
                 let _ = ctx.say_error("Something went wrong").await;
                 tracing::warn!(
                     error.command_name = %ctx.command().qualified_name.as_str(),
+                    error.invocation = %ctx.invocation_string(),
                     error.message = %err,
                     error.root_cause = %err.root_cause(),
                     "Internal error [handling {}]: {} ({:#?})",

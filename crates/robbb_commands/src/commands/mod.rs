@@ -48,7 +48,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         poll::poll(),
         tag::tag(),
         tag::taglist(),
-        ask::ask(),
+        //ask::ask(),
         modping::modping(),
         highlights::highlights(),
         small::latency(),
@@ -76,8 +76,9 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         note::note(),
         mute::mute(),
         purge::purge(),
-        poise_commands::register(),
-        poise_commands::delete(),
+        poise_commands::manage_commands(),
+        //poise_commands::register(),
+        //poise_commands::delete(),
         // context menu
         info::menu_info(),
         ban::menu_ban(),
@@ -103,11 +104,11 @@ pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
         };
         command.default_member_permissions = match meta.perms {
             PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
-            PermissionLevel::User => Permissions::USE_SLASH_COMMANDS,
+            PermissionLevel::User => Permissions::USE_APPLICATION_COMMANDS,
         };
-        command.category = Some(command.category.unwrap_or(match meta.perms {
-            PermissionLevel::Mod | PermissionLevel::Helper => "Moderation",
-            PermissionLevel::User => "Member",
+        command.category = Some(command.category.clone().unwrap_or(match meta.perms {
+            PermissionLevel::Mod | PermissionLevel::Helper => "Moderation".to_string(),
+            PermissionLevel::User => "Member".to_string(),
         }));
     }
 

@@ -67,9 +67,8 @@ async fn top_for_regex(
 
     let percentage = (matching_value_count as f64 / total_field_values as f64) * 100f64;
 
-    ctx.send_embed(|e| {
-        e.title(format!("Stats for matching {}s", field_name));
-        e.description(indoc::formatdoc!(
+    ctx.reply_embed_builder(|e| {
+        e.title(format!("Stats for matching {}s", field_name)).description(indoc::formatdoc!(
             "**Matching**: `{}`
              **Total**: {}
              **Percentage**: {:.2}
@@ -77,7 +76,7 @@ async fn top_for_regex(
             value_pattern,
             matching_value_count,
             percentage,
-        ));
+        ))
     })
     .await?;
     Ok(())
@@ -117,9 +116,8 @@ async fn top_for_field(ctx: Ctx<'_>, fetches: Vec<Fetch>, field_name: FetchField
         })
         .join("\n");
 
-    ctx.send_embed(|e| {
-        e.title(format!("Top {}", field_name));
-        e.description(top_values_text);
+    ctx.reply_embed_builder(|e| {
+        e.title(format!("Top {}", field_name)).description(top_values_text)
     })
     .await?;
     Ok(())
@@ -160,11 +158,7 @@ async fn top_all_values(ctx: Ctx<'_>, fetches: Vec<Fetch>) -> Res<()> {
         .map(|(field, value, _cnt, perc)| format!("**{}**: {} ({:.2}%)", field, value, perc))
         .join("\n");
 
-    ctx.send_embed(|e| {
-        e.title("Top");
-        e.description(top_values_text);
-    })
-    .await?;
+    ctx.reply_embed_builder(|e| e.title("Top").description(top_values_text)).await?;
     Ok(())
 }
 

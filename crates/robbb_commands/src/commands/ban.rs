@@ -2,6 +2,7 @@ use anyhow::Context;
 use chrono::{Duration, Utc};
 use poise::serenity_prelude::{Message, User};
 use robbb_util::{embeds, modal::create_modal_command_ir};
+use serenity::builder::{CreateEmbed, CreateMessage, EditMessage};
 
 use crate::checks::{self, PermissionLevel};
 
@@ -21,11 +22,7 @@ struct BanModal {
 )]
 pub async fn menu_ban(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
     let ctx = Ctx::Application(app_ctx);
-    let interaction = match app_ctx.interaction {
-        poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
-        _ => anyhow::bail!("Menu interaction was not an application command?"),
-    };
-    let response = create_modal_command_ir::<BanModal>(app_ctx, interaction, None).await?;
+    let response = create_modal_command_ir::<BanModal>(app_ctx, app_ctx.interaction, None).await?;
     do_ban(ctx, vec![user], response.reason, 0).await?;
     Ok(())
 }
@@ -87,7 +84,7 @@ pub async fn ban_many(
 }
 
 async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8) -> Res<()> {
-    let guild = ctx.guild().context("Failed to load guild")?;
+    let guild = ctx.guild().context("Failed to load guild")?.to_owned();
 
     let mut disallowed_bans = Vec::new();
     let mut successful_bans = Vec::new();
@@ -155,7 +152,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
         )
         .await;
 
-        main_response.edit(&ctx.serenity_context(), |e| e.set_embed(embed)).await?;
+        main_response.edit(&ctx.serenity_context(), EditMessage::default().embed(embed)).await?;
 
         crate::modlog::log_ban(ctx, &main_response, &successful_bans, &reason).await;
     }
@@ -196,12 +193,14 @@ async fn handle_single_ban(
     }
 
     let _ = user
-        .dm(&ctx.serenity_context(), |m| {
-            m.embed(|e| {
-                e.title(format!("You were banned from {}", guild.name));
-                e.field("Reason", reason, false)
-            })
-        })
+        .dm(
+            &ctx.serenity_context(),
+            CreateMessage::default().embed(
+                CreateEmbed::default()
+                    .title(format!("You were banned from {}", guild.name))
+                    .field("Reason", reason, false),
+            ),
+        )
         .await;
 
     let db = ctx.get_db();
