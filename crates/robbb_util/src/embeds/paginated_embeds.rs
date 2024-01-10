@@ -68,7 +68,7 @@ impl PaginatedEmbed {
             _ => {
                 let created_msg_handle = ctx
                     .send(|m| {
-                        m.embeds.push(self.pages.get(0).unwrap().clone());
+                        m.embeds.push(self.pages.first().unwrap().clone());
                         m.components = Some(make_paginate_components(0, pages.len()));
                         m.ephemeral(ephemeral);
                         m

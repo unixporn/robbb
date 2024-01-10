@@ -139,15 +139,15 @@ impl client::EventHandler for Handler {
 
         match &interaction {
             Interaction::ApplicationCommand(x) => {
-                tracing::Span::current().record("command_name", &x.data.name.as_str());
+                tracing::Span::current().record("command_name", x.data.name.as_str());
             }
             Interaction::MessageComponent(x) => {
                 tracing::Span::current()
-                    .record("interaction_create.custom_id", &x.data.custom_id.as_str());
+                    .record("interaction_create.custom_id", x.data.custom_id.as_str());
             }
             Interaction::ModalSubmit(x) => {
                 tracing::Span::current()
-                    .record("interaction_create.custom_id", &x.data.custom_id.as_str());
+                    .record("interaction_create.custom_id", x.data.custom_id.as_str());
             }
             _ => (),
         }
@@ -158,7 +158,7 @@ impl client::EventHandler for Handler {
             "Got interaction_create event"
         );
         tracing::Span::current()
-            .record("interaction_create.user", &user.map(|x| x.tag()).unwrap_or_default().as_str());
+            .record("interaction_create.user", user.map(|x| x.tag()).unwrap_or_default().as_str());
 
         let stop_event_handler =
             match handle_blocklist::handle_blocklist_in_interaction(&ctx, &interaction).await {

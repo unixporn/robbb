@@ -50,7 +50,7 @@ pub async fn message_update(
                 msg.to_context_link()
             ));
             if let Some(edited_timestamp) = event.edited_timestamp {
-                e.timestamp(&edited_timestamp);
+                e.timestamp(edited_timestamp);
             }
             e.footer(|f| f.text(format!("#{}", channel_name)));
         })

@@ -108,17 +108,17 @@ async fn pre_command(ctx: Ctx<'_>) -> bool {
     };
     let channel_name = ctx
         .channel_id()
-        .to_channel_cached(&ctx.serenity_context())
+        .to_channel_cached(ctx.serenity_context())
         .and_then(|x| x.guild())
         .map(|x| x.name);
 
     let span = tracing::Span::current();
-    span.record("command_name", &ctx.command().qualified_name.as_str());
-    span.record("msg.content", &content.as_str());
-    span.record("msg.author", &ctx.author().tag().as_str());
-    span.record("msg.id", &ctx.id());
-    span.record("msg.channel_id", &ctx.channel_id().0);
-    span.record("msg.channel", &channel_name.unwrap_or_default().as_str());
+    span.record("command_name", ctx.command().qualified_name.as_str());
+    span.record("msg.content", content.as_str());
+    span.record("msg.author", ctx.author().tag().as_str());
+    span.record("msg.id", ctx.id());
+    span.record("msg.channel_id", ctx.channel_id().0);
+    span.record("msg.channel", channel_name.unwrap_or_default().as_str());
 
     tracing::info!(
         command_name = ctx.command().qualified_name.as_str(),

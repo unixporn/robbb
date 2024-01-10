@@ -40,7 +40,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
     {
         match handle_msg_emoji_logging(&ctx, &msg).await {
             Ok(emoji_used) => {
-                tracing::Span::current().record("message_create.emoji_used", &emoji_used);
+                tracing::Span::current().record("message_create.emoji_used", emoji_used);
             }
             err => log_error!("Error while handling emoji logging", err),
         }
@@ -48,7 +48,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
 
     match handle_spam_protect(&ctx, &msg).await {
         Ok(stop) => {
-            tracing::Span::current().record("message_create.stopped_at_spam_protect", &stop);
+            tracing::Span::current().record("message_create.stopped_at_spam_protect", stop);
             if stop {
                 return Ok(true);
             }
@@ -57,7 +57,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
     };
     match handle_blocklist::handle_blocklist(&ctx, &msg).await {
         Ok(stop) => {
-            tracing::Span::current().record("message_create.stopped_at_blocklist", &stop);
+            tracing::Span::current().record("message_create.stopped_at_blocklist", stop);
             if stop {
                 return Ok(true);
             }
@@ -67,14 +67,14 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
 
     match handle_highlighting(&ctx, &msg).await {
         Ok(notified_users) => {
-            tracing::Span::current().record("message_create.notified_user_cnt", &notified_users);
+            tracing::Span::current().record("message_create.notified_user_cnt", notified_users);
         }
         err => log_error!("error while checking/handling highlights", err),
     }
 
     match handle_quote(&ctx, &msg).await {
         Ok(stop) => {
-            tracing::Span::current().record("message_create.stopped_at_quote", &stop);
+            tracing::Span::current().record("message_create.stopped_at_quote", stop);
             if stop {
                 return Ok(true);
             }
@@ -119,7 +119,7 @@ async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
     // don't trigger on bot commands
     if msg.content.starts_with('!') {
-        tracing::Span::current().record("highlights.notified_user_cnt", &0i32);
+        tracing::Span::current().record("highlights.notified_user_cnt", 0i32);
         return Ok(0);
     }
 
@@ -136,7 +136,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     .context("Failed to get highlight triggers for a message")?;
 
     if highlight_matches.is_empty() {
-        tracing::Span::current().record("highlights.notified_user_cnt", &0i32);
+        tracing::Span::current().record("highlights.notified_user_cnt", 0i32);
         return Ok(0);
     }
     // don't highlight in threads or mod internal channels
@@ -175,7 +175,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 a.name(&msg.author.tag());
                 a.icon_url(&msg.author.face())
             })
-            .timestamp(&msg.timestamp)
+            .timestamp(msg.timestamp)
             .footer(|f| f.text(format!("#{}", channel.name)));
 
         tracing::debug!(
@@ -190,7 +190,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 .guild_id
                 .member(&ctx, msg.author.id)
                 .await?
-                .permissions(&ctx)?
+                .permissions(ctx)?
                 .read_message_history();
 
             if user_id == msg.author.id
@@ -214,7 +214,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         }
     }
 
-    tracing::Span::current().record("highlights.notified_user_cnt", &handled_users.len());
+    tracing::Span::current().record("highlights.notified_user_cnt", handled_users.len());
     Ok(handled_users.len())
 }
 
@@ -249,7 +249,7 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
         )
         .await?;
     }
-    tracing::Span::current().record("msg_emoji_logging.emoji_used", &actual_emojis.len());
+    tracing::Span::current().record("msg_emoji_logging.emoji_used", actual_emojis.len());
     Ok(actual_emojis.len())
 }
 
@@ -318,7 +318,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .guild_id
         .member(&ctx, msg.author.id)
         .await?
-        .permissions(&ctx)?
+        .permissions(ctx)?
         .read_message_history();
 
     //let user_can_see_channel = channel
@@ -356,7 +356,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
             e.image(&attachment.url);
         }
         e.description(&mentioned_msg.content);
-        e.timestamp(&mentioned_msg.timestamp)
+        e.timestamp(mentioned_msg.timestamp)
     })
     .await?;
     Ok(true)
@@ -400,7 +400,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         };
 
     if is_spam || is_ping_spam {
-        let guild = msg.guild(&ctx).context("Failed to load guild")?;
+        let guild = msg.guild(ctx).context("Failed to load guild")?;
         let member = guild.member(&ctx, msg.author.id).await?;
         let bot_id = ctx.cache.current_user_id();
 

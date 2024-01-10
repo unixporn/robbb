@@ -34,7 +34,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         let word = word.as_str();
 
         tracing::info!(blocklist.word = %word, "Found blocked word '{}'", word);
-        tracing::Span::current().record("blocklist.blocked_word", &word);
+        tracing::Span::current().record("blocklist.blocked_word", word);
 
         let dm_future = async {
             let _ = msg
@@ -112,8 +112,8 @@ pub async fn handle_blocklist_in_interaction(
             let word = word.as_str();
 
             tracing::info!(blocklist.word = %word, "Found blocked word in interaction '{}'", word);
-            tracing::Span::current().record("blocklist.blocked_word", &word);
-            tracing::Span::current().record("interaction.user", &values.user.tag().as_str());
+            tracing::Span::current().record("blocklist.blocked_word", word);
+            tracing::Span::current().record("interaction.user", values.user.tag().as_str());
 
             let context_link = generate_message_link(
                 values.guild_id,
