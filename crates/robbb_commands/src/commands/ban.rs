@@ -1,7 +1,7 @@
 use anyhow::Context;
 use chrono::{Duration, Utc};
 use poise::serenity_prelude::{Message, User};
-use robbb_util::{embeds, modal::create_modal_command_ir};
+use robbb_util::embeds;
 use serenity::builder::{CreateEmbed, CreateMessage, EditMessage};
 
 use crate::checks::{self, PermissionLevel};
@@ -21,9 +21,12 @@ struct BanModal {
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn menu_ban(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
-    let ctx = Ctx::Application(app_ctx);
-    let response = create_modal_command_ir::<BanModal>(app_ctx, app_ctx.interaction, None).await?;
-    do_ban(ctx, vec![user], response.reason, 0).await?;
+    let response: Option<BanModal> = poise::execute_modal(app_ctx, None, None).await?;
+    if let Some(response) = response {
+        do_ban(app_ctx.into(), vec![user], response.reason, 0).await?;
+    } else {
+        Ctx::Application(app_ctx).say_error("Cancelled").await?;
+    }
     Ok(())
 }
 

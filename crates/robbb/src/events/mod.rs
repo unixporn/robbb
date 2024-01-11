@@ -61,6 +61,7 @@ impl Handler {
     #[tracing::instrument(skip_all, fields(
         event.name = %event.snake_case_name(),
         command_name,
+        invocation,
         custom_id,
         msg.content,
         msg.author,
@@ -95,7 +96,7 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(
         skip_all,
         fields(
-            command_name, message_create.notified_user_cnt, message_create.stopped_at_spam_protect,
+            command_name, invocation, message_create.notified_user_cnt, message_create.stopped_at_spam_protect,
             message_create.stopped_at_blocklist, message_create.stopped_at_quote, message_create.emoji_used,
             %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
         )
@@ -121,6 +122,7 @@ impl client::EventHandler for Handler {
         skip_all,
         fields(
             command_name,
+            invocation,
             interaction_create.custom_id,
             interaction_create.kind = ?interaction.kind(),
             interaction_create.user,

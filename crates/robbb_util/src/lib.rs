@@ -2,7 +2,6 @@ pub mod collect_interaction;
 pub mod config;
 pub mod embeds;
 pub mod extensions;
-pub mod modal;
 pub mod prelude;
 pub mod util;
 

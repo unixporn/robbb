@@ -1,7 +1,6 @@
 use chrono::Utc;
 use poise::serenity_prelude::User;
 use robbb_db::mod_action::{ModActionKind, ModActionType};
-use robbb_util::modal::create_modal_command_ir;
 
 use crate::modlog;
 
@@ -20,9 +19,12 @@ struct WarnModal {
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn menu_warn(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
-    let ctx = Ctx::Application(app_ctx);
-    let response = create_modal_command_ir::<WarnModal>(app_ctx, app_ctx.interaction, None).await?;
-    do_warn(ctx, user, response.reason).await?;
+    let response: Option<WarnModal> = poise::execute_modal(app_ctx, None, None).await?;
+    if let Some(response) = response {
+        do_warn(app_ctx.into(), user, response.reason).await?;
+    } else {
+        Ctx::Application(app_ctx).say_error("Cancelled").await?;
+    }
     Ok(())
 }
 

@@ -21,6 +21,8 @@ where
     }
 }
 
+/// Await component interactions to a specific [`Message`] by a specific [`UserId`], limiting the number of interactions
+/// that will be returned.
 pub fn await_component_interactions_by(
     ctx: &Context,
     message: &Message,

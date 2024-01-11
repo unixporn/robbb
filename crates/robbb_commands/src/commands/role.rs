@@ -6,7 +6,7 @@ use serenity::{
     all::RoleId,
     builder::{
         CreateActionRow, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-        CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, EditMessage,
+        CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
     },
 };
 
@@ -37,16 +37,11 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
             let embed = CreateEmbed::default()
                 .title("Available roles")
                 .description(config.roles_color.iter().map(|r| r.mention()).join(" "));
-            let menu = CreateSelectMenu::new(
-                "role",
-                CreateSelectMenuKind::String {
-                    options: available_roles
-                        .map(|(name, id)| CreateSelectMenuOption::new(name, id))
-                        .collect(),
-                },
-            )
-            .min_values(1)
-            .max_values(1);
+            let options =
+                available_roles.map(|(name, id)| CreateSelectMenuOption::new(name, id)).collect();
+            let menu = CreateSelectMenu::new("role", CreateSelectMenuKind::String { options })
+                .min_values(1)
+                .max_values(1);
             CreateReply::default()
                 .embed(embed)
                 .components(vec![CreateActionRow::SelectMenu(menu)])
