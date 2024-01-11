@@ -1,5 +1,3 @@
-
-
 use super::*;
 
 /// Get the currently running bot version

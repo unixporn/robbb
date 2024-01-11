@@ -4,7 +4,7 @@ use serenity::builder::CreateEmbedFooter;
 use super::*;
 
 pub async fn message_update(
-    ctx: client::Context,
+    ctx: &client::Context,
     old_if_available: Option<Message>,
     _new: Option<Message>,
     event: MessageUpdateEvent,

@@ -1,4 +1,4 @@
-use poise::serenity_prelude::{CreateEmbed};
+use poise::serenity_prelude::CreateEmbed;
 
 pub use crate::UserData;
 

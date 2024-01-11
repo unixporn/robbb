@@ -1,7 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{collections::HashSet, path::PathBuf, sync::Arc};
 
 use poise::serenity_prelude::{ChannelId, CreateEmbed, GuildId, RoleId};
-use serenity::{client, prelude::TypeMapKey};
+use serenity::{all::UserId, client, prelude::TypeMapKey};
 
 use crate::{
     extensions::GuildIdExt,
@@ -12,6 +12,8 @@ use crate::{
 #[derive(Debug)]
 pub struct Config {
     pub discord_token: String,
+
+    pub owners: HashSet<UserId>,
 
     pub guild: GuildId,
     pub role_mod: RoleId,
@@ -44,6 +46,11 @@ impl Config {
     pub fn from_environment() -> anyhow::Result<Self> {
         Ok(Config {
             discord_token: required_env_var("TOKEN")?,
+            owners: required_env_var("OWNERS")?
+                .split(',')
+                .map(|x| Ok(x.trim().parse()?))
+                .collect::<anyhow::Result<_>>()?,
+
             guild: GuildId::new(parse_required_env_var("GUILD")?),
             role_mod: RoleId::new(parse_required_env_var("ROLE_MOD")?),
             role_helper: RoleId::new(parse_required_env_var("ROLE_HELPER")?),
@@ -51,7 +58,7 @@ impl Config {
             role_htm: RoleId::new(parse_required_env_var("ROLE_HTM")?),
             roles_color: required_env_var("ROLES_COLOR")?
                 .split(',')
-                .map(|x| Ok(RoleId::new(x.trim().parse()?)))
+                .map(|x| Ok(x.trim().parse()?))
                 .collect::<anyhow::Result<_>>()?,
             category_mod_private: ChannelId::new(parse_required_env_var("CATEGORY_MOD_PRIVATE")?),
             channel_announcements: ChannelId::new(parse_required_env_var("CHANNEL_ANNOUNCEMENTS")?),

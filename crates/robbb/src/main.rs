@@ -41,6 +41,7 @@ async fn main() -> anyhow::Result<()> {
         on_error: |err| Box::pin(error_handling::on_error(err)),
         skip_checks_for_owners: true,
         pre_command: |ctx| Box::pin(pre_command(ctx)),
+        owners: config.owners.clone(),
         command_check: Some(|ctx| {
             Box::pin(async move {
                 Ok(is_autocomplete_interaction(&ctx)
