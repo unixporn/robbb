@@ -79,7 +79,7 @@ async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> 
     Ok(handle.message().await?.into_owned())
 }
 
-async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -> Res<Message> {
+async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -> Res<()> {
     let fields = commands.iter().map(|command| {
         let name = if command.slash_action.is_some() {
             format!("**/{}**", command.name)
@@ -97,5 +97,6 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
     )
     .await
     .reply_to(ctx, true)
-    .await
+    .await?;
+    Ok(())
 }
