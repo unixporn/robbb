@@ -1,11 +1,7 @@
 use anyhow::Context;
 use chrono::Utc;
 use poise::serenity_prelude::User;
-use serenity::{
-    all::GuildId,
-    builder::{CreateEmbed, CreateMessage},
-    client,
-};
+use serenity::{all::GuildId, builder::CreateEmbed, client};
 
 use crate::modlog;
 
@@ -55,9 +51,10 @@ pub async fn do_kick(ctx: &client::Context, guild: GuildId, user: &User, reason:
     let _ = user
         .dm(
             &ctx,
-            CreateMessage::default().embed(
-                CreateEmbed::default().title("You were kicked").field("Reason", reason, false),
-            ),
+            CreateEmbed::default()
+                .title("You were kicked")
+                .field("Reason", reason, false)
+                .into_create_message(),
         )
         .await;
     guild.kick_with_reason(&ctx, user, reason).await?;

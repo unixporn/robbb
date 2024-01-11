@@ -302,6 +302,11 @@ pub impl CreateEmbed {
                 .url(format!("https://discord.com/users/{}", u.id)),
         )
     }
+
+    /// Create a [`CreateMessage`] that only contains this embed.
+    fn into_create_message(self) -> CreateMessage {
+        CreateMessage::default().embed(self)
+    }
 }
 
 #[extend::ext(name = StrExt)]

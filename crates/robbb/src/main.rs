@@ -5,6 +5,7 @@ use robbb_commands::{checks, commands};
 use robbb_db::Db;
 
 use robbb_util::{config::Config, prelude::Ctx, UserData};
+use serenity::all::OnlineStatus;
 use std::sync::Arc;
 use tracing::Level;
 
@@ -27,11 +28,6 @@ async fn main() -> anyhow::Result<()> {
     let span = tracing::span!(Level::DEBUG, "main");
     let _enter = span.enter();
 
-    if std::env::var("ROBBB_LOG_CPU_USAGE") == Ok("1".to_string()) {
-        #[cfg(any(target_os = "linux", target_os = "windows"))]
-        init_cpu_logging().await;
-    }
-
     tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
 
     let config = Config::from_environment().expect("Failed to load experiment");
@@ -43,11 +39,8 @@ async fn main() -> anyhow::Result<()> {
     let framework_options = poise::FrameworkOptions {
         commands: commands::all_commands(),
         on_error: |err| Box::pin(error_handling::on_error(err)),
-        pre_command: |ctx| {
-            Box::pin(async move {
-                pre_command(ctx).await;
-            })
-        },
+        skip_checks_for_owners: true,
+        pre_command: |ctx| Box::pin(pre_command(ctx)),
         command_check: Some(|ctx| {
             Box::pin(async move {
                 Ok(is_autocomplete_interaction(&ctx)
@@ -83,6 +76,8 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     let mut client = serenity::Client::builder(&config.discord_token, gateway_intents)
+        .activity(serenity::gateway::ActivityData::listening("/help"))
+        .status(OnlineStatus::Online)
         .event_handler_arc(event_handler.clone())
         .cache_settings({
             let mut settings = serenity::cache::Settings::default();
@@ -105,36 +100,40 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn pre_command(ctx: Ctx<'_>) -> bool {
+async fn pre_command(ctx: Ctx<'_>) {
     let content = match ctx {
-        poise::Context::Application(_) => "<slash command>".to_string(),
+        poise::Context::Application(_) => ctx.invocation_string(),
         poise::Context::Prefix(prefix) => prefix.msg.content.to_string(),
     };
     let channel_name = ctx
         .channel_id()
         .to_channel_cached(ctx.cache())
         .and_then(|x| x.guild(&ctx))
-        .map(|x| x.name.to_string());
+        .map(|x| x.name.to_string())
+        .unwrap_or_default();
 
     let span = tracing::Span::current();
     span.record("command_name", ctx.command().qualified_name.as_str());
+    span.record("invocation", ctx.invocation_string());
     span.record("msg.content", content.as_str());
     span.record("msg.author", ctx.author().tag().as_str());
     span.record("msg.id", ctx.id());
     span.record("msg.channel_id", ctx.channel_id().get());
-    span.record("msg.channel", channel_name.unwrap_or_default().as_str());
+    span.record("msg.channel", channel_name.as_str());
 
     tracing::info!(
         command_name = ctx.command().qualified_name.as_str(),
+        invocation = ctx.invocation_string(),
         msg.content = %content,
-        msg.author = %ctx.author(),
+        msg.author = %ctx.author().tag(),
+        msg.author_id = %ctx.author().id,
         msg.id = %ctx.id(),
+        msg.channel = %channel_name,
         msg.channel_id = %ctx.channel_id(),
         "{} invoked by {}",
         ctx.command().name,
         ctx.author().tag()
     );
-    true
 }
 
 fn is_autocomplete_interaction(ctx: &Ctx<'_>) -> bool {

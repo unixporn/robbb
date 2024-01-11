@@ -4,7 +4,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use poise::{
     serenity_prelude::{CreateActionRow, UserId},
-    CreateReply,
+    CreateReply, ReplyHandle,
 };
 use serenity::{
     builder::{
@@ -12,6 +12,7 @@ use serenity::{
         EditMessage,
     },
     client,
+    collector::ComponentInteractionCollector,
     model::channel::Message,
 };
 
@@ -58,48 +59,18 @@ impl PaginatedEmbed {
         PaginatedEmbed { pages, base_embed }
     }
 
-    //#[tracing::instrument(name = "send_paginated_embed", skip_all, fields(paginated_embed.page_cnt = %self.pages.len()))]
-    pub async fn reply_to(&self, ctx: Ctx<'_>, ephemeral: bool) -> Result<Message> {
-        let pages = self.pages.clone();
-        match pages.len() {
-            0 => {
-                let handle = ctx.reply_embed_full(ephemeral, self.base_embed.clone()).await?;
-                Ok(handle.message().await?.into_owned())
-            }
-            1 => {
-                let page = self.pages.first().unwrap();
-                let handle = ctx.reply_embed_full(ephemeral, page.clone()).await?;
-                Ok(handle.message().await?.into_owned())
-            }
-            _ => {
-                let created_msg_handle = ctx
-                    .send(
-                        CreateReply::default()
-                            .ephemeral(ephemeral)
-                            .components(vec![make_paginate_row(0, pages.len())])
-                            .embed(self.pages.first().unwrap().clone()),
-                    )
-                    .await?;
-                let created_msg = created_msg_handle.message().await?.into_owned();
-
-                tokio::spawn({
-                    let serenity_ctx = ctx.serenity_context().clone();
-                    let user_id = ctx.author().id;
-                    let created_msg = created_msg.clone();
-                    async move {
-                        log_error!(
-                            handle_pagination_interactions(
-                                &serenity_ctx,
-                                pages,
-                                user_id,
-                                created_msg
-                            )
-                            .await
-                        )
-                    }
-                });
-
-                Ok(created_msg)
+    pub async fn reply_to(&self, ctx: Ctx<'_>, ephemeral: bool) -> Result<ReplyHandle<'_>> {
+        match self.pages.as_slice() {
+            [] => Ok(ctx.reply_embed_full(ephemeral, self.base_embed.clone()).await?),
+            [page] => Ok(ctx.reply_embed_full(ephemeral, page.clone()).await?),
+            pages => {
+                let reply = CreateReply::default()
+                    .ephemeral(ephemeral)
+                    .components(vec![make_paginate_row(ctx.id(), 0, pages.len())])
+                    .embed(self.pages.first().unwrap().clone());
+                let handle = ctx.send(reply).await?;
+                handle_pagination_interactions(ctx, pages, handle).await?;
+                Ok(handle)
             }
         }
     }
@@ -107,51 +78,52 @@ impl PaginatedEmbed {
 
 #[tracing::instrument(skip_all)]
 async fn handle_pagination_interactions(
-    serenity_ctx: &client::Context,
+    ctx: Ctx<'_>,
     pages: Vec<CreateEmbed>,
-    user_id: UserId,
-    mut created_msg: Message,
+    handle: ReplyHandle<'_>,
 ) -> Result<()> {
     let mut current_page_idx = 0;
+    let ctx_id = ctx.id();
 
-    let mut interactions = crate::collect_interaction::await_component_interactions_by(
-        serenity_ctx,
-        &created_msg,
-        user_id,
-        10,
-        std::time::Duration::from_secs(30),
-    );
-
-    while let Some(interaction) = interactions.next().await {
+    while let Some(interaction) = ComponentInteractionCollector::new(&ctx)
+        .filter(move |x| x.data.custom_id.starts_with(&ctx_id.to_string()))
+        .timeout(std::time::Duration::from_secs(10))
+        .author_id(ctx.author().id)
+        .await
+    {
         let direction = interaction.data.clone().custom_id;
-        if direction == PAGINATION_LEFT && current_page_idx > 0 {
+        let left_id = format!("{ctx_id}{PAGINATION_LEFT}");
+        let right_id = format!("{ctx_id}{PAGINATION_RIGHT}");
+        if direction == left_id && current_page_idx > 0 {
             current_page_idx -= 1;
-        } else if direction == PAGINATION_RIGHT && current_page_idx < pages.len() - 1 {
+        } else if direction == right_id && current_page_idx < pages.len() - 1 {
             current_page_idx += 1;
         }
+        let paginate_row = make_paginate_row(ctx.id(), current_page_idx, pages.len());
         interaction
             .create_response(
-                &serenity_ctx,
+                &ctx.serenity_context(),
                 CreateInteractionResponse::UpdateMessage(
                     CreateInteractionResponseMessage::default()
                         .embed(pages.get(current_page_idx).unwrap().clone())
-                        .components(vec![make_paginate_row(current_page_idx, pages.len())]),
+                        .components(vec![paginate_row]),
                 ),
             )
             .await?;
     }
-    created_msg
-        .edit(
-            &serenity_ctx,
-            EditMessage::default().embed(pages.get(current_page_idx).unwrap().clone()),
-        )
-        .await?;
+    // Once no further interactions are expected, remove the components from the message
+    let reply = CreateReply::default()
+        .embed(pages.get(current_page_idx).unwrap().clone())
+        .components(vec![]);
+    handle.edit(ctx, reply).await?;
     Ok(())
 }
 
-fn make_paginate_row(page_idx: usize, page_cnt: usize) -> CreateActionRow {
+fn make_paginate_row(ctx_id: u64, page_idx: usize, page_cnt: usize) -> CreateActionRow {
     CreateActionRow::Buttons(vec![
-        CreateButton::new(PAGINATION_LEFT).label("←").disabled(page_idx == 0),
-        CreateButton::new(PAGINATION_RIGHT).label("→").disabled(page_idx >= page_cnt - 1),
+        CreateButton::new(format!("{ctx_id}{PAGINATION_LEFT}")).label("←").disabled(page_idx == 0),
+        CreateButton::new(format!("{ctx_id}{PAGINATION_RIGHT}"))
+            .label("→")
+            .disabled(page_idx >= page_cnt - 1),
     ])
 }

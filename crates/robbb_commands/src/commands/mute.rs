@@ -2,7 +2,6 @@ use anyhow::Context;
 use chrono::Utc;
 use poise::serenity_prelude::User;
 use robbb_db::mod_action::ModActionKind;
-use robbb_util::modal::create_modal_command_ir;
 use serenity::client;
 
 use crate::modlog;
@@ -25,14 +24,17 @@ struct MuteModal {
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn menu_mute(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
-    let ctx = Ctx::Application(app_ctx);
-    let guild = ctx.guild().context("Not in a guild")?.to_owned();
-    let member = guild.member(&ctx.serenity_context(), user.id).await?;
-    let ctx = Ctx::Application(app_ctx);
-    let response = create_modal_command_ir::<MuteModal>(app_ctx, app_ctx.interaction, None).await?;
-    let duration =
-        response.duration.parse::<humantime::Duration>().user_error("Invalid duration")?;
-    do_mute(ctx, member.as_ref(), duration, response.reason).await?;
+    let guild = app_ctx.guild().context("Not in a guild")?.to_owned();
+    let member = guild.member(&app_ctx.serenity_context(), user.id).await?;
+
+    let response: Option<MuteModal> = poise::execute_modal(app_ctx, None, None).await?;
+    if let Some(response) = response {
+        let duration =
+            response.duration.parse::<humantime::Duration>().user_error("Invalid duration")?;
+        do_mute(app_ctx.into(), member.as_ref(), duration, response.reason).await?;
+    } else {
+        Ctx::Application(app_ctx).say_error("Cancelled").await?;
+    }
     Ok(())
 }
 
