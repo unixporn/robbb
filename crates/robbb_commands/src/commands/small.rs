@@ -3,7 +3,6 @@ use poise::CreateReply;
 use robbb_db::fetch_field::FetchField;
 use robbb_util::embeds;
 
-
 use super::*;
 
 /// Restart robbb

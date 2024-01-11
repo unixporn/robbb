@@ -10,7 +10,7 @@ use serenity::{
 use super::*;
 
 pub async fn message_delete(
-    ctx: client::Context,
+    ctx: &client::Context,
     channel_id: ChannelId,
     deleted_message_id: MessageId,
     guild_id: Option<GuildId>,
@@ -101,7 +101,7 @@ pub async fn message_delete_bulk(
 
     if deleted_message_ids.len() == 1 {
         let mut deleted_message_ids = deleted_message_ids;
-        message_delete(ctx, channel_id, deleted_message_ids.pop().unwrap(), guild_id).await?;
+        message_delete(&ctx, channel_id, deleted_message_ids.pop().unwrap(), guild_id).await?;
         return Ok(());
     }
 

@@ -14,6 +14,7 @@ use robbb_util::{extensions::*, UpEmotes};
 use serenity::all::{FullEvent, GuildMemberUpdateEvent, Interaction};
 use serenity::client;
 
+mod guild_audit_log_entry_create;
 mod guild_member_addition;
 mod guild_member_removal;
 mod guild_member_update;
@@ -208,15 +209,23 @@ impl client::EventHandler for Handler {
         &self,
         ctx: client::Context,
         old_if_available: Option<Message>,
-        _new: Option<Message>,
+        new: Option<Message>,
         event: MessageUpdateEvent,
     ) {
         tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
             .unwrap();
         log_error!(
             "Error while handling message_update event",
-            message_update::message_update(ctx, old_if_available, _new, event).await
+            message_update::message_update(
+                &ctx,
+                old_if_available.clone(),
+                new.clone(),
+                event.clone()
+            )
+            .await
         );
+        self.dispatch_poise_event(&ctx, FullEvent::MessageUpdate { old_if_available, new, event })
+            .await;
     }
 
     #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
@@ -231,8 +240,13 @@ impl client::EventHandler for Handler {
             .unwrap();
         log_error!(
             "Error while handling message_delete event",
-            message_delete::message_delete(ctx, channel_id, deleted_message_id, guild_id).await
+            message_delete::message_delete(&ctx, channel_id, deleted_message_id, guild_id).await
         );
+        self.dispatch_poise_event(
+            &ctx,
+            FullEvent::MessageDelete { channel_id, deleted_message_id, guild_id },
+        )
+        .await;
     }
 
     #[tracing::instrument(skip_all)]
@@ -281,6 +295,21 @@ impl client::EventHandler for Handler {
         );
     }
 
+    #[tracing::instrument(skip_all, fields(entry = ?entry))]
+    async fn guild_audit_log_entry_create(
+        &self,
+        ctx: client::Context,
+        entry: serenity::model::prelude::AuditLogEntry,
+        _guild_id: GuildId,
+    ) {
+        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
+            .unwrap();
+        log_error!(
+            "Error while handling guild_audit_log_entry_create event",
+            guild_audit_log_entry_create::guild_audit_log_entry_create(ctx, entry).await
+        );
+    }
+
     #[tracing::instrument(
         skip_all,
         fields(
@@ -313,6 +342,17 @@ impl client::EventHandler for Handler {
         log_error!(
             "Error while handling reaction_remove event",
             reaction_remove::reaction_remove(ctx, event).await
+        );
+    }
+
+    async fn ratelimit(&self, data: serenity::http::RatelimitInfo) {
+        tracing::warn!(
+            ratelimit.timeout_secs = %data.timeout.as_secs(),
+            ratelimit.limit = %data.limit,
+            ratelimit.method = ?data.method,
+            ratelimit.path = %data.path,
+            ratelimit.global = ?data.global,
+            "Encountered ratelimit"
         );
     }
 }
