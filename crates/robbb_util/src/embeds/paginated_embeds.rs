@@ -1,19 +1,13 @@
-use crate::{extensions::PoiseContextExt, log_error, prelude::Ctx, util::ellipsis_text};
+use crate::{extensions::PoiseContextExt, prelude::Ctx, util::ellipsis_text};
 
 use anyhow::Result;
 use itertools::Itertools;
-use poise::{
-    serenity_prelude::{CreateActionRow, UserId},
-    CreateReply, ReplyHandle,
-};
+use poise::{serenity_prelude::CreateActionRow, CreateReply, ReplyHandle};
 use serenity::{
     builder::{
         CreateButton, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-        EditMessage,
     },
-    client,
     collector::ComponentInteractionCollector,
-    model::channel::Message,
 };
 
 const PAGINATION_LEFT: &str = "LEFT";
@@ -59,20 +53,24 @@ impl PaginatedEmbed {
         PaginatedEmbed { pages, base_embed }
     }
 
-    pub async fn reply_to(&self, ctx: Ctx<'_>, ephemeral: bool) -> Result<ReplyHandle<'_>> {
+    pub async fn reply_to<'a>(&self, ctx: Ctx<'a>, ephemeral: bool) -> Result<()> {
         match self.pages.as_slice() {
-            [] => Ok(ctx.reply_embed_full(ephemeral, self.base_embed.clone()).await?),
-            [page] => Ok(ctx.reply_embed_full(ephemeral, page.clone()).await?),
+            [] => {
+                ctx.reply_embed_full(ephemeral, self.base_embed.clone()).await?;
+            }
+            [page] => {
+                ctx.reply_embed_full(ephemeral, page.clone()).await?;
+            }
             pages => {
                 let reply = CreateReply::default()
                     .ephemeral(ephemeral)
                     .components(vec![make_paginate_row(ctx.id(), 0, pages.len())])
                     .embed(self.pages.first().unwrap().clone());
                 let handle = ctx.send(reply).await?;
-                handle_pagination_interactions(ctx, pages, handle).await?;
-                Ok(handle)
+                handle_pagination_interactions(ctx, pages.to_vec(), &handle).await?;
             }
         }
+        Ok(())
     }
 }
 
@@ -80,7 +78,7 @@ impl PaginatedEmbed {
 async fn handle_pagination_interactions(
     ctx: Ctx<'_>,
     pages: Vec<CreateEmbed>,
-    handle: ReplyHandle<'_>,
+    handle: &ReplyHandle<'_>,
 ) -> Result<()> {
     let mut current_page_idx = 0;
     let ctx_id = ctx.id();
@@ -99,15 +97,13 @@ async fn handle_pagination_interactions(
         } else if direction == right_id && current_page_idx < pages.len() - 1 {
             current_page_idx += 1;
         }
-        let paginate_row = make_paginate_row(ctx.id(), current_page_idx, pages.len());
+        let response_msg = CreateInteractionResponseMessage::default()
+            .embed(pages.get(current_page_idx).unwrap().clone())
+            .components(vec![make_paginate_row(ctx_id, current_page_idx, pages.len())]);
         interaction
             .create_response(
                 &ctx.serenity_context(),
-                CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::default()
-                        .embed(pages.get(current_page_idx).unwrap().clone())
-                        .components(vec![paginate_row]),
-                ),
+                CreateInteractionResponse::UpdateMessage(response_msg),
             )
             .await?;
     }
