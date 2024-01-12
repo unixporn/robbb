@@ -1,3 +1,4 @@
+use chrono::Utc;
 use robbb_util::extensions::{ClientContextExt, CreateEmbedExt, UserExt};
 use serenity::{
     all::{audit_log, AuditLogEntry, UserId},
@@ -11,12 +12,21 @@ pub async fn guild_audit_log_entry_create(
     if entry.user_id == ctx.cache.current_user().id {
         return Ok(());
     }
-    let config = ctx.get_config().await;
+    let (config, db) = ctx.get_config_and_db().await;
     let user = entry.user_id.to_user(&ctx).await?;
     let Some(target_id) = entry.target_id else { return Ok(()) };
     let target_user = UserId::new(target_id.get()).to_user(&ctx).await?;
     match entry.action {
         audit_log::Action::Member(audit_log::MemberAction::BanAdd) => {
+            db.add_mod_action(
+                user.id,
+                target_user.id,
+                entry.reason.clone().unwrap_or_default(),
+                Utc::now(),
+                String::new(),
+                robbb_db::mod_action::ModActionKind::Ban,
+            )
+            .await?;
             config
                 .log_bot_action(&ctx, |e| {
                     e.title("Ban")
@@ -44,6 +54,15 @@ pub async fn guild_audit_log_entry_create(
         }
 
         audit_log::Action::Member(audit_log::MemberAction::Kick) => {
+            db.add_mod_action(
+                user.id,
+                target_user.id,
+                entry.reason.clone().unwrap_or_default(),
+                Utc::now(),
+                String::new(),
+                robbb_db::mod_action::ModActionKind::Kick,
+            )
+            .await?;
             config
                 .log_bot_action(&ctx, |e| {
                     e.title("Kick")

@@ -31,12 +31,12 @@ pub async fn modping(
         mods_and_helpers.iter().map(|m| m.mention()).join(", ")
     };
 
-    ctx.send(CreateReply::default().content(format!(
-        "{} pinged staff {} for reason {}",
-        ctx.author().mention(),
-        mods,
-        reason
-    )))
+    ctx.send(
+        CreateReply::default()
+            .content(
+                format!("{} pinged staff {mods} for reason {reason}", ctx.author().mention(),),
+            ),
+    )
     .await?;
 
     Ok(())
