@@ -140,7 +140,7 @@ pub impl client::Context {
         //if let Some(emoji) = self.cache.guild_field(id, |guild| guild.emojis.clone()) {
         //    Ok(emoji)
         //} else {
-        Ok(self.http.get_guild(id.into()).await?.emojis)
+        Ok(self.http.get_guild(id).await?.emojis)
         //}
     }
 

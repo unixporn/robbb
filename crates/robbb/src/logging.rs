@@ -69,24 +69,3 @@ pub async fn send_honeycomb_deploy_marker(api_key: &str) {
             .await
     );
 }
-
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-pub async fn init_cpu_logging() {
-    use std::time::Duration;
-    use tracing_futures::Instrument;
-    tokio::spawn(
-        async {
-            loop {
-                let start = cpu_monitor::CpuInstant::now();
-                tokio::time::sleep(Duration::from_millis(4000)).await;
-                let end = cpu_monitor::CpuInstant::now();
-                if let (Ok(start), Ok(end)) = (start, end) {
-                    let duration = end - start;
-                    let percentage = duration.non_idle() * 100.;
-                    tracing::info!(cpu_usage = percentage);
-                }
-            }
-        }
-        .instrument(tracing::info_span!("cpu-usage")),
-    );
-}

@@ -57,7 +57,7 @@ pub async fn taglist(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
 
     let tags = db.list_tags().await?;
-    ctx.reply_embed_builder(|e| e.title("Tags").description(&tags.join(", "))).await?;
+    ctx.reply_embed_builder(|e| e.title("Tags").description(tags.join(", "))).await?;
     Ok(())
 }
 
