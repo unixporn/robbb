@@ -16,9 +16,8 @@ pub async fn modping(
 
     let mods_and_helpers = guild
         .members_with_status(Online)
-        .into_iter()
-        .chain(guild.members_with_status(Idle).into_iter())
-        .chain(guild.members_with_status(DoNotDisturb).into_iter())
+        .chain(guild.members_with_status(Idle))
+        .chain(guild.members_with_status(DoNotDisturb))
         .filter(|member| {
             member.roles.contains(&config.role_mod) || member.roles.contains(&config.role_helper)
         })

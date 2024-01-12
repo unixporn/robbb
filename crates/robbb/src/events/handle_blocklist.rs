@@ -218,7 +218,7 @@ fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionVa
                 .iter()
                 .flat_map(|x| x.components.iter())
                 .filter_map(|x| match x {
-                    ActionRowComponent::InputText(text) => text.value.as_ref().map(|x| x.as_str()),
+                    ActionRowComponent::InputText(text) => text.value.as_deref(),
                     _ => None,
                 })
                 .collect(),

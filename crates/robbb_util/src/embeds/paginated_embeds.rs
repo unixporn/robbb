@@ -83,7 +83,7 @@ async fn handle_pagination_interactions(
     let mut current_page_idx = 0;
     let ctx_id = ctx.id();
 
-    while let Some(interaction) = ComponentInteractionCollector::new(&ctx)
+    while let Some(interaction) = ComponentInteractionCollector::new(ctx)
         .filter(move |x| x.data.custom_id.starts_with(&ctx_id.to_string()))
         .timeout(std::time::Duration::from_secs(10))
         .author_id(ctx.author().id)
