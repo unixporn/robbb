@@ -29,7 +29,8 @@ pub fn init_tracing(honeycomb_api_key: Option<String>) {
                 .with_target(true)
                 .with_span_name(true)
                 .with_span_path(true)
-                .layer(),
+                .layer()
+                .with_ansi(true),
         );
 
     if let Some(api_key) = honeycomb_api_key {

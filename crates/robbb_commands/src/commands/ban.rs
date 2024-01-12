@@ -198,11 +198,10 @@ async fn handle_single_ban(
     let _ = user
         .dm(
             &ctx.serenity_context(),
-            CreateMessage::default().embed(
-                CreateEmbed::default()
-                    .title(format!("You were banned from {}", guild.name))
-                    .field("Reason", reason, false),
-            ),
+            CreateEmbed::default()
+                .title(format!("You were banned from {}", guild.name))
+                .field("Reason", reason, false)
+                .into_create_message(),
         )
         .await;
 

@@ -21,6 +21,7 @@ pub async fn highlights_add(
     ctx: Ctx<'_>,
     #[description = "The word you want to be notified about"] trigger: String,
 ) -> Res<()> {
+    ctx.defer().await?;
     if trigger.len() < 3 {
         abort_with!("Highlight has to be longer than 2 characters");
     }
@@ -49,13 +50,12 @@ pub async fn highlights_add(
         .user_error("Couldn't open a DM to you - do you have me blocked?")?
         .send_message(
             &ctx.serenity_context(),
-            CreateMessage::default().embed(
-                CreateEmbed::default().title("Test to see if you can receive DMs").description(
-                    format!(
+            CreateEmbed::default()
+                .title("Test to see if you can receive DMs")
+                .description(format!(
                     "If everything went ok, you'll be notified whenever someone says `{trigger}`",
-                ),
-                ),
-            ),
+                ))
+                .into_create_message(),
         )
         .await
         .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
