@@ -70,6 +70,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         warn::warn(),
         ban::ban(),
         kick::kick(),
+        ban::ban_many(),
         unban::unban(),
         emojistats::emojistats(),
         blocklist::blocklist(),
