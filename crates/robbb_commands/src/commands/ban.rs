@@ -2,7 +2,7 @@ use anyhow::Context;
 use chrono::{Duration, Utc};
 use poise::serenity_prelude::{Message, User};
 use robbb_util::embeds;
-use serenity::builder::{CreateEmbed, CreateMessage, EditMessage};
+use serenity::builder::{CreateEmbed, EditMessage};
 
 use crate::checks::{self, PermissionLevel};
 
@@ -137,7 +137,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
         let _ = ctx.say_error(
             format!(
                 "Failed to ban the following users because of the 3 day account / join age restriction for helpers:\n{}", 
-                disallowed_bans.into_iter().map(|x| format!("- {} ({})", x.tag(), x.id)).join("\n")
+                disallowed_bans.iter().map(|x| format!("- {} ({})", x.tag(), x.id)).join("\n")
             )
         ).await;
     }
@@ -158,6 +158,8 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
         main_response.edit(&ctx.serenity_context(), EditMessage::default().embed(embed)).await?;
 
         crate::modlog::log_ban(ctx, &main_response, &successful_bans, &reason).await;
+    } else {
+        main_response.delete(&ctx.serenity_context()).await?;
     }
 
     Ok(())
