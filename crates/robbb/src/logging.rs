@@ -1,9 +1,21 @@
+use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler, TracerProvider};
 use robbb_util::log_error;
 use tracing_subscriber::{
     filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, EnvFilter,
 };
 
-pub fn init_tracing(honeycomb_api_key: Option<String>) {
+/// Initializes tracing and logging configuration.
+/// To configure tracing, set up the Opentelemetry tracing environment variables:
+///
+/// ```sh
+/// export OTEL_SERVICE_NAME=robbb
+/// export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+/// export OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp-gateway-prod-us-east-0.grafana.net/otlp"
+/// export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <basic auth>"
+/// ```
+///
+/// Will also respect the `RUST_LOG` environment variable for log filters.
+pub fn init_tracing() {
     let log_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
             EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off")
@@ -24,47 +36,62 @@ pub fn init_tracing(honeycomb_api_key: Option<String>) {
         .with(log_filter)
         .with(remove_presence_update_filter)
         .with(
-            tracing_logfmt::builder()
+            tracing_logfmt_otel::builder()
                 .with_level(true)
                 .with_target(true)
                 .with_span_name(true)
                 .with_span_path(true)
+                .with_otel_data(true)
+                .with_file(true)
+                .with_line(true)
+                .with_module(true)
                 .layer()
-                .with_ansi(true),
         );
 
-    if let Some(api_key) = honeycomb_api_key {
-        tracing::info!("honeycomb api key is set, initializing honeycomb layer");
-        let config = libhoney::Config {
-            options: libhoney::client::Options {
-                api_key,
-                dataset: "robbb".to_string(),
-                ..libhoney::client::Options::default()
-            },
-            transmission_options: libhoney::transmission::Options::default(),
+    if std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok() {
+        println!("Initializing opentelemetry");
+        // TODO: check if we can decide sampling based on span name,
+        // to have _some_ samples from regular stuff, but keep all commands etc
+        let trace_config = opentelemetry_sdk::trace::config()
+            .with_id_generator(RandomIdGenerator::default())
+            .with_sampler(Sampler::AlwaysOn);
+        // TODO: This is very low
+        let batch_config = BatchConfig::default().with_max_export_batch_size(10);
+        let tracer = opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_trace_config(trace_config)
+            .with_exporter(opentelemetry_otlp::new_exporter().http())
+            .with_batch_config(batch_config)
+            .install_batch(opentelemetry_sdk::runtime::Tokio);
+
+        let tracer = match tracer {
+            Ok(tracer) => tracer,
+            Err(err) => {
+                eprintln!("failed to initialize otel tracing: {err}");
+                tracing::subscriber::set_global_default(sub)
+                    .expect("setting default subscriber failed");
+                return;
+            }
         };
 
-        let honeycomb_layer = tracing_honeycomb::Builder::new_libhoney("robbb", config).build();
+        let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
-        let sub = sub.with(honeycomb_layer);
+        tracing::info!("OTEL_EXPORTER_OTLP_ENDPOINT is set, initializing tracing layer");
+        let sub = sub.with(telemetry);
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     } else {
-        tracing::info!("no honeycomb api key is set");
-        let sub = sub.with(tracing_honeycomb::new_blackhole_telemetry_layer());
+        tracing::info!("No OTEL_EXPORTER_OTLP_ENDPOINT is set, only initializing logging");
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     };
 }
 
 pub async fn send_honeycomb_deploy_marker(api_key: &str) {
-    let client = reqwest::Client::new();
+    let version = robbb_util::util::bot_version();
     log_error!(
-        client
+        reqwest::Client::new()
             .post("https://api.honeycomb.io/1/markers/robbb")
             .header("X-Honeycomb-Team", api_key)
-            .body(format!(
-                r#"{{"message": "{}", "type": "deploy"}}"#,
-                robbb_util::util::bot_version()
-            ))
+            .body(format!(r#"{{"message": "{version}", "type": "deploy"}}"#,))
             .send()
             .await
     );
