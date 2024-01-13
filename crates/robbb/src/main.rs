@@ -20,7 +20,7 @@ use crate::logging::*;
 async fn main() -> anyhow::Result<()> {
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
 
-    init_tracing(honeycomb_api_key.clone());
+    init_tracing();
     if let Some(honeycomb_api_key) = honeycomb_api_key {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
@@ -28,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
     let span = tracing::span!(Level::DEBUG, "main");
     let _enter = span.enter();
 
-    tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
+    // tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
 
     let config = Config::from_environment().expect("Failed to load experiment");
 

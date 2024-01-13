@@ -86,9 +86,6 @@ impl Handler {
 impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all)]
     async fn ready(&self, ctx: client::Context, data_about_bot: Ready) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-
         self.init_ready_data(&ctx, data_about_bot.user.id).await;
 
         log_error!("Error while handling ready event", ready::ready(ctx, data_about_bot).await);
@@ -103,9 +100,6 @@ impl client::EventHandler for Handler {
         )
     )]
     async fn message(&self, ctx: client::Context, msg: Message) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
-
         let stop_event_handler =
             match message_create::message_create(ctx.clone(), msg.clone()).await {
                 Ok(stop_event_handler) => stop_event_handler,
@@ -130,8 +124,6 @@ impl client::EventHandler for Handler {
         )
     )]
     async fn interaction_create(&self, ctx: client::Context, interaction: Interaction) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         let user = match &interaction {
             Interaction::Ping(_) => None,
             Interaction::Command(x) => Some(&x.user),
@@ -190,8 +182,6 @@ impl client::EventHandler for Handler {
         new: Option<Member>,
         event: GuildMemberUpdateEvent,
     ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling guild member update event",
             guild_member_update::guild_member_update(ctx, old, new, event).await
@@ -212,8 +202,6 @@ impl client::EventHandler for Handler {
         new: Option<Message>,
         event: MessageUpdateEvent,
     ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling message_update event",
             message_update::message_update(
@@ -236,8 +224,6 @@ impl client::EventHandler for Handler {
         deleted_message_id: MessageId,
         guild_id: Option<GuildId>,
     ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling message_delete event",
             message_delete::message_delete(&ctx, channel_id, deleted_message_id, guild_id).await
@@ -271,8 +257,6 @@ impl client::EventHandler for Handler {
 
     #[tracing::instrument(skip_all, fields(user = %new_member.user.tag()))]
     async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling guild_member_addition event",
             guild_member_addition::guild_member_addition(ctx, new_member).await
@@ -287,8 +271,6 @@ impl client::EventHandler for Handler {
         user: User,
         _member: Option<Member>,
     ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling guild_member_removal event",
             guild_member_removal::guild_member_removal(ctx, guild_id, user, _member).await
@@ -302,8 +284,6 @@ impl client::EventHandler for Handler {
         entry: serenity::model::prelude::AuditLogEntry,
         _guild_id: GuildId,
     ) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling guild_audit_log_entry_create event",
             guild_audit_log_entry_create::guild_audit_log_entry_create(ctx, entry).await
@@ -320,8 +300,6 @@ impl client::EventHandler for Handler {
         )
     )]
     async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling reaction_add event",
             reaction_add::reaction_add(ctx, event).await
@@ -337,8 +315,6 @@ impl client::EventHandler for Handler {
         )
     )]
     async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
-        tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None)
-            .unwrap();
         log_error!(
             "Error while handling reaction_remove event",
             reaction_remove::reaction_remove(ctx, event).await

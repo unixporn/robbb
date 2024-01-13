@@ -44,8 +44,6 @@ async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
 async fn start_mute_handler(ctx: client::Context) {
     let (config, db) = ctx.get_config_and_db().await;
     tokio::spawn(async move {
-        let _ =
-            tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             let mutes = match db.get_newly_expired_mutes().await {
@@ -69,8 +67,6 @@ async fn start_mute_handler(ctx: client::Context) {
 async fn start_attachment_log_handler(ctx: client::Context) {
     let config = ctx.get_config().await;
     tokio::spawn(async move {
-        let _ =
-            tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None);
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
 
