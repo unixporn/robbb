@@ -1,4 +1,4 @@
-use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler, TracerProvider};
+use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
 use robbb_util::log_error;
 use tracing_subscriber::{
     filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, EnvFilter,
@@ -31,22 +31,16 @@ pub fn init_tracing() {
                 .field("event")
                 .map_or(false, |event| event.to_string().starts_with("PresenceUpdate")))
     });
-
-    let sub = tracing_subscriber::registry::Registry::default()
-        .with(log_filter)
-        .with(remove_presence_update_filter)
-        .with(
-            tracing_logfmt_otel::builder()
-                .with_level(true)
-                .with_target(true)
-                .with_span_name(true)
-                .with_span_path(true)
-                .with_otel_data(true)
-                .with_file(true)
-                .with_line(true)
-                .with_module(true)
-                .layer()
-        );
+    let logfmt_builder = tracing_logfmt_otel::builder()
+        .with_level(true)
+        .with_target(true)
+        .with_span_name(true)
+        .with_span_path(true)
+        .with_otel_data(true)
+        .with_file(true)
+        .with_line(true)
+        .with_module(true);
+    let sub = tracing_subscriber::registry().with(log_filter).with(remove_presence_update_filter);
 
     if std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok() {
         println!("Initializing opentelemetry");
@@ -74,13 +68,18 @@ pub fn init_tracing() {
             }
         };
 
-        let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+        let telemetry = tracing_opentelemetry::layer()
+            .with_location(true)
+            .with_threads(true)
+            .with_tracked_inactivity(true)
+            .with_tracer(tracer);
 
         tracing::info!("OTEL_EXPORTER_OTLP_ENDPOINT is set, initializing tracing layer");
-        let sub = sub.with(telemetry);
+        let sub = sub.with(telemetry).with(logfmt_builder.layer());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     } else {
         tracing::info!("No OTEL_EXPORTER_OTLP_ENDPOINT is set, only initializing logging");
+        let sub = sub.with(logfmt_builder.layer());
         tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
     };
 }
