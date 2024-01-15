@@ -61,13 +61,11 @@ pub fn init_tracing() {
         let trace_config = opentelemetry_sdk::trace::config()
             .with_id_generator(RandomIdGenerator::default())
             .with_sampler(Sampler::AlwaysOn);
-        // TODO: This is very low
-        let batch_config = BatchConfig::default().with_max_export_batch_size(10);
         let tracer = opentelemetry_otlp::new_pipeline()
             .tracing()
             .with_trace_config(trace_config)
             .with_exporter(opentelemetry_otlp::new_exporter().http())
-            .with_batch_config(batch_config)
+            .with_batch_config(BatchConfig::default())
             .install_batch(opentelemetry_sdk::runtime::Tokio);
 
         let tracer = match tracer {

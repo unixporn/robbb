@@ -28,6 +28,17 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         return Ok(true);
     }
 
+    tracing::debug!(
+        msg.content = %msg.content,
+        msg.author = %msg.author.tag(),
+        msg.author_id = %msg.author.id,
+        msg.id = %msg.id,
+        msg.channel_id = %msg.channel_id,
+        "new message from {}: {}",
+        msg.author.tag(),
+        msg.content
+    );
+
     handle_attachment_logging(&ctx, &msg).await;
 
     if msg.channel_id == config.channel_showcase {

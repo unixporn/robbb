@@ -136,12 +136,12 @@ pub impl<'a> Ctx<'a> {
 #[async_trait]
 pub impl client::Context {
     async fn get_guild_emojis(&self, id: GuildId) -> Result<HashMap<EmojiId, Emoji>> {
-        tracing::warn!("REQUESTING EMOJI VIA HTTP API WITHOUT CACHING");
-        //if let Some(emoji) = self.cache.guild_field(id, |guild| guild.emojis.clone()) {
-        //    Ok(emoji)
-        //} else {
-        Ok(self.http.get_guild(id).await?.emojis)
-        //}
+        if let Some(up_emotes) = self.get_up_emotes().await {
+            Ok(up_emotes.all_emoji.clone())
+        } else {
+            tracing::info!("Requesting guild emotes from discord");
+            Ok(self.http.get_guild(id).await?.emojis)
+        }
     }
 
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {

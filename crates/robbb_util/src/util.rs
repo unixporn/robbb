@@ -6,7 +6,7 @@ use serenity::{
 };
 use std::env;
 
-/// return with an error value immediately.
+/// return with an error value immediately. If given a literal string, will abort with a [`UserErr`]
 #[macro_export]
 macro_rules! abort_with {
     ($err:literal) => {

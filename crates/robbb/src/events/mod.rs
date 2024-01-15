@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
@@ -11,7 +12,7 @@ use robbb_db::Db;
 use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
 use robbb_util::{extensions::*, UpEmotes};
 
-use serenity::all::{FullEvent, GuildMemberUpdateEvent, Interaction};
+use serenity::all::{Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction};
 use serenity::client;
 
 mod guild_audit_log_entry_create;
@@ -47,13 +48,17 @@ impl Handler {
         *self.shard_manager.write() = Some(manager);
     }
 
+    async fn update_emojis(&self, ctx: &client::Context, up_emotes: UpEmotes) {
+        let up_emotes = Arc::new(up_emotes);
+        *self.user_data.up_emotes.write() = Some(up_emotes.clone());
+        ctx.data.write().await.insert::<UpEmotes>(up_emotes);
+    }
+
     async fn init_ready_data(&self, ctx: &client::Context, user_id: UserId) {
-        let _ = self.bot_id.write().insert(user_id);
+        *self.bot_id.write() = Some(user_id);
         match robbb_util::load_up_emotes(&ctx, self.user_data.config.guild).await {
             Ok(up_emotes) => {
-                let up_emotes = Arc::new(up_emotes);
-                let _ = self.user_data.up_emotes.write().insert(up_emotes.clone());
-                ctx.data.write().await.insert::<UpEmotes>(up_emotes);
+                self.update_emojis(ctx, up_emotes).await;
             }
             Err(error) => tracing::error!(%error, "Failed to load up-emotes"),
         }
@@ -160,14 +165,10 @@ impl client::EventHandler for Handler {
             match handle_blocklist::handle_blocklist_in_interaction(&ctx, &interaction).await {
                 Ok(stop_event_handler) => stop_event_handler,
                 Err(e) => {
-                    tracing::error!(error.message = %format!("{}", &e), "{:?}", e);
+                    tracing::error!(error.message = %e, "{:?}", e);
                     false
                 }
             };
-
-        //log_error!(
-        //    robbb_commands::commands::ask::handle_ask_button_clicked(&ctx, &interaction).await
-        //);
 
         if !stop_event_handler {
             self.dispatch_poise_event(&ctx, FullEvent::InteractionCreate { interaction }).await;
@@ -321,6 +322,28 @@ impl client::EventHandler for Handler {
         );
     }
 
+    #[tracing::instrument(skip_all)]
+    async fn guild_emojis_update(
+        &self,
+        ctx: client::Context,
+        _guild_id: GuildId,
+        current_state: HashMap<EmojiId, Emoji>,
+    ) {
+        tracing::info!("Updating cached emojis");
+        let new_emojis = current_state.into_iter().map(|x| x.1).collect::<Vec<_>>();
+        match UpEmotes::from_emojis(new_emojis) {
+            Ok(up_emotes) => self.update_emojis(&ctx, up_emotes).await,
+            Err(err) => tracing::error!(error.message = %err, "Failed to update emojis"),
+        }
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        ratelimit.timeout_secs = %data.timeout.as_secs(),
+        ratelimit.limit = %data.limit,
+        ratelimit.method = ?data.method,
+        ratelimit.path = %data.path,
+        ratelimit.global = ?data.global,
+    ))]
     async fn ratelimit(&self, data: serenity::http::RatelimitInfo) {
         tracing::warn!(
             ratelimit.timeout_secs = %data.timeout.as_secs(),

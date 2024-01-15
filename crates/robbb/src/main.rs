@@ -116,7 +116,6 @@ async fn pre_command(ctx: Ctx<'_>) {
     let channel_name = ctx
         .channel_id()
         .to_channel_cached(ctx.cache())
-        .and_then(|x| x.guild(&ctx))
         .map(|x| x.name.to_string())
         .unwrap_or_default();
 

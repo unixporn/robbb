@@ -16,9 +16,10 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
     use poise::FrameworkError::*;
     if let Some(ctx) = error.ctx() {
         tracing::error!(
+            error.message = %error,
             error = ?error,
-            command.name = %ctx.command().qualified_name,
-            command.invocation = %ctx.invocation_string(),
+            command_name = %ctx.command().qualified_name,
+            invocation = %ctx.invocation_string(),
             author.tag = %ctx.author().tag(),
             "Error occured in context, more details will follow"
         );
@@ -30,18 +31,18 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
 
         CommandPanic { payload, ctx, .. } => {
             tracing::error!(
-                error = ?payload,
-                command.name = ctx.command().qualified_name,
+                error.message = %payload.unwrap_or_default(),
+                command_name = ctx.command().qualified_name,
                 command.code_name = ctx.command().source_code_name,
-                command.invocation = %ctx.invocation_string(),
+                invocation = %ctx.invocation_string(),
                 "Command panicked"
             );
         }
         Setup { error, .. } => {
-            tracing::error!(error = %error, "Error during setup: {}", error)
+            tracing::error!(error.message = %error, "Error during setup: {}", error)
         }
         EventHandler { error, event, ctx: _, framework: _, .. } => {
-            tracing::error!(event = ?event, error = %error, "Error in event listener: {}", error);
+            tracing::error!(event = ?event, error.message = %error, "Error in event listener: {}", error);
         }
         ArgumentParse { input, ctx, error, .. } => {
             log_error!(handle_argument_parse_error(ctx, error, input).await);
@@ -49,7 +50,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
         CommandStructureMismatch { description, ctx, .. } => {
             log_error!(poise::Context::Application(ctx).say_error("Something went wrong").await);
             tracing::error!(
-                error = "CommandStructureMismach",
+                error.message = "CommandStructureMismach",
                 error.description = %description,
                 command.invocation = %ctx.invocation_string(),
                 "Error in command structure: {description}"
@@ -70,7 +71,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 .await
             );
             tracing::error!(
-                error = "Missing permissions",
+                error.message = "Missing permissions",
                 command.name = ctx.command().qualified_name,
                 command.invocation = %ctx.invocation_string(),
                 "Bot missing permissions: {missing_permissions}",
@@ -79,7 +80,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
         MissingUserPermissions { missing_permissions, ctx, .. } => {
             log_error!(ctx.say_error("Missing permissions").await);
             tracing::error!(
-                error = "User missing permissions",
+                error.message = "User missing permissions",
                 error.missing_permissions = ?missing_permissions,
                 command.author = ctx.author().tag(),
                 command.invocation = %ctx.invocation_string(),
@@ -105,7 +106,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                     ctx.say_error("Something went wrong while checking your permissions").await
                 );
                 tracing::error!(
-                    error = %error,
+                    error.message = %error,
                     command.name = %ctx.command().qualified_name.as_str(),
                     command.invocation = %ctx.invocation_string(),
                     "Error while running command check: {}", error
@@ -120,11 +121,12 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
             }
         }
         DynamicPrefix { error, .. } => {
-            tracing::error!(error = %error, "Error in dynamic prefix");
+            tracing::error!(error.message = %error, "Error in dynamic prefix");
         }
         other => {
             if let Some(ctx) = other.ctx() {
                 tracing::error!(
+                    error.message = %other,
                     error = ?other,
                     command.author.tag = ctx.author().tag(),
                     command.name = ctx.command().qualified_name,
@@ -132,7 +134,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                     "unhandled error received from poise"
                 );
             } else {
-                tracing::error!(error = ?other, "unhandled error received from poise");
+                tracing::error!(error.message = %other, error = ?other, "unhandled error received from poise");
             }
         }
     }
