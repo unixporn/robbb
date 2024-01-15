@@ -1,7 +1,8 @@
 use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
 use robbb_util::log_error;
 use tracing_subscriber::{
-    filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, EnvFilter,
+    filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
+    EnvFilter,
 };
 
 /// Initializes tracing and logging configuration.
@@ -43,6 +44,9 @@ pub fn init_tracing() {
     let sub = tracing_subscriber::registry().with(log_filter).with(remove_presence_update_filter);
 
     if std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok() {
+        opentelemetry::global::set_text_map_propagator(
+            opentelemetry_sdk::propagation::TraceContextPropagator::new(),
+        );
         println!("Initializing opentelemetry");
         // TODO: check if we can decide sampling based on span name,
         // to have _some_ samples from regular stuff, but keep all commands etc
@@ -75,12 +79,10 @@ pub fn init_tracing() {
             .with_tracer(tracer);
 
         tracing::info!("OTEL_EXPORTER_OTLP_ENDPOINT is set, initializing tracing layer");
-        let sub = sub.with(telemetry).with(logfmt_builder.layer());
-        tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
+        sub.with(telemetry).with(logfmt_builder.layer()).init();
     } else {
         tracing::info!("No OTEL_EXPORTER_OTLP_ENDPOINT is set, only initializing logging");
-        let sub = sub.with(logfmt_builder.layer());
-        tracing::subscriber::set_global_default(sub).expect("setting default subscriber failed");
+        sub.with(logfmt_builder.layer()).init();
     };
 }
 
