@@ -24,6 +24,11 @@ pub fn init_tracing() {
         })
         .add_directive("robbb=trace".parse().unwrap());
 
+    let remove_shard_runner_filter = FilterFn::new(|metadata| {
+        !(metadata.target() == "serenity::gateway::bridge::shard_runner"
+            && (metadata.name() == "recv" || metadata.name() == "recv_event"))
+    });
+
     let remove_presence_update_filter = FilterFn::new(|metadata| {
         !(metadata.target() == "serenity::gateway::shard"
             && metadata.name() == "handle_gateway_dispatch"
@@ -41,7 +46,10 @@ pub fn init_tracing() {
         .with_file(true)
         .with_line(true)
         .with_module(true);
-    let sub = tracing_subscriber::registry().with(log_filter).with(remove_presence_update_filter);
+    let sub = tracing_subscriber::registry()
+        .with(log_filter)
+        .with(remove_presence_update_filter)
+        .with(remove_shard_runner_filter);
 
     if std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok() {
         opentelemetry::global::set_text_map_propagator(
