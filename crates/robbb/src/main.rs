@@ -7,7 +7,6 @@ use robbb_db::Db;
 use robbb_util::{config::Config, prelude::Ctx, UserData};
 use serenity::all::OnlineStatus;
 use std::sync::Arc;
-use tracing::Level;
 
 pub mod attachment_logging;
 mod error_handling;
@@ -25,16 +24,24 @@ async fn main() -> anyhow::Result<()> {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
 
-    let span = tracing::span!(Level::DEBUG, "main");
-    let _enter = span.enter();
+    let mut client = setup_discord_client().await?;
+    tracing::info!("Starting discord client");
+    client.start().await?;
 
-    // tracing_honeycomb::register_dist_tracing_root(tracing_honeycomb::TraceId::new(), None).unwrap();
+    Ok(())
+}
 
+#[tracing::instrument]
+async fn setup_discord_client() -> anyhow::Result<serenity::Client> {
+    tracing::info!("Starting setup");
     let config = Config::from_environment().expect("Failed to load experiment");
+    tracing::info!(config = ?config, "Loaded configuration");
 
     let db = Db::new().await.expect("Failed to initialize database");
-    db.run_migrations().await.unwrap();
-    db.remove_forbidden_highlights().await.unwrap();
+    db.run_migrations().await.expect("Failed to run DB migrations");
+    tracing::info!("Ran DB migrations");
+    db.remove_forbidden_highlights().await.expect("Failed to remove forbidden highlights from DB");
+    tracing::info!("Removed forbidden highlights from DB");
 
     let framework_options = poise::FrameworkOptions {
         commands: commands::all_commands(),
@@ -76,7 +83,9 @@ async fn main() -> anyhow::Result<()> {
         },
     ));
 
-    let mut client = serenity::Client::builder(&config.discord_token, gateway_intents)
+    tracing::info!("Initialized event handler");
+
+    let client = serenity::Client::builder(&config.discord_token, gateway_intents)
         .activity(serenity::gateway::ActivityData::listening("/help"))
         .status(OnlineStatus::Online)
         .event_handler_arc(event_handler.clone())
@@ -95,10 +104,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     event_handler.set_shard_manager(client.shard_manager.clone());
-
-    client.start().await?;
-
-    Ok(())
+    tracing::info!("Initialized client");
+    Ok(client)
 }
 
 async fn pre_command(ctx: Ctx<'_>) {

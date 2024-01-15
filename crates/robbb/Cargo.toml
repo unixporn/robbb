@@ -35,17 +35,20 @@ parking_lot = "0.12"
 tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-futures = "0.2.5"
-tracing-subscriber = { version = "0.3.18", features = ["std", "env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = [
+    "std",
+    "env-filter",
+    "tracing-log",
+] }
 
 
 robbb_db = { path = "../robbb_db" }
 robbb_util = { path = "../robbb_util" }
 robbb_commands = { path = "../robbb_commands" }
 # tracing-logfmt = "0.3.3"
-tracing-logfmt-otel = { version = "0.1.0" }
+tracing-logfmt-otel = { version = "0.2.0" }
 
 opentelemetry = { version = "0.21.0", features = ["trace", "logs"] }
-opentelemetry-jaeger = { version = "0.20.0" }
 opentelemetry-otlp = { version = "0.14.0", features = [
     "http-proto",
     "reqwest-client",
