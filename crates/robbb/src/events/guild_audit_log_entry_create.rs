@@ -15,9 +15,9 @@ pub async fn guild_audit_log_entry_create(
     let (config, db) = ctx.get_config_and_db().await;
     let user = entry.user_id.to_user(&ctx).await?;
     let Some(target_id) = entry.target_id else { return Ok(()) };
-    let target_user = UserId::new(target_id.get()).to_user(&ctx).await?;
     match entry.action {
         audit_log::Action::Member(audit_log::MemberAction::BanAdd) => {
+            let target_user = UserId::new(target_id.get()).to_user(&ctx).await?;
             db.add_mod_action(
                 user.id,
                 target_user.id,
@@ -40,6 +40,7 @@ pub async fn guild_audit_log_entry_create(
                 .await;
         }
         audit_log::Action::Member(audit_log::MemberAction::BanRemove) => {
+            let target_user = UserId::new(target_id.get()).to_user(&ctx).await?;
             config
                 .log_bot_action(&ctx, |e| {
                     e.title("Unban")
@@ -54,6 +55,7 @@ pub async fn guild_audit_log_entry_create(
         }
 
         audit_log::Action::Member(audit_log::MemberAction::Kick) => {
+            let target_user = UserId::new(target_id.get()).to_user(&ctx).await?;
             db.add_mod_action(
                 user.id,
                 target_user.id,

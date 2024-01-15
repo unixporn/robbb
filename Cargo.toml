@@ -3,13 +3,25 @@ members = [
     "crates/robbb",
     "crates/robbb_db",
     "crates/robbb_commands",
-    "crates/robbb_util"
+    "crates/robbb_util",
 ]
 resolver = "2"
 
 
 [workspace.dependencies]
-serenity = { version = "0.12.0", default-features = false, features = ["collector", "builder", "cache", "chrono", "client", "gateway", "model", "http", "utils", "rustls_backend"]}
+serenity = { version = "0.12.0", default-features = false, features = [
+    "collector",
+    "builder",
+    "cache",
+    "chrono",
+    "client",
+    "gateway",
+    "model",
+    "http",
+    "utils",
+    "rustls_backend",
+    "temp_cache",
+] }
 poise = "0.6.1-rc.1"
 
 
