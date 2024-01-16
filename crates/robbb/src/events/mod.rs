@@ -12,7 +12,7 @@ use robbb_db::Db;
 use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
 use robbb_util::{extensions::*, UpEmotes};
 
-use serenity::all::{Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction};
+use serenity::all::{Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction, ResumedEvent};
 use serenity::client;
 
 mod guild_audit_log_entry_create;
@@ -94,6 +94,21 @@ impl client::EventHandler for Handler {
         self.init_ready_data(&ctx, data_about_bot.user.id).await;
 
         log_error!("Error while handling ready event", ready::ready(ctx, data_about_bot).await);
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn cache_ready(&self, _ctx: client::Context, _guilds: Vec<GuildId>) {
+        tracing::info!("Cache ready");
+    }
+
+    #[tracing::instrument(skip_all, fields(total_shards))]
+    async fn shards_ready(&self, _ctx: client::Context, total_shards: u32) {
+        tracing::info!("all {total_shards} shards ready");
+    }
+
+    #[tracing::instrument(skip_all, fields(event))]
+    async fn resume(&self, _ctx: client::Context, _event: ResumedEvent) {
+        tracing::info!("Bot connection resumed");
     }
 
     #[tracing::instrument(

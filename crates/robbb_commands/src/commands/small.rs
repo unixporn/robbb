@@ -30,8 +30,10 @@ pub async fn say(
     ctx: Ctx<'_>,
     #[description = "What you,.. ummmm. I mean _I_ should say"] message: String,
 ) -> Res<()> {
-    ctx.send(CreateReply::default().content("Sure thing!").ephemeral(true)).await?;
-    ctx.channel_id().say(&ctx.serenity_context(), message).await?;
+    tokio::try_join!(
+        ctx.send(CreateReply::default().content("Sure thing!").ephemeral(true)),
+        ctx.channel_id().say(ctx.serenity_context(), message),
+    )?;
     Ok(())
 }
 
@@ -85,11 +87,8 @@ pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
 pub async fn uptime(ctx: Ctx<'_>) -> Res<()> {
     let config = ctx.get_config();
 
-    ctx.reply_embed_builder(|e| {
-        e.title("Uptime")
-            .description(format!("Started {}", util::format_date_detailed(config.time_started)))
-    })
-    .await?;
+    let date = util::format_date_detailed(config.time_started);
+    ctx.reply_embed_builder(|e| e.title("Uptime").description(format!("Started {date}"))).await?;
     Ok(())
 }
 
