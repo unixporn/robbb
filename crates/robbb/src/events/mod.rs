@@ -155,21 +155,19 @@ impl client::EventHandler for Handler {
             Interaction::Modal(x) => Some(&x.user),
             _ => None,
         };
-
+        let current_span = tracing::Span::current();
         match &interaction {
             Interaction::Command(x) => {
-                tracing::Span::current().record("command_name", x.data.name.as_str());
+                current_span.record("command_name", x.data.name.as_str());
             }
             Interaction::Component(x) => {
-                tracing::Span::current()
-                    .record("interaction_create.custom_id", x.data.custom_id.as_str());
+                current_span.record("interaction_create.custom_id", x.data.custom_id.as_str());
             }
             Interaction::Modal(x) => {
-                tracing::Span::current()
-                    .record("interaction_create.custom_id", x.data.custom_id.as_str());
+                current_span.record("interaction_create.custom_id", x.data.custom_id.as_str());
             }
             _ => (),
-        }
+        };
 
         tracing::debug!(
             interaction_create.kind = ?interaction.kind(),
