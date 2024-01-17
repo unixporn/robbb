@@ -16,6 +16,7 @@ impl EmojiStats {
     }
 }
 
+#[derive(Clone)]
 pub struct EmojiIdentifier {
     pub id: EmojiId,
     pub animated: bool,
@@ -74,13 +75,7 @@ impl Db {
                 in_text: x.in_text_usage as u64,
                 reactions: x.reaction_usage as u64,
             })
-            .unwrap_or_else(|| {
-                EmojiStats::new(EmojiIdentifier {
-                    id: emoji.id,
-                    animated: emoji.animated,
-                    name: emoji.name.to_string(),
-                })
-            }))
+            .unwrap_or_else(|| EmojiStats::new(emoji.clone())))
     }
 
     #[tracing::instrument(skip_all)]

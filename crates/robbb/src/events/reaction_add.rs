@@ -1,5 +1,6 @@
 use super::*;
 
+use robbb_db::emoji_logging::EmojiIdentifier;
 use serenity::model::channel::ReactionType::Custom;
 
 pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
@@ -7,7 +8,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
     if user.bot {
         return Ok(());
     }
-    let msg = event.message(&ctx.http).await?;
+    let msg = event.message(&ctx).await?;
     if msg.reactions.iter().any(|x| x.reaction_type == event.emoji && x.count == 1) {
         handle_reaction_emoji_logging(ctx, event).await?;
     }
@@ -32,11 +33,7 @@ async fn handle_reaction_emoji_logging(ctx: client::Context, event: Reaction) ->
     };
 
     let db = ctx.get_db().await;
-    db.alter_emoji_reaction_count(
-        1,
-        &robbb_db::emoji_logging::EmojiIdentifier { animated, id, name },
-    )
-    .await?;
+    db.alter_emoji_reaction_count(1, &EmojiIdentifier { animated, id, name }).await?;
 
     Ok(())
 }
