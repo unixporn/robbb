@@ -39,7 +39,7 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
     let active_mute = db.get_active_mute(new_member.user.id).await?;
     if let Some(mute) = active_mute {
         commands::mute::set_mute_role(&ctx, new_member.clone()).await?;
-        let embed = embeds::base_embed(ctx)
+        let embed = embeds::base_embed_ctx(ctx)
             .await
             .author(CreateEmbedAuthor::new("Mute evasion caught").icon_url(new_member.user.face()))
             .title(new_member.user.name_with_disc_and_id())

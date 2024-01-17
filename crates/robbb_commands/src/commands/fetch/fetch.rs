@@ -35,8 +35,7 @@ pub async fn fetch(
                 .into_iter()
                 .find(|(k, _)| k == &desired_field)
                 .user_error("Failed to get that value. Maybe the user hasn't set it?")?;
-            let mut embed = embeds::base_embed(ctx.serenity_context())
-                .await
+            let mut embed = embeds::base_embed(&ctx)
                 .author(CreateEmbedAuthor::new(user.user.tag()).icon_url(user.user.face()))
                 .title(format!("{}'s {}", user.user.name, field_name))
                 .color_opt(color);
@@ -55,9 +54,7 @@ pub async fn fetch(
 
         // Handle fetching all fields
         None => {
-            let mut embed = embeds::base_embed(ctx.serenity_context()).await;
-            embed = embed.author_user(&user.user);
-            embed = embed.color_opt(color);
+            let mut embed = embeds::base_embed(&ctx).author_user(&user.user).color_opt(color);
             if let Some(date) = create_date {
                 embed = embed.timestamp(date);
             }

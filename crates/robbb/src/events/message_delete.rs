@@ -4,7 +4,7 @@ use poise::serenity_prelude::{AuditLogEntry, MessageAction};
 use robbb_util::embeds;
 use serenity::{
     all::audit_log,
-    builder::{CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage, GetMessages},
+    builder::{CreateAttachment, CreateEmbed, CreateMessage},
 };
 
 use super::*;
@@ -30,27 +30,10 @@ pub async fn message_delete(
     let msg = ctx.cache.message(channel_id, deleted_message_id).map(|x| x.to_owned());
     // if the message can't be loaded, there's no need to try anything more,
     // so let's just give up. No need to error.
-    let msg = match msg {
-        Some(msg) => msg,
-        None => return Ok(()),
-    };
+    let Some(msg) = msg else { return Ok(()) };
 
     if msg.author.bot {
         return Ok(());
-    }
-
-    if msg.content.starts_with('!') {
-        let close_messages = msg
-            .channel_id
-            .messages(&ctx, GetMessages::default().after(deleted_message_id).limit(5))
-            .await?;
-        let bot_reply = close_messages.iter().find(|x| {
-            x.message_reference.as_ref().and_then(|x| x.message_id) == Some(deleted_message_id)
-                && x.author.bot
-        });
-        if let Some(bot_reply) = bot_reply {
-            log_error!(bot_reply.delete(&ctx).await);
-        }
     }
 
     let deletor = find_deletor(&ctx, &config, &msg).await?;
@@ -66,15 +49,12 @@ pub async fn message_delete(
         })
         .collect()
         .await;
+    let deletor_str = deletor.map(|x| format!(", deleted by {}", x.tag())).unwrap_or_default();
     let embed = CreateEmbed::default()
         .author_icon("Message Deleted", msg.author.face())
         .title(msg.author.name_with_disc_and_id())
         .description(format!("{}\n\n{}", msg.content, msg.to_context_link()))
-        .footer(CreateEmbedFooter::new(format!(
-            "#{}{}",
-            channel_name,
-            deletor.map_or_else(String::new, |x| format!(", deleted by {}", x.tag()))
-        )));
+        .footer_str(format!("#{channel_name}{deletor_str}"));
 
     config
         .channel_bot_messages
@@ -124,7 +104,7 @@ pub async fn message_delete_bulk(
                     "Messages where bulk-deleted in {}. Sadly, I don't remember any of these messages :(",
                     channel_id.mention()
                 ))
-                .footer(CreateEmbedFooter::new(format!("#{channel_name}")))
+                .footer_str(format!("#{channel_name}"))
             })
             .await?;
     } else {
@@ -134,25 +114,18 @@ pub async fn message_delete_bulk(
             .context("Could not find any messages from bulk-deletion event in cache")?
             .author
             .clone();
-
-        config
-            .channel_bot_messages
-            .send_embed(
-                &ctx,
-                embeds::base_embed(&ctx)
-                    .await
-                    .author_icon("Message Bulk-deletion", msg_author.face())
-                    .title(msg_author.name_with_disc_and_id())
-                    .description(
-                        msgs.into_iter()
-                            .map(|m| {
-                                format!("[{}]\n{}\n", util::format_date(*m.timestamp), m.content)
-                            })
-                            .join("\n"),
-                    )
-                    .footer(CreateEmbedFooter::new(format!("#{channel_name}"))),
+        let embed = embeds::base_embed_ctx(&ctx)
+            .await
+            .author_icon("Message Bulk-deletion", msg_author.face())
+            .title(msg_author.name_with_disc_and_id())
+            .description(
+                msgs.into_iter()
+                    .map(|m| format!("[{}]\n{}\n", util::format_date(*m.timestamp), m.content))
+                    .join("\n"),
             )
-            .await?;
+            .footer_str(format!("#{channel_name}"));
+
+        config.channel_bot_messages.send_embed(&ctx, embed).await?;
     }
     Ok(())
 }
@@ -170,7 +143,7 @@ async fn find_deletor(
         audit_log::Action::Message(MessageAction::Delete),
         None,
         |entry| {
-            entry.target_id.map(|x| x.get()) == Some(msg.author.id.get())
+            entry.target_id.map(|x| x.get()) == Some(msg.id.get())
                 && entry
                     .options
                     .as_ref()
@@ -198,7 +171,7 @@ async fn await_audit_log(
         if let Some(matching_value) = matching_value {
             return Ok(Some((matching_value, results.users)));
         }
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
     }
     Ok(None)
 }

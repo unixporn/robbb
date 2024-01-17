@@ -39,7 +39,7 @@ pub async fn poll_vote(
             e.author_user(ctx.author())
                 .title("Poll")
                 .description(question.clone())
-                .footer(CreateEmbedFooter::new(format!("From: {}", ctx.author().tag())))
+                .footer_str(format!("From: {}", ctx.author().tag()))
         })
         .await?;
 

@@ -51,8 +51,7 @@ pub async fn modinfo(ctx: Ctx<'_>, #[description = "User"] user: Member) -> Res<
 async fn make_info_embed(ctx: Ctx<'_>, member: &Member) -> CreateEmbed {
     let created_at = member.user.created_at();
     let color = member.colour(ctx.serenity_context());
-    let mut e = embeds::base_embed(ctx.serenity_context())
-        .await
+    let mut e = embeds::base_embed(&ctx)
         .title(member.user.tag())
         .thumbnail(member.user.face())
         .color_opt(color)

@@ -6,7 +6,6 @@ use anyhow::Context;
 use poise::serenity_prelude::{Emoji, EmojiId};
 
 use robbb_db::emoji_logging::{EmojiStats, Ordering};
-use robbb_util::embeds;
 
 /// Get statistics about the usage of emotes
 #[poise::command(
@@ -48,28 +47,24 @@ pub async fn emojistats(
             let emoji = guild_emojis
                 .get(&emoji_data.emoji.id)
                 .user_error("Could not find emoji in guild")?;
-            ctx.reply_embed(
-                embeds::base_embed(ctx.serenity_context())
-                    .await
-                    .title(format!("Emoji usage for *{}*", emoji.name))
+            ctx.reply_embed_builder(|e| {
+                e.title(format!("Emoji usage for *{}*", emoji.name))
                     .thumbnail(emoji.url())
                     .description(format!(
                         "**Reactions:** {} \n**In Text:** {} \n**Total:** {}",
                         emoji_data.reactions,
                         emoji_data.in_text,
                         emoji_data.reactions + emoji_data.in_text
-                    )),
-            )
+                    ))
+            })
             .await?;
         }
         None => {
             let emojis = db.get_top_emoji_stats(10, ordering).await?;
-            ctx.reply_embed(
-                embeds::base_embed(ctx.serenity_context())
-                    .await
-                    .title("Emoji usage")
-                    .description(display_emoji_list(&guild_emojis, emojis.into_iter())),
-            )
+            ctx.reply_embed_builder(|e| {
+                e.title("Emoji usage")
+                    .description(display_emoji_list(&guild_emojis, emojis.into_iter()))
+            })
             .await?;
         }
     }

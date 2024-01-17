@@ -79,9 +79,9 @@ pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
     if highlights_list.is_empty() {
         abort_with!("You don't seem to have set any highlights");
     } else {
-        ctx.reply_embed_ephemeral(
-            CreateEmbed::default().title("Your highlights").description(highlights_list),
-        )
+        ctx.reply_embed_ephemeral_builder(|e| {
+            e.title("Your highlights").description(highlights_list)
+        })
         .await?;
     }
     Ok(())

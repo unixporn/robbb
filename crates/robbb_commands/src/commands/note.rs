@@ -149,8 +149,7 @@ pub async fn note_list(
         )
     });
 
-    let base_embed = embeds::base_embed(ctx.serenity_context())
-        .await
+    let base_embed = embeds::base_embed(&ctx)
         .description(format!("{} notes about {}", notes.len(), user.mention()))
         .author_user(&user);
 

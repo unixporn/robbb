@@ -1,7 +1,5 @@
-use chrono::Utc;
 use poise::CreateReply;
 use robbb_db::fetch_field::FetchField;
-use robbb_util::embeds;
 
 use super::*;
 
@@ -49,32 +47,13 @@ pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
         shard_runners.values().find_map(|runner| runner.latency)
     };
 
-    let msg_latency = match ctx {
-        poise::Context::Application(_) => None,
-        poise::Context::Prefix(prefix_ctx) => {
-            let msg_time = prefix_ctx.msg.timestamp;
-            let now = Utc::now();
-            Some(std::time::Duration::from_millis(
-                (now.timestamp_millis() - msg_time.timestamp_millis()).unsigned_abs(),
-            ))
-        }
-    };
-
-    ctx.reply_embed(
-        embeds::base_embed(ctx.serenity_context())
-            .await
-            .title("Latency information")
-            .field_opt(
-                "Shard latency (last heartbeat send → ACK receive)",
-                shard_latency.map(|x| humantime::Duration::from(x).to_string()),
-                false,
-            )
-            .field_opt(
-                "Message latency (message timestamp → message received)",
-                msg_latency.map(|x| humantime::Duration::from(x).to_string()),
-                false,
-            ),
-    )
+    ctx.reply_embed_builder(|e| {
+        e.title("Latency information").field_opt(
+            "Shard latency (last heartbeat send → ACK receive)",
+            shard_latency.map(|x| humantime::Duration::from(x).to_string()),
+            false,
+        )
+    })
     .await?;
 
     Ok(())

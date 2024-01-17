@@ -1,5 +1,4 @@
 use poise::serenity_prelude::MessageUpdateEvent;
-use serenity::builder::CreateEmbedFooter;
 
 use super::*;
 
@@ -53,7 +52,7 @@ pub async fn message_update(
                     event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
                     msg.to_context_link()
                 ))
-                .footer(CreateEmbedFooter::new(format!("#{channel_name}")))
+                .footer_str(format!("#{channel_name}"))
         })
         .await?;
     Ok(())

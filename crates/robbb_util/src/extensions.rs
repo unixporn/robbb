@@ -6,7 +6,10 @@ use poise::{CreateReply, ReplyHandle};
 use robbb_db::Db;
 use serenity::{
     async_trait,
-    builder::{CreateAllowedMentions, CreateEmbed, CreateEmbedAuthor, CreateMessage, CreateThread},
+    builder::{
+        CreateAllowedMentions, CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, CreateMessage,
+        CreateThread,
+    },
     client,
     model::{
         channel::{GuildChannel, Message},
@@ -45,7 +48,7 @@ pub impl<'a> Ctx<'a> {
         &self,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        self.reply_embed_ephemeral(build(embeds::base_embed(self.serenity_context()).await)).await
+        self.reply_embed_ephemeral(build(embeds::base_embed(self))).await
     }
 
     /// Reply with an embed.
@@ -53,7 +56,7 @@ pub impl<'a> Ctx<'a> {
         &self,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        self.reply_embed(build(embeds::base_embed(self.serenity_context()).await)).await
+        self.reply_embed(build(embeds::base_embed(self))).await
     }
 
     /// Reply with an embed.
@@ -152,6 +155,7 @@ pub impl client::Context {
     async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
         self.data.read().await.get::<UpEmotes>().cloned()
     }
+
     async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>) {
         tokio::join!(self.get_config(), self.get_db())
     }
@@ -186,7 +190,7 @@ pub impl GuildId {
         channel_id: ChannelId,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> Result<Message> {
-        let embed = build(embeds::base_embed(ctx).await);
+        let embed = build(embeds::base_embed_ctx(ctx).await);
         Ok(channel_id
             .send_message(&ctx, CreateMessage::default().embed(embed))
             .await
@@ -222,7 +226,7 @@ pub impl Message {
                 CreateMessage::default()
                     .allowed_mentions(CreateAllowedMentions::default().replied_user(false))
                     .reference_message(self)
-                    .embed(build(embeds::base_embed(ctx).await)),
+                    .embed(build(embeds::base_embed_ctx(ctx).await)),
             )
             .await
             .context("Failed to send embed")
@@ -270,7 +274,7 @@ pub impl ChannelId {
         ctx: &client::Context,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> Result<Message> {
-        let msg = CreateMessage::default().embed(build(embeds::base_embed(ctx).await));
+        let msg = CreateMessage::default().embed(build(embeds::base_embed_ctx(ctx).await));
         Ok(self.send_message(&ctx, msg).await.context("Failed to send embed message")?)
     }
 }
@@ -298,6 +302,10 @@ pub impl CreateEmbed {
 
     fn author_icon(self, name: impl Into<String>, icon_url: impl Into<String>) -> Self {
         self.author(CreateEmbedAuthor::new(name).icon_url(icon_url))
+    }
+
+    fn footer_str(self, name: impl Into<String>) -> Self {
+        self.footer(CreateEmbedFooter::new(name))
     }
 
     fn author_user(self, u: &User) -> Self {

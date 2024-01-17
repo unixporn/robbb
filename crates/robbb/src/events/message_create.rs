@@ -8,9 +8,7 @@ use regex::Regex;
 use robbb_commands::{commands, modlog};
 use robbb_db::fetch_field::FetchField;
 
-use serenity::builder::{
-    CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, CreateMessage, GetMessages,
-};
+use serenity::builder::{CreateEmbed, CreateEmbedFooter, CreateMessage, GetMessages};
 use tracing::debug;
 use tracing_futures::Instrument;
 
@@ -183,9 +181,9 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 msg.channel_id.mention(),
                 msg.link(),
             ))
-            .author(CreateEmbedAuthor::new(&msg.author.tag()).icon_url(&msg.author.face()))
+            .author_user(&msg.author)
             .timestamp(msg.timestamp)
-            .footer(CreateEmbedFooter::new(format!("#{}", channel.name)));
+            .footer_str(format!("#{}", channel.name));
 
         tracing::debug!(
             highlights.word = %word,
@@ -505,12 +503,11 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
     msg.channel_id
         .send_message(
             &ctx,
-            CreateMessage::default().embed(
-                CreateEmbed::default()
-                    .title("CONTRIBUTING.md")
-                    .color(0xb8bb26)
-                    .description(description),
-            ),
+            CreateEmbed::default()
+                .title("CONTRIBUTING.md")
+                .color(0xb8bb26)
+                .description(description)
+                .into_create_message(),
         )
         .await?;
     Ok(())

@@ -1,7 +1,6 @@
 use anyhow::Context;
 use chrono::Utc;
 use poise::Modal;
-use serenity::builder::CreateEmbedFooter;
 use tracing_futures::Instrument;
 
 use super::*;
@@ -32,7 +31,7 @@ pub async fn tag(
             e = e
                 .title(&tag.name)
                 .description(&tag.content)
-                .footer(CreateEmbedFooter::new(format!("Written by {}", moderator.tag())));
+                .footer_str(format!("Written by {}", moderator.tag()));
             if let Some(date) = tag.create_date {
                 e = e.timestamp(date);
             }

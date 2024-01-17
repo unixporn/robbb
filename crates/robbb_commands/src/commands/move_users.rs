@@ -74,14 +74,12 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
         ctx: Ctx<'_>,
         continuation_msg: Option<Cow<'a, Message>>,
     ) -> CreateEmbed {
-        embeds::base_embed(ctx.serenity_context()).await.author_user(ctx.author()).description(
-            indoc::formatdoc!(
-                "Continuation from {}
+        embeds::base_embed(&ctx).author_user(ctx.author()).description(indoc::formatdoc!(
+            "Continuation from {}
                     [Conversation]({})",
-                ctx.channel_id().mention(),
-                continuation_msg.map(|x| x.link()).unwrap_or_default(),
-            ),
-        )
+            ctx.channel_id().mention(),
+            continuation_msg.map(|x| x.link()).unwrap_or_default(),
+        ))
     }
 
     let mut continuation_msg = {

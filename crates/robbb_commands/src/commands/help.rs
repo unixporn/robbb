@@ -93,7 +93,7 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
     embeds::PaginatedEmbed::create_from_fields(
         "Help".to_string(),
         fields,
-        embeds::base_embed(ctx.serenity_context()).await,
+        embeds::base_embed(&ctx),
     )
     .await
     .reply_to(ctx, true)

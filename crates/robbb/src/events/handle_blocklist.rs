@@ -7,9 +7,7 @@ use robbb_db::mod_action::ModActionKind;
 use robbb_util::util::{generate_message_link, time_to_discord_snowflake};
 use serenity::{
     all::ActionRowComponent,
-    builder::{
-        CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage,
-    },
+    builder::{CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage},
 };
 use tracing_futures::Instrument;
 
@@ -41,18 +39,14 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         tracing::info!(blocklist.word = %word, "Found blocked word '{}'", word);
         tracing::Span::current().record("blocklist.blocked_word", word);
 
+        let dm_embed = CreateEmbed::default()
+            .description(&msg.content)
+            .title(
+                format!("Your message has been deleted for containing a blocked word: `{word}`",),
+            )
+            .into_create_message();
         let dm_future = async {
-            let _ = msg
-                .author
-                .dm(
-                    &ctx,
-                    CreateMessage::default().embed(
-                        CreateEmbed::default().description(&msg.content).title(format!(
-                            "Your message has been deleted for containing a blocked word: `{word}`",
-                        )),
-                    ),
-                )
-                .await;
+            let _ = msg.author.dm(&ctx, dm_embed).await;
         };
 
         let bot_log_future = config.log_automod_action(&ctx, |e| {
