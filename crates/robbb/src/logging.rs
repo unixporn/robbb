@@ -1,9 +1,7 @@
 use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
 use robbb_util::log_error;
 use tracing_subscriber::{
-    filter::{FilterExt, FilterFn},
-    prelude::__tracing_subscriber_SubscriberExt,
-    util::SubscriberInitExt,
+    filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
     EnvFilter, Layer,
 };
 
@@ -32,9 +30,12 @@ pub fn init_tracing() {
                 .field("event")
                 .map_or(false, |event| event.as_ref().starts_with("PresenceUpdate")))
     });
-    let remove_recv_event_filter = EnvFilter::try_new(
-        "trace,serenity::gateway::bridge::shard_runner[recv]=off,serenity::gateway::bridge::shard_runner[recv_event]=off"
-    ).unwrap();
+
+    let remove_recv_event_filter = FilterFn::new(|m| {
+        !((m.target() == "serenity::gateway::bridge::shard_runner" && m.name() == "recv")
+            || (m.target() == "serenity::gateway::bridge::shard_runner"
+                && m.name() == "recv_event"))
+    });
 
     let traces_extra_filter =
         EnvFilter::try_from_env("RUST_LOG_TRACES").unwrap_or_else(|_| EnvFilter::new("trace"));
