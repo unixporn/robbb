@@ -22,6 +22,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
         // with that emote, it'll error, but we don't really care :/
         for r in &msg.reactions {
             if r.reaction_type != event.emoji {
+                tracing::debug!(reaction.typ = ?r.reaction_type, reaction.user_id = %user.id, msg.id = %msg.id, "Removing reaction to poll");
                 log_error!(msg.delete_reaction(&ctx, Some(user.id), r.reaction_type.clone()).await);
             }
         }

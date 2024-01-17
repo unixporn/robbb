@@ -12,9 +12,12 @@ use robbb_db::Db;
 use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
 use robbb_util::{extensions::*, UpEmotes};
 
-use serenity::all::{Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction, ResumedEvent};
+use serenity::all::{
+    ActionExecution, Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction, ResumedEvent,
+};
 use serenity::client;
 
+mod auto_moderation_action;
 mod guild_audit_log_entry_create;
 mod guild_member_addition;
 mod guild_member_removal;
@@ -188,6 +191,18 @@ impl client::EventHandler for Handler {
         if !stop_event_handler {
             self.dispatch_poise_event(&ctx, FullEvent::InteractionCreate { interaction }).await;
         }
+    }
+
+    #[tracing::instrument(skip_all, fields(automod.execution = ?execution))]
+    async fn auto_moderation_action_execution(
+        &self,
+        ctx: client::Context,
+        execution: ActionExecution,
+    ) {
+        log_error!(
+            "Error while handling auto_moderation_action_execution event",
+            auto_moderation_action::execution(ctx, execution).await,
+        );
     }
 
     #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %event.user.tag()))]
