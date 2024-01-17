@@ -41,6 +41,6 @@ pub async fn dehoist_member(ctx: client::Context, mut member: Member) -> Result<
         .edit(&ctx, EditMember::default().nickname(&cleaned_name))
         .instrument(tracing::info_span!("dehoist-edit-nickname", member.tag = %tag, dehoist.old_nick = %display_name, dehoist.new_nick = %cleaned_name))
         .await
-        .with_context(|| format!("Failed to rename user {}", member.user.tag()))?;
+        .with_context(|| format!("Failed to rename user {tag}"))?;
     Ok(())
 }

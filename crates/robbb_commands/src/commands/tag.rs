@@ -139,12 +139,7 @@ async fn tag_autocomplete(ctx: Ctx<'_>, partial: &str) -> impl Iterator<Item = S
 /// Autocomplete all tags
 async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: &str) -> impl Iterator<Item = String> {
     let db = ctx.get_db();
-    let tags = match db.list_tags().await {
-        Ok(tags) => tags,
-        Err(_) => Vec::new(),
-    };
-
+    let tags = db.list_tags().await.unwrap_or_default();
     let partial = partial.to_ascii_lowercase();
-
     tags.into_iter().filter(move |tag| tag.to_ascii_lowercase().starts_with(&partial))
 }

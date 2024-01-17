@@ -30,6 +30,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
             .filter_map(|r| guild.roles.get(r))
             .map(|r| (r.name.to_string(), r.id.get().to_string())),
     );
+    let interaction_custom_id = format!("{}-role", ctx.id());
 
     let handle = ctx
         .send({
@@ -38,9 +39,12 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
                 .description(config.roles_color.iter().map(|r| r.mention()).join(" "));
             let options =
                 available_roles.map(|(name, id)| CreateSelectMenuOption::new(name, id)).collect();
-            let menu = CreateSelectMenu::new("role", CreateSelectMenuKind::String { options })
-                .min_values(1)
-                .max_values(1);
+            let menu = CreateSelectMenu::new(
+                &interaction_custom_id,
+                CreateSelectMenuKind::String { options },
+            )
+            .min_values(1)
+            .max_values(1);
             CreateReply::default()
                 .embed(embed)
                 .components(vec![CreateActionRow::SelectMenu(menu)])
@@ -54,7 +58,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         .await_component_interactions(ctx.serenity_context())
         .author_id(ctx.author().id)
         .timeout(std::time::Duration::from_secs(10))
-        .custom_ids(vec!["role".to_string()])
+        .custom_ids(vec![interaction_custom_id])
         .await
     {
         let selected: String = match &interaction.data.kind {

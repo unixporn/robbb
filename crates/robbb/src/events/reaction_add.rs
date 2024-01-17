@@ -17,12 +17,8 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
 
 #[tracing::instrument(skip(ctx))]
 async fn handle_reaction_emoji_logging(ctx: client::Context, event: Reaction) -> Result<()> {
-    let (id, animated, name) = match event.emoji {
-        Custom { id, animated, name, .. } => {
-            (id, animated, name.context("Could not find name for emoji")?)
-        }
-        _ => return Ok(()),
-    };
+    let Custom { id, animated, name, .. } = event.emoji else { return Ok(()) };
+    let name = name.context("Could not find name for emoji")?;
 
     let guild_emojis = ctx
         .get_guild_emojis(event.guild_id.context("Not in a guild")?)

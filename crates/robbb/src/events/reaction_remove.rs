@@ -1,5 +1,6 @@
 use super::*;
 
+use robbb_db::emoji_logging::EmojiIdentifier;
 use serenity::model::channel::ReactionType::Custom;
 
 pub async fn reaction_remove(ctx: client::Context, event: Reaction) -> Result<()> {
@@ -17,12 +18,8 @@ pub async fn reaction_remove(ctx: client::Context, event: Reaction) -> Result<()
 
 #[tracing::instrument(skip(ctx))]
 pub async fn handle_emoji_removal(ctx: client::Context, event: Reaction) -> Result<()> {
-    let (id, animated, name) = match event.emoji {
-        Custom { id, animated, name, .. } => {
-            (id, animated, name.context("Could not find name for emoji")?)
-        }
-        _ => return Ok(()),
-    };
+    let Custom { id, animated, name, .. } = event.emoji else { return Ok(()) };
+    let name = name.context("Could not find name for emoji")?;
 
     let guild_emojis = ctx
         .get_guild_emojis(event.guild_id.context("Not in a guild")?)
@@ -33,11 +30,7 @@ pub async fn handle_emoji_removal(ctx: client::Context, event: Reaction) -> Resu
     };
 
     let db = ctx.get_db().await;
-    db.alter_emoji_reaction_count(
-        -1,
-        &robbb_db::emoji_logging::EmojiIdentifier { animated, id, name },
-    )
-    .await?;
+    db.alter_emoji_reaction_count(-1, &EmojiIdentifier { animated, id, name }).await?;
 
     Ok(())
 }

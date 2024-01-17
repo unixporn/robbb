@@ -12,7 +12,6 @@ pub use errors::*;
 
 use crate::checks::PermissionLevel;
 
-pub mod ask;
 pub mod ban;
 pub mod blocklist;
 pub mod emojistats;
@@ -48,7 +47,6 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         poll::poll(),
         tag::tag(),
         tag::taglist(),
-        //ask::ask(),
         modping::modping(),
         highlights::highlights(),
         small::latency(),
@@ -78,8 +76,6 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         mute::mute(),
         purge::purge(),
         poise_commands::manage_commands(),
-        //poise_commands::register(),
-        //poise_commands::delete(),
         // context menu
         info::menu_info(),
         ban::menu_ban(),

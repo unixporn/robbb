@@ -33,7 +33,6 @@ pub async fn menu_ban(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
 /// Ban a user from the server.
 #[poise::command(
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]
@@ -56,7 +55,6 @@ pub async fn ban(
 #[poise::command(
     rename = "banmany",
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]

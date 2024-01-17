@@ -17,8 +17,7 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
     let _ = config
         .channel_mod_bot_stuff
         .send_embed_builder(&ctx, |e| {
-            e.title("Bot is back!")
-                .description("Hey guys, I'm back!")
+            e.title("Hey guys, I'm back!")
                 .field("profile", bot_version.profile, true)
                 .field("commit", bot_version.commit_link(), true)
                 .field("message", bot_version.commit_msg, false)
