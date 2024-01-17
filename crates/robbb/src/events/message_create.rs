@@ -6,6 +6,7 @@ use maplit::hashmap;
 use poise::serenity_prelude::{MessageType, ReactionType};
 use regex::Regex;
 use robbb_commands::{commands, modlog};
+use robbb_db::emoji_logging::EmojiIdentifier;
 use robbb_db::fetch_field::FetchField;
 
 use serenity::builder::{CreateEmbed, CreateEmbedFooter, CreateMessage, GetMessages};
@@ -43,14 +44,9 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         log_error!(handle_showcase_post(&ctx, &msg).await);
     } else if msg.channel_id == config.channel_feedback {
         log_error!(handle_feedback_post(&ctx, &msg).await);
-    } else if msg.channel_id == config.channel_tech_support {
-        log_error!(handle_techsupport_post(ctx.clone(), &msg).await);
     }
 
-    if !msg.is_private()
-        && msg.channel_id != config.channel_bot_messages
-        && !msg.content.starts_with("!emojistats")
-    {
+    if !msg.is_private() && msg.channel_id != config.channel_bot_messages {
         match handle_msg_emoji_logging(&ctx, &msg).await {
             Ok(emoji_used) => {
                 tracing::Span::current().record("message_create.emoji_used", emoji_used);
@@ -59,83 +55,45 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         }
     }
 
-    match handle_spam_protect(&ctx, &msg).await {
-        Ok(stop) => {
-            tracing::Span::current().record("message_create.stopped_at_spam_protect", stop);
-            if stop {
-                return Ok(true);
-            }
+    let (stop_after_spam_protect, stop_after_blocklist) = tokio::join!(
+        handle_spam_protect(&ctx, &msg),
+        handle_blocklist::handle_blocklist(&ctx, &msg),
+    );
+
+    match stop_after_spam_protect {
+        Ok(stop) if stop => {
+            tracing::info!("Stopping message handling after spam protection");
+            return Ok(true);
         }
         err => log_error!("error while handling spam-protection", err),
     };
-    match handle_blocklist::handle_blocklist(&ctx, &msg).await {
-        Ok(stop) => {
-            tracing::Span::current().record("message_create.stopped_at_blocklist", stop);
-            if stop {
-                return Ok(true);
-            }
+
+    match stop_after_blocklist {
+        Ok(stop) if stop => {
+            tracing::info!("Stopping message handling after blocklist handling");
+            return Ok(true);
         }
         err => log_error!("error while handling blocklist", err),
     };
 
-    match handle_highlighting(&ctx, &msg).await {
+    let (highlighting_notified_users, quoting_result) =
+        tokio::join!(handle_highlighting(&ctx, &msg), handle_quote(&ctx, &msg));
+
+    match highlighting_notified_users {
         Ok(notified_users) => {
             tracing::Span::current().record("message_create.notified_user_cnt", notified_users);
         }
         err => log_error!("error while checking/handling highlights", err),
     }
 
-    match handle_quote(&ctx, &msg).await {
-        Ok(stop) => {
-            tracing::Span::current().record("message_create.stopped_at_quote", stop);
-            if stop {
-                return Ok(true);
-            }
-        }
-        err => log_error!("error while Handling a quoted message", err),
-    };
+    log_error!("error while Handling a quoted message", quoting_result);
 
     // If the message is in showcase, don't forward to the command framework
     Ok(msg.channel_id == config.channel_showcase)
 }
 
-#[tracing::instrument(skip_all)]
-async fn handle_techsupport_post(ctx: client::Context, msg: &Message) -> Result<()> {
-    let config = ctx.get_config().await;
-    let result = msg.author.dm(&ctx, CreateMessage::default()
-        .content(format!(
-            "Your message in {} has been deleted. Please use `/ask` to ask any questions, and respond in the thread.\nYour messages was:\n\n{}", 
-            config.channel_tech_support.mention(),
-            msg.content,
-        ))
-    ).await;
-
-    if result.is_ok() {
-        msg.delete(&ctx).await?;
-    } else {
-        let error_msg = msg.reply_error(&ctx, "Please use `/ask` to ask any questions and respond to others in the thread.\n**Your message will be deleted in a few seconds.**").await?;
-        tokio::spawn({
-            let ctx = ctx.clone();
-            let msg = msg.clone();
-            async move {
-                tokio::time::sleep(std::time::Duration::from_secs(30)).await;
-                log_error!(msg.delete(&ctx).await);
-                log_error!(error_msg.delete(ctx).await);
-            }
-            .instrument(tracing::info_span!("techsupport-delete-message"))
-        });
-    }
-    Ok(())
-}
-
 #[tracing::instrument(skip_all, fields(highlights.notified_user_cnt))]
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
-    // don't trigger on bot commands
-    if msg.content.starts_with('!') {
-        tracing::Span::current().record("highlights.notified_user_cnt", 0i32);
-        return Ok(0);
-    }
-
     let (config, db) = ctx.get_config_and_db().await;
 
     let highlights_data = db.get_highlights().await?;
@@ -165,6 +123,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     if channel.thread_metadata.is_some()
         || config.category_mod_private == channel.parent_id.context("Couldn't get category_id")?
     {
+        tracing::Span::current().record("highlights.notified_user_cnt", 0i32);
         return Ok(0);
     }
 
@@ -189,9 +148,10 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
             highlights.word = %word,
             highlights.users = ?users,
             highlights.users_count = %users.len(),
-            "Notifying {} users about a mention of the word '{}'", users.len(), word
+            "Notifying {} users about a mention of the word '{word}'", users.len()
         );
 
+        let create_message = embed.into_create_message();
         for user_id in users {
             let user_can_see_channel = channel
                 .guild_id
@@ -210,15 +170,14 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
             }
             handled_users.insert(user_id);
 
-            if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
-                let ctx = ctx.clone();
-                let embed = embed.clone();
-                tokio::spawn(async move {
-                    let _ =
-                        dm_channel.send_message(&ctx, CreateMessage::default().embed(embed)).await;
-                })
-                .instrument(tracing::info_span!("send_highlight_notification"));
-            }
+            let ctx = ctx.clone();
+            let create_message = create_message.clone();
+            tokio::spawn(async move {
+                if let Ok(dm_channel) = user_id.create_dm_channel(&ctx).await {
+                    let _ = dm_channel.send_message(&ctx, create_message).await;
+                }
+            })
+            .instrument(tracing::info_span!("send_highlight_notification"));
         }
     }
 
@@ -253,11 +212,7 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
     for emoji in &actual_emojis {
         db.alter_emoji_text_count(
             1,
-            &robbb_db::emoji_logging::EmojiIdentifier {
-                name: emoji.name.clone(),
-                id: emoji.id,
-                animated: emoji.animated,
-            },
+            &EmojiIdentifier { name: emoji.name.clone(), id: emoji.id, animated: emoji.animated },
         )
         .await?;
     }
@@ -294,26 +249,19 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
 }
 
 #[tracing::instrument(skip_all)]
-async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
+async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
     lazy_static::lazy_static! {
         static ref MSG_LINK_PATTERN: Regex = Regex::new(r"<?https://(?:canary\.|ptb\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)>?").unwrap();
     }
-    if msg.content.starts_with('!') {
-        return Ok(false);
+    let Some(caps) = MSG_LINK_PATTERN.captures(&msg.content) else { return Ok(()) };
+
+    // Allow for explicitly escaping links by surrounding the quote in angle brackets
+    let whole_match = caps.get(0).unwrap().as_str();
+    if whole_match.starts_with('<') && whole_match.ends_with('>') {
+        return Ok(());
     }
 
-    let caps = match MSG_LINK_PATTERN.captures(&msg.content) {
-        Some(caps) => {
-            let whole_match = caps.get(0).unwrap().as_str();
-            if whole_match.starts_with('<') && whole_match.ends_with('>') {
-                return Ok(false);
-            } else {
-                caps
-            }
-        }
-        None => return Ok(false),
-    };
-    debug!("Finished regex checking message for message link");
+    debug!(quote.message_link = %whole_match, "Finished regex checking message for message link");
 
     let (guild_id, channel_id, message_id) = (
         caps.get(1).unwrap().as_str().parse::<GuildId>()?,
@@ -330,15 +278,10 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .permissions(ctx)?
         .read_message_history();
 
-    //let user_can_see_channel = channel
-    //.permissions_for_user(&ctx, msg.author.id)
-    //.context("Failed to get member permissions")?
-    //.read_message_history();
-
-    debug!("checked if user can see the channel");
+    debug!(quote.user_can_see_channel = ?user_can_see_channel, "checked if user can see the channel");
 
     if Some(guild_id) != msg.guild_id || !user_can_see_channel {
-        return Ok(false);
+        return Ok(());
     }
 
     let mentioned_msg = ctx.http.get_message(channel_id, message_id).await?;
@@ -353,7 +296,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
     if (image_attachment.is_none() && mentioned_msg.content.trim().is_empty())
         || mentioned_msg.author.bot
     {
-        return Ok(false);
+        return Ok(());
     }
 
     msg.reply_embed(&ctx, |mut e| {
@@ -368,7 +311,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<bool> {
         .timestamp(mentioned_msg.timestamp)
     })
     .await?;
-    Ok(true)
+    Ok(())
 }
 
 #[tracing::instrument(skip_all)]

@@ -59,6 +59,7 @@ impl Handler {
 
     async fn init_ready_data(&self, ctx: &client::Context, user_id: UserId) {
         *self.bot_id.write() = Some(user_id);
+
         match robbb_util::load_up_emotes(&ctx, self.user_data.config.guild).await {
             Ok(up_emotes) => {
                 self.update_emojis(ctx, up_emotes).await;
@@ -117,23 +118,16 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(
         skip_all,
         fields(
-            command_name, invocation, message_create.notified_user_cnt, message_create.stopped_at_spam_protect,
-            message_create.stopped_at_blocklist, message_create.stopped_at_quote, message_create.emoji_used,
+            command_name, invocation, message_create.notified_user_cnt, message_create.emoji_used,
             %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
         )
     )]
     async fn message(&self, ctx: client::Context, msg: Message) {
-        let stop_event_handler =
-            match message_create::message_create(ctx.clone(), msg.clone()).await {
-                Ok(stop_event_handler) => stop_event_handler,
-                Err(e) => {
-                    tracing::error!(error.message = %format!("{}", &e), "{:?}", e);
-                    false
-                }
-            };
-        if !stop_event_handler {
-            self.dispatch_poise_event(&ctx, FullEvent::Message { new_message: msg }).await;
-        }
+        match message_create::message_create(ctx.clone(), msg.clone()).await {
+            Ok(stop_event_handler) if stop_event_handler => return,
+            err => log_error!("Error handling message_create event", err),
+        };
+        self.dispatch_poise_event(&ctx, FullEvent::Message { new_message: msg }).await;
     }
 
     #[tracing::instrument(
@@ -155,19 +149,6 @@ impl client::EventHandler for Handler {
             Interaction::Modal(x) => Some(&x.user),
             _ => None,
         };
-        let current_span = tracing::Span::current();
-        match &interaction {
-            Interaction::Command(x) => {
-                current_span.record("command_name", x.data.name.as_str());
-            }
-            Interaction::Component(x) => {
-                current_span.record("interaction_create.custom_id", x.data.custom_id.as_str());
-            }
-            Interaction::Modal(x) => {
-                current_span.record("interaction_create.custom_id", x.data.custom_id.as_str());
-            }
-            _ => (),
-        };
 
         tracing::debug!(
             interaction_create.kind = ?interaction.kind(),
@@ -177,18 +158,19 @@ impl client::EventHandler for Handler {
         tracing::Span::current()
             .record("interaction_create.user", user.map(|x| x.tag()).unwrap_or_default().as_str());
 
-        let stop_event_handler =
-            match handle_blocklist::handle_blocklist_in_interaction(&ctx, &interaction).await {
-                Ok(stop_event_handler) => stop_event_handler,
-                Err(e) => {
-                    tracing::error!(error.message = %e, "{:?}", e);
-                    false
-                }
-            };
+        if let Interaction::Command(interaction) = &interaction {
+            tracing::Span::current().record("command_name", interaction.data.name.as_str());
 
-        if !stop_event_handler {
-            self.dispatch_poise_event(&ctx, FullEvent::InteractionCreate { interaction }).await;
+            // Return early if a command invocation contains blocked words.
+            match handle_blocklist::handle_blocklist_in_command_interaction(&ctx, &interaction)
+                .await
+            {
+                Ok(stop_event_handler) if stop_event_handler => return,
+                err => log_error!("Error handling interaction_create event", err),
+            };
         }
+
+        self.dispatch_poise_event(&ctx, FullEvent::InteractionCreate { interaction }).await;
     }
 
     #[tracing::instrument(skip_all, fields(automod.execution = ?execution))]
