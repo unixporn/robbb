@@ -133,3 +133,31 @@ pub async fn git(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>)
     }
     Ok(())
 }
+
+/// Get the currently running bot version
+#[poise::command(slash_command, guild_only, category = "Bot-Administration", hide_in_help)]
+pub async fn version(ctx: Ctx<'_>) -> Res<()> {
+    let bot_version = util::BotVersion::get();
+    ctx.reply_embed_builder(|e| {
+        e.title("Version info")
+            .field("profile", bot_version.profile, true)
+            .field("commit", bot_version.commit_link(), true)
+            .field("message", bot_version.commit_msg, false)
+    })
+    .await?;
+
+    Ok(())
+}
+
+/// Manage application commands (be careful)
+///
+/// Please only run this when absolutely necessary, as setting up the permissions for the commands again is pain.
+#[poise::command(
+    slash_command,
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
+    hide_in_help
+)]
+pub async fn manage_commands(ctx: Ctx<'_>) -> Res<()> {
+    poise::builtins::register_application_commands_buttons(ctx).await?;
+    Ok(())
+}

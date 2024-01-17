@@ -25,7 +25,6 @@ pub mod move_users;
 pub mod mute;
 pub mod note;
 pub mod pfp;
-pub mod poise_commands;
 pub mod poll;
 pub mod purge;
 pub mod role;
@@ -33,7 +32,6 @@ pub mod small;
 pub mod tag;
 pub mod top;
 pub mod unban;
-pub mod version;
 pub mod warn;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
@@ -43,7 +41,6 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         info::info(),
         help::help(),
         role::role(),
-        version::version(),
         poll::poll(),
         tag::tag(),
         tag::taglist(),
@@ -56,6 +53,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         small::description(),
         small::git(),
         small::dotfiles(),
+        small::version(),
         fetch::fetch(),
         fetch::set_fetch(),
         top::top(),
@@ -75,7 +73,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         note::note(),
         mute::mute(),
         purge::purge(),
-        poise_commands::manage_commands(),
+        small::manage_commands(),
         // context menu
         info::menu_info(),
         ban::menu_ban(),

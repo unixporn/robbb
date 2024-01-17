@@ -32,9 +32,7 @@ pub async fn modping(
 
     ctx.send(
         CreateReply::default()
-            .content(
-                format!("{} pinged staff {mods} for reason {reason}", ctx.author().mention(),),
-            ),
+            .content(format!("{} pinged staff {mods} for reason {reason}", ctx.author().mention())),
     )
     .await?;
 

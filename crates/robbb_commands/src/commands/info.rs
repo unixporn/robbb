@@ -1,6 +1,5 @@
 use anyhow::Context;
 use poise::serenity_prelude::{CreateEmbed, Mentionable, User};
-use robbb_db::mod_action::ModActionType;
 use robbb_util::embeds;
 
 use crate::checks::check_is_moderator;
@@ -70,17 +69,8 @@ async fn make_mod_info_embed(ctx: Ctx<'_>, member: &Member) -> Res<CreateEmbed> 
     let note_counts = db.count_all_mod_actions(member.user.id).await?;
     let embed_content = note_counts
         .iter()
-        .map(|(note_type, count)| {
-            let note_type = match note_type {
-                ModActionType::ManualNote => "Manual notes",
-                ModActionType::BlocklistViolation => "Blocklist violations",
-                ModActionType::Warn => "Warnings",
-                ModActionType::Mute => "Mutes",
-                ModActionType::Ban => "Bans",
-                ModActionType::Kick => "Kicks",
-            };
-            format!("**{}**: {}", note_type, count)
-        })
+        .filter(|(_, count)| **count > 0)
+        .map(|(note_type, count)| format!("**{}s**: {}", note_type.to_string(), count))
         .join("\n");
 
     Ok(make_info_embed(ctx, member).await.description(embed_content))

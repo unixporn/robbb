@@ -49,33 +49,30 @@ pub async fn help(
 }
 
 async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> Res<Message> {
-    let handle = ctx
-        .reply_embed_ephemeral({
-            let mut e = CreateEmbed::default().title(format!("Help for {}", command.name));
-            if let Some(desc) = &command.help_text {
-                e = e.description(desc);
-            } else if let Some(help) = &command.description {
-                e = e.description(help);
-            }
+    let mut embed = CreateEmbed::default().title(format!("Help for {}", command.name));
+    if let Some(desc) = &command.help_text {
+        embed = embed.description(desc);
+    } else if let Some(help) = &command.description {
+        embed = embed.description(help);
+    }
 
-            if !command.subcommands.is_empty() {
-                let subcommands_text = command
-                    .subcommands
-                    .iter()
-                    .map(|subcommand| {
-                        if let Some(usage) = &subcommand.description {
-                            format!("**/{} {}** - ``{} ``", command.name, subcommand.name, usage)
-                        } else {
-                            format!("**/{} {}**", command.name, subcommand.name)
-                        }
-                    })
-                    .join("\n");
+    if !command.subcommands.is_empty() {
+        let subcommands_text = command
+            .subcommands
+            .iter()
+            .map(|subcommand| {
+                if let Some(usage) = &subcommand.description {
+                    format!("**/{} {}** - ``{} ``", command.name, subcommand.name, usage)
+                } else {
+                    format!("**/{} {}**", command.name, subcommand.name)
+                }
+            })
+            .join("\n");
 
-                e = e.field("Subcommands", subcommands_text, false)
-            }
-            e
-        })
-        .await?;
+        embed = embed.field("Subcommands", subcommands_text, false)
+    }
+
+    let handle = ctx.reply_embed_ephemeral(embed).await?;
     Ok(handle.message().await?.into_owned())
 }
 

@@ -55,7 +55,7 @@ async fn send_ask_in_tech_support(
 
     ctx.reply_embed_builder(|e| {
         e.author_user(ctx.author()).description(indoc::formatdoc!(
-            "{police}{police}**Please {} use `/ask` to ask your question in {}**{police}{police}",
+            "{police}{police}**Please {}, ask your question in {}**{police}{police}",
             mentions,
             target_channel.mention(),
             police = police_emote,
@@ -84,12 +84,8 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
 
     let mut continuation_msg = {
         let continuation_embed = make_continuation_embed(ctx, None).await;
-        target_channel
-            .send_message(
-                &ctx.serenity_context(),
-                CreateMessage::default().content(mentions).embed(continuation_embed),
-            )
-            .await?
+        let msg = CreateMessage::default().content(mentions).embed(continuation_embed);
+        target_channel.send_message(&ctx.serenity_context(), msg).await?
     };
 
     continuation_msg.guild_id = ctx.guild_id();
@@ -119,9 +115,5 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
     continuation_msg
         .edit(&ctx.serenity_context(), EditMessage::default().embed(new_continuation_embed))
         .await?;
-
-    if let poise::Context::Prefix(ctx) = ctx {
-        ctx.msg.delete(&ctx.serenity_context()).await?;
-    }
     Ok(())
 }
