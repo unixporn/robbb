@@ -96,12 +96,6 @@ impl Config {
         let result = self.guild.send_embed(ctx, self.channel_auto_mod, build_embed).await;
         log_error!(result);
     }
-
-    //#[allow(unused)]
-    //pub async fn is_mod(&self, ctx: &client::Context, user_id: UserId) -> Result<bool> {
-    //let user = user_id.to_user(&ctx).await?;
-    //Ok(user.has_role(&ctx, self.guild, self.role_mod).await?)
-    //}
 }
 
 impl TypeMapKey for Config {

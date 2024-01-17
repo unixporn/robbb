@@ -1,4 +1,4 @@
-use crate::{config::Config, embeds, prelude::Ctx, UpEmotes};
+use crate::{config::Config, embeds, log_error, prelude::Ctx, UpEmotes};
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
@@ -165,6 +165,22 @@ pub impl client::Context {
     }
     async fn get_db(&self) -> Arc<Db> {
         self.data.read().await.get::<Db>().cloned().unwrap()
+    }
+
+    async fn log_bot_action(
+        &self,
+        build_embed: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+    ) {
+        let config = self.get_config().await;
+        log_error!(config.guild.send_embed(self, config.channel_modlog, build_embed).await);
+    }
+
+    async fn log_automod_action(
+        &self,
+        build_embed: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+    ) {
+        let config = self.get_config().await;
+        log_error!(config.guild.send_embed(self, config.channel_auto_mod, build_embed).await);
     }
 }
 
