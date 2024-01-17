@@ -40,10 +40,10 @@ pub fn init_tracing() {
     let traces_extra_filter =
         EnvFilter::try_from_env("RUST_LOG_TRACES").unwrap_or_else(|_| EnvFilter::new("trace"));
     let remove_heartbeat_filter =
-        EnvFilter::try_new("trace,serenity::gateway::ws[send_heartbeat]=off").unwrap();
-    let remove_update_manager_filter =
-        EnvFilter::try_new("trace,serenity::gateway::bridge::shard_runner[update_manager]=off")
-            .unwrap();
+        FilterFn::new(|m| !(m.target() == "serenity::gateway::ws" && m.name() == "send_heartbeat"));
+    let remove_update_manager_filter = FilterFn::new(|m| {
+        !(m.target() == "serenity::gateway::bridge::shard_runner" && m.name() == "update_manager")
+    });
 
     let logfmt_builder = tracing_logfmt_otel::builder()
         .with_level(true)
