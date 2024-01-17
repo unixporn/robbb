@@ -1,8 +1,10 @@
 use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
 use robbb_util::log_error;
 use tracing_subscriber::{
-    filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
-    EnvFilter,
+    filter::{FilterExt, FilterFn},
+    prelude::__tracing_subscriber_SubscriberExt,
+    util::SubscriberInitExt,
+    EnvFilter, Layer,
 };
 
 /// Initializes tracing and logging configuration.
@@ -19,24 +21,29 @@ use tracing_subscriber::{
 pub fn init_tracing() {
     let log_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
-            EnvFilter::try_new("robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off")
+            EnvFilter::try_new("info,robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off")
                 .unwrap()
         })
         .add_directive("robbb=trace".parse().unwrap());
-
-    let remove_shard_runner_filter = FilterFn::new(|metadata| {
-        !(metadata.target() == "serenity::gateway::bridge::shard_runner"
-            && (metadata.name() == "recv" || metadata.name() == "recv_event"))
-    });
-
-    let remove_presence_update_filter = FilterFn::new(|metadata| {
-        !(metadata.target() == "serenity::gateway::shard"
-            && metadata.name() == "handle_gateway_dispatch"
-            && metadata
-                .fields()
+    let remove_presence_update_filter = FilterFn::new(|m| {
+        !(m.target() == "serenity::gateway::shard"
+            && m.name() == "handle_gateway_dispatch"
+            && m.fields()
                 .field("event")
-                .map_or(false, |event| event.to_string().starts_with("PresenceUpdate")))
+                .map_or(false, |event| event.as_ref().starts_with("PresenceUpdate")))
     });
+    let remove_recv_event_filter = EnvFilter::try_new(
+        "trace,serenity::gateway::bridge::shard_runner[recv]=off,serenity::gateway::bridge::shard_runner[recv_event]=off"
+    ).unwrap();
+
+    let traces_extra_filter =
+        EnvFilter::try_from_env("RUST_LOG_TRACES").unwrap_or_else(|_| EnvFilter::new("trace"));
+    let remove_heartbeat_filter =
+        EnvFilter::try_new("trace,serenity::gateway::ws[send_heartbeat]=off").unwrap();
+    let remove_update_manager_filter =
+        EnvFilter::try_new("trace,serenity::gateway::bridge::shard_runner[update_manager]=off")
+            .unwrap();
+
     let logfmt_builder = tracing_logfmt_otel::builder()
         .with_level(true)
         .with_target(true)
@@ -49,7 +56,7 @@ pub fn init_tracing() {
     let sub = tracing_subscriber::registry()
         .with(log_filter)
         .with(remove_presence_update_filter)
-        .with(remove_shard_runner_filter);
+        .with(remove_recv_event_filter);
 
     if std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok() {
         opentelemetry::global::set_text_map_propagator(
@@ -72,7 +79,7 @@ pub fn init_tracing() {
             Ok(tracer) => tracer,
             Err(err) => {
                 eprintln!("failed to initialize otel tracing: {err}");
-                tracing::subscriber::set_global_default(sub)
+                tracing::subscriber::set_global_default(sub.with(logfmt_builder.layer()))
                     .expect("setting default subscriber failed");
                 return;
             }
@@ -82,12 +89,15 @@ pub fn init_tracing() {
             .with_location(true)
             .with_threads(true)
             .with_tracked_inactivity(true)
-            .with_tracer(tracer);
+            .with_tracer(tracer)
+            .with_filter(remove_heartbeat_filter)
+            .with_filter(remove_update_manager_filter)
+            .with_filter(traces_extra_filter);
 
-        tracing::info!("OTEL_EXPORTER_OTLP_ENDPOINT is set, initializing tracing layer");
+        println!("OTEL_EXPORTER_OTLP_ENDPOINT is set, initializing tracing layer");
         sub.with(telemetry).with(logfmt_builder.layer()).init();
     } else {
-        tracing::info!("No OTEL_EXPORTER_OTLP_ENDPOINT is set, only initializing logging");
+        println!("No OTEL_EXPORTER_OTLP_ENDPOINT is set, only initializing logging");
         sub.with(logfmt_builder.layer()).init();
     };
 }
