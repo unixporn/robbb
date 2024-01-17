@@ -7,7 +7,7 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
     if user.bot {
         return Ok(());
     }
-    let msg = event.message(&ctx).await?;
+    let msg = event.message(&ctx.http).await?;
 
     let is_poll = msg.author.bot
         && msg
@@ -20,10 +20,15 @@ pub async fn reaction_add(ctx: client::Context, event: Reaction) -> Result<()> {
         // we're pretty much deleteing all other reactions and are giving it the user to delete the reaction from,
         // such that discord API knows which of the reactions to remove. If the user hasn't reacted
         // with that emote, it'll error, but we don't really care :/
+        println!("message reactions: {:?}", msg.reactions);
         for r in &msg.reactions {
             if r.reaction_type != event.emoji {
                 tracing::debug!(reaction.typ = ?r.reaction_type, reaction.user_id = %user.id, msg.id = %msg.id, "Removing reaction to poll");
-                log_error!(msg.delete_reaction(&ctx, Some(user.id), r.reaction_type.clone()).await);
+                log_error!(
+                    ctx.http
+                        .delete_reaction(msg.channel_id, msg.id, user.id, &r.reaction_type)
+                        .await
+                );
             }
         }
     }

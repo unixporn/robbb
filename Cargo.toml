@@ -21,8 +21,9 @@ serenity = { version = "0.12.0", default-features = false, features = [
     "utils",
     "rustls_backend",
     "temp_cache",
+    "tokio_task_builder",
 ] }
-poise = "0.6.1-rc.1"
+poise = "0.6.1"
 
 
 [profile.dev]
