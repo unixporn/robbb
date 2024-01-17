@@ -89,7 +89,7 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     let options_lines = modal_result.options.lines().collect_vec();
 
     if options_lines.len() > SELECTION_EMOJI.len() || options_lines.len() < 2 {
-        abort_with!(UserErr::Other(format!(
+        abort_with!(UserErr::new(format!(
             "There must be between 2 and {} options",
             SELECTION_EMOJI.len()
         )))

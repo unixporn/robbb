@@ -34,7 +34,7 @@ impl BotVersion {
 #[macro_export]
 macro_rules! abort_with {
     ($err:literal) => {
-        return Err(UserErr::other($err).into())
+        return Err(UserErr::new($err).into())
     };
     ($err:expr) => {
         return Err($err.into())

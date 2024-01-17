@@ -36,7 +36,7 @@ pub async fn highlights_add(
     let highlights_by_user_cnt = highlights.triggers_for_user(ctx.author().id).count();
 
     if highlights_by_user_cnt >= max_highlight_cnt {
-        abort_with!(UserErr::Other(format!(
+        abort_with!(UserErr::new(format!(
             "Sorry, you can only watch a maximum of {} highlights",
             max_highlight_cnt
         )));

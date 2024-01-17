@@ -166,20 +166,16 @@ async fn handle_argument_parse_error(
 
 async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
     match err.downcast_ref::<commands::UserErr>() {
-        Some(inner_err) => match inner_err {
-            commands::UserErr::MentionedUserNotFound => {
-                let _ = ctx.say_error("No user found with that name").await;
-            }
-            commands::UserErr::Other(issue) => {
-                let _ = ctx.say_error(format!("Error: {}", issue)).await;
-                tracing::info!(
-                    user_error.message=%issue,
-                    user_error.command_name = %ctx.command().qualified_name.as_str(),
-                    user_error.invocation = %ctx.invocation_string(),
-                    "User error"
-                );
-            }
-        },
+        Some(inner_err) => {
+            let issue = inner_err.to_string();
+            let _ = ctx.say_error(format!("Error: {}", issue)).await;
+            tracing::info!(
+                user_error.message=%issue,
+                user_error.command_name = %ctx.command().qualified_name.as_str(),
+                user_error.invocation = %ctx.invocation_string(),
+                "User error"
+            );
+        }
         None => match err.downcast_ref::<serenity::Error>() {
             Some(inner_err) => {
                 tracing::warn!(
