@@ -26,7 +26,6 @@ pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "add"
 )]
@@ -120,7 +119,6 @@ pub async fn note_edit(
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "list"
 )]

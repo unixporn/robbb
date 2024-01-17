@@ -11,7 +11,6 @@ use robbb_util::embeds;
 /// Get statistics about the usage of emotes
 #[poise::command(
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]

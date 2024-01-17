@@ -7,7 +7,7 @@ use serenity::builder::CreateEmbedAuthor;
 use super::*;
 
 /// Fetch a users system information.
-#[poise::command(slash_command, guild_only, prefix_command, rename = "fetch")]
+#[poise::command(slash_command, guild_only, rename = "fetch")]
 pub async fn fetch(
     ctx: Ctx<'_>,
     #[description = "The user"] user: Option<Member>,

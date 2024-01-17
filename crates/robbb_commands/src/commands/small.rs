@@ -9,7 +9,6 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     category = "Bot-Administration",
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
@@ -39,7 +38,6 @@ pub async fn say(
 
 /// Get some latency information
 #[poise::command(
-    prefix_command,
     slash_command,
     category = "Bot-Administration",
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
@@ -83,7 +81,7 @@ pub async fn latency(ctx: Ctx<'_>) -> Res<()> {
 }
 
 /// I'm tired,... >.<
-#[poise::command(prefix_command, slash_command, category = "Bot-Administration")]
+#[poise::command(slash_command, category = "Bot-Administration")]
 pub async fn uptime(ctx: Ctx<'_>) -> Res<()> {
     let config = ctx.get_config();
 
@@ -93,21 +91,21 @@ pub async fn uptime(ctx: Ctx<'_>) -> Res<()> {
 }
 
 /// Send a link to the bot's repository! Feel free contribute!
-#[poise::command(prefix_command, slash_command)]
+#[poise::command(slash_command)]
 pub async fn repo(ctx: Ctx<'_>) -> Res<()> {
     ctx.say("https://github.com/unixporn/robbb").await?;
     Ok(())
 }
 
 /// Get the invite to the unixporn discord server
-#[poise::command(prefix_command, slash_command)]
+#[poise::command(slash_command)]
 pub async fn invite(ctx: Ctx<'_>) -> Res<()> {
     ctx.say("https://discord.gg/4M7SYzn3BW").await?;
     Ok(())
 }
 
 /// Get a users description. Provide your own using /setfetch.
-#[poise::command(prefix_command, guild_only, slash_command)]
+#[poise::command(guild_only, slash_command)]
 pub async fn description(
     ctx: Ctx<'_>,
     #[description = "The user"] user: Option<Member>,
@@ -126,7 +124,7 @@ pub async fn description(
     Ok(())
 }
 /// Get a users dotfiles. Provide your own using /setfetch.
-#[poise::command(prefix_command, guild_only, slash_command)]
+#[poise::command(guild_only, slash_command)]
 pub async fn dotfiles(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;
     let db = ctx.get_db();
@@ -141,7 +139,7 @@ pub async fn dotfiles(ctx: Ctx<'_>, #[description = "The user"] user: Option<Mem
 }
 
 /// Get a users git profile. Provide your own using /setfetch.
-#[poise::command(prefix_command, guild_only, slash_command)]
+#[poise::command(guild_only, slash_command)]
 pub async fn git(ctx: Ctx<'_>, #[description = "The user"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;
     let db = ctx.get_db();

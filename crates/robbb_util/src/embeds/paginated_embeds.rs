@@ -56,10 +56,18 @@ impl PaginatedEmbed {
     pub async fn reply_to<'a>(&self, ctx: Ctx<'a>, ephemeral: bool) -> Result<()> {
         match self.pages.as_slice() {
             [] => {
-                ctx.reply_embed_full(ephemeral, self.base_embed.clone()).await?;
+                if ephemeral {
+                    ctx.reply_embed_ephemeral(self.base_embed.clone()).await?;
+                } else {
+                    ctx.reply_embed(self.base_embed.clone()).await?;
+                }
             }
             [page] => {
-                ctx.reply_embed_full(ephemeral, page.clone()).await?;
+                if ephemeral {
+                    ctx.reply_embed_ephemeral(page.clone()).await?;
+                } else {
+                    ctx.reply_embed(page.clone()).await?;
+                }
             }
             pages => {
                 let reply = CreateReply::default()

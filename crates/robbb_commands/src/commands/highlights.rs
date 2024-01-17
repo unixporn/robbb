@@ -1,5 +1,4 @@
 use poise::serenity_prelude::CreateEmbed;
-use serenity::builder::CreateMessage;
 
 use super::*;
 use crate::checks::{self, PermissionLevel};
@@ -16,7 +15,7 @@ pub async fn highlights(_: Ctx<'_>) -> Res<()> {
 }
 
 /// Add a new highlight
-#[poise::command(prefix_command, slash_command, guild_only, rename = "add")]
+#[poise::command(slash_command, guild_only, rename = "add")]
 pub async fn highlights_add(
     ctx: Ctx<'_>,
     #[description = "The word you want to be notified about"] trigger: String,
@@ -70,7 +69,7 @@ pub async fn highlights_add(
 }
 
 /// List all of your highlights
-#[poise::command(prefix_command, slash_command, guild_only, rename = "list")]
+#[poise::command(slash_command, guild_only, rename = "list")]
 pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
     let highlights = db.get_highlights().await?;
@@ -80,8 +79,7 @@ pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
     if highlights_list.is_empty() {
         abort_with!("You don't seem to have set any highlights");
     } else {
-        try_dm_or_ephemeral_response(
-            ctx,
+        ctx.reply_embed_ephemeral(
             CreateEmbed::default().title("Your highlights").description(highlights_list),
         )
         .await?;
@@ -90,7 +88,7 @@ pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
 }
 
 /// Remove a highlight
-#[poise::command(prefix_command, slash_command, guild_only, rename = "remove")]
+#[poise::command(slash_command, guild_only, rename = "remove")]
 pub async fn highlights_remove(
     ctx: Ctx<'_>,
     #[autocomplete = "autocomplete_highlights"]
@@ -107,33 +105,11 @@ pub async fn highlights_remove(
 }
 
 /// Remove all of your highlights
-#[poise::command(prefix_command, slash_command, guild_only, rename = "clear")]
+#[poise::command(slash_command, guild_only, rename = "clear")]
 pub async fn highlights_clear(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
     db.rm_highlights_of(ctx.author().id).await?;
     ctx.say_success("Your highlights have been successfully cleared.").await?;
-    Ok(())
-}
-
-/// When in an `ApplicationContext`, send the reply as a ephemeral message.
-/// When in a `PrefixContext`, attempt to send the message in DMs,
-/// and give a generic error message when the user doesn't allow for that.
-async fn try_dm_or_ephemeral_response(ctx: Ctx<'_>, embed: CreateEmbed) -> Res<()> {
-    match ctx {
-        poise::Context::Application(_) => {
-            ctx.reply_embed_full(true, embed).await?;
-        }
-        poise::Context::Prefix(_) => {
-            ctx.author()
-                .id
-                .create_dm_channel(&ctx.serenity_context())
-                .await
-                .user_error("Couldn't open a DM to you - do you have me blocked?")?
-                .send_message(&ctx.serenity_context(), CreateMessage::default().embed(embed))
-                .await
-                .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
-        }
-    }
     Ok(())
 }
 

@@ -1,7 +1,6 @@
 use anyhow::Context;
 use chrono::Utc;
 use poise::serenity_prelude::{Attachment, ChannelId};
-use robbb_util::embeds;
 use serenity::{
     builder::{CreateAttachment, CreateMessage},
     http::CacheHttp,
@@ -34,11 +33,7 @@ pub async fn set_fetch(_ctx: Ctx<'_>) -> Res<()> {
 /// Use our custom fetch script to fill in your entire fetch automatically!
 #[poise::command(slash_command, guild_only, rename = "script")]
 pub async fn set_fetch_script(ctx: Ctx<'_>) -> Res<()> {
-    ctx.reply_embed_full(
-        true,
-        embeds::base_embed(ctx.serenity_context()).await.description(SETFETCH_USAGE),
-    )
-    .await?;
+    ctx.reply_embed_ephemeral_builder(|e| e.description(SETFETCH_USAGE)).await?;
     Ok(())
 }
 
@@ -119,7 +114,7 @@ pub async fn set_fetch_update(
 }
 
 /// Clear your fetch data
-#[poise::command(slash_command, guild_only, prefix_command, rename = "clear")]
+#[poise::command(slash_command, guild_only, rename = "clear")]
 pub async fn set_fetch_clear(
     ctx: Ctx<'_>,
     #[description = "Field you want to clear"] field: Option<FetchField>,

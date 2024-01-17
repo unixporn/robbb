@@ -10,7 +10,6 @@ use super::*;
 /// Kick a user from the server
 #[poise::command(
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]

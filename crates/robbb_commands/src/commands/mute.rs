@@ -42,7 +42,6 @@ pub async fn menu_mute(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]
 pub async fn mute(

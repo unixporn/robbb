@@ -81,15 +81,15 @@ pub async fn blocklist_list(ctx: Ctx<'_>) -> Res<()> {
     let entries = db.get_blocklist().await?;
 
     let is_in_mod_bot_stuff = ctx.channel_id() == config.channel_mod_bot_stuff;
-
-    ctx.reply_embed_full(
-        !is_in_mod_bot_stuff,
-        embeds::base_embed(ctx.serenity_context())
-            .await
-            .title("Blocklist")
-            .description(entries.iter().map(|x| format!("`{}`", x)).join("\n")),
-    )
-    .await?;
+    let embed = embeds::base_embed(ctx.serenity_context())
+        .await
+        .title("Blocklist")
+        .description(entries.iter().map(|x| format!("`{x}`")).join("\n"));
+    if is_in_mod_bot_stuff {
+        ctx.reply_embed(embed).await?;
+    } else {
+        ctx.reply_embed_ephemeral(embed).await?;
+    }
     Ok(())
 }
 

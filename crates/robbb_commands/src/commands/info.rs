@@ -21,7 +21,7 @@ pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
     } else {
         make_info_embed(ctx, member.as_ref()).await
     };
-    ctx.reply_embed_full(true, embed).await?;
+    ctx.reply_embed_ephemeral(embed).await?;
     Ok(())
 }
 
@@ -29,7 +29,6 @@ pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
@@ -42,11 +41,10 @@ pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) ->
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn modinfo(ctx: Ctx<'_>, #[description = "User"] user: Member) -> Res<()> {
-    ctx.reply_embed_full(true, make_mod_info_embed(ctx, &user).await?).await?;
+    ctx.reply_embed_ephemeral(make_mod_info_embed(ctx, &user).await?).await?;
     Ok(())
 }
 

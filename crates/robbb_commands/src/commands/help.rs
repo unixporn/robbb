@@ -50,7 +50,7 @@ pub async fn help(
 
 async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> Res<Message> {
     let handle = ctx
-        .reply_embed_full(true, {
+        .reply_embed_ephemeral({
             let mut e = CreateEmbed::default().title(format!("Help for {}", command.name));
             if let Some(desc) = &command.help_text {
                 e = e.description(desc);

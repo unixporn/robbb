@@ -1,13 +1,7 @@
 use super::*;
 
 /// Get the currently running bot version
-#[poise::command(
-    slash_command,
-    guild_only,
-    prefix_command,
-    category = "Bot-Administration",
-    hide_in_help
-)]
+#[poise::command(slash_command, guild_only, category = "Bot-Administration", hide_in_help)]
 pub async fn version(ctx: Ctx<'_>) -> Res<()> {
     let bot_version = util::BotVersion::get();
     ctx.reply_embed_builder(|e| {

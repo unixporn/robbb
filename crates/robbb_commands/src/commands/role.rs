@@ -16,7 +16,6 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn role(ctx: Ctx<'_>) -> Res<()> {

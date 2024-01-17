@@ -31,7 +31,6 @@ pub async fn menu_warn(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
 /// Warn a user
 #[poise::command(
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]

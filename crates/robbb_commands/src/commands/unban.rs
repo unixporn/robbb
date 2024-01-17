@@ -8,7 +8,6 @@ use super::*;
 /// Unban a user.
 #[poise::command(
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]

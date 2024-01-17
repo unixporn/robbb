@@ -8,7 +8,7 @@ use serenity::builder::{CreateMessage, EditMessage};
 use super::*;
 
 /// Move a conversation to a different channel.
-#[poise::command(slash_command, prefix_command, guild_only, rename = "move")]
+#[poise::command(slash_command, guild_only, rename = "move")]
 pub async fn move_users(
     ctx: Ctx<'_>,
     #[description = "Channel to move to"] target_channel: Channel,

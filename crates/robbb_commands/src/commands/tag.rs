@@ -10,7 +10,6 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn tag(
@@ -49,7 +48,6 @@ pub async fn tag(
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }",
     rename = "taglist"
 )]
@@ -76,7 +74,6 @@ pub async fn settag(_ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "delete"
 )]

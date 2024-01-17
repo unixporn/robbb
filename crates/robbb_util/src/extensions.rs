@@ -40,27 +40,34 @@ pub impl<'a> Ctx<'a> {
         matches!(self, poise::Context::Prefix(_))
     }
 
-    /// Send an embed. Convenient simpler form of [`Self::send_embed_full`].
+    /// Reply with an ephemeral embed.
+    async fn reply_embed_ephemeral_builder(
+        &self,
+        build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        self.reply_embed_ephemeral(build(embeds::base_embed(self.serenity_context()).await)).await
+    }
+
+    /// Reply with an embed.
     async fn reply_embed_builder(
         &self,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        self.reply_embed_full(false, build(embeds::base_embed(self.serenity_context()).await)).await
+        self.reply_embed(build(embeds::base_embed(self.serenity_context()).await)).await
     }
 
-    /// Send an embed. Convenient simpler form of [`Self::send_embed_full`].
+    /// Reply with an embed.
     async fn reply_embed(&self, embed: CreateEmbed) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        self.reply_embed_full(false, embed).await
+        let reply = CreateReply::default().ephemeral(false).embed(embed).reply(true);
+        self.send(reply).await
     }
 
-    /// Send an embed, making it ephemeral optionally.
-    /// Will make message a reply unconditionally.
-    async fn reply_embed_full(
+    /// Reply with an ephemeral embed.
+    async fn reply_embed_ephemeral(
         &self,
-        ephemeral: bool,
         embed: CreateEmbed,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        let reply = CreateReply::default().ephemeral(ephemeral).embed(embed).reply(true);
+        let reply = CreateReply::default().ephemeral(true).embed(embed).reply(true);
         self.send(reply).await
     }
 
@@ -74,8 +81,7 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending success message to user"
         );
-        self.reply_embed_full(
-            true,
+        self.reply_embed_ephemeral(
             embeds::make_success_embed(self.serenity_context(), &text.to_string()).await,
         )
         .await
@@ -91,8 +97,7 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending error message to user"
         );
-        self.reply_embed_full(
-            true,
+        self.reply_embed_ephemeral(
             embeds::make_error_embed(self.serenity_context(), &text.to_string()).await,
         )
         .await

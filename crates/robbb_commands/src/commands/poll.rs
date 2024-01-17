@@ -23,7 +23,6 @@ pub async fn poll(_ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }",
     rename = "vote"
 )]
