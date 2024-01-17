@@ -6,17 +6,22 @@ use super::*;
 pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
     let config = ctx.get_config().await;
 
-    let bot_version = util::bot_version();
-    tracing::info!(robbb_version = %bot_version, "Robbb is ready! Running version {bot_version}");
+    let bot_version = util::BotVersion::get();
+    tracing::info!(
+        version.profile = %bot_version.profile,
+        version.commit_hash = %bot_version.commit_hash,
+        version.commit_msg = %bot_version.commit_msg,
+        "Robbb is ready!"
+    );
 
     let _ = config
         .channel_mod_bot_stuff
         .send_embed_builder(&ctx, |e| {
-            e.title("Bot is back!").description("Hey guys, I'm back!").field(
-                "version",
-                bot_version,
-                false,
-            )
+            e.title("Bot is back!")
+                .description("Hey guys, I'm back!")
+                .field("profile", bot_version.profile, true)
+                .field("commit", bot_version.commit_link(), true)
+                .field("message", bot_version.commit_msg, false)
         })
         .await;
 

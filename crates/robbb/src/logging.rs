@@ -104,12 +104,15 @@ pub fn init_tracing() {
 }
 
 pub async fn send_honeycomb_deploy_marker(api_key: &str) {
-    let version = robbb_util::util::bot_version();
+    let version = robbb_util::util::BotVersion::get();
     log_error!(
         reqwest::Client::new()
             .post("https://api.honeycomb.io/1/markers/robbb")
             .header("X-Honeycomb-Team", api_key)
-            .body(format!(r#"{{"message": "{version}", "type": "deploy"}}"#,))
+            .body(format!(
+                r#"{{"message": "{}; {} {}", "type": "deploy"}}"#,
+                version.profile, version.commit_hash, version.commit_msg
+            ))
             .send()
             .await
     );

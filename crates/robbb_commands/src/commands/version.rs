@@ -9,7 +9,14 @@ use super::*;
     hide_in_help
 )]
 pub async fn version(ctx: Ctx<'_>) -> Res<()> {
-    let version = util::bot_version();
-    ctx.reply_embed_builder(|e| e.description(format!("Running version `{}`", version))).await?;
+    let bot_version = util::BotVersion::get();
+    ctx.reply_embed_builder(|e| {
+        e.title("Version info")
+            .field("profile", bot_version.profile, true)
+            .field("commit", bot_version.commit_link(), true)
+            .field("message", bot_version.commit_msg, false)
+    })
+    .await?;
+
     Ok(())
 }
