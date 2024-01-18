@@ -57,19 +57,33 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         .to_mut()
         .await_component_interactions(ctx.serenity_context())
         .author_id(ctx.author().id)
-        .timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(30))
         .custom_ids(vec![interaction_custom_id])
         .await
     {
+        interaction
+            .create_response(
+                &ctx,
+                CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::default()
+                        .embed(embeds::base_embed(&ctx).description("Updating roles..."))
+                        .components(vec![]),
+                ),
+            )
+            .await
+            .context("Failed to create interactionresponse")?;
         let selected: String = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => {
                 values.first().context("Nothing selected")?.to_string()
             }
             _ => anyhow::bail!("Wrong interaction kind returned"),
         };
+        tracing::debug!("Got /role interaction response, selected {selected}");
 
         let mut member = ctx.author_member().await.user_error("Not a member")?;
+        tracing::debug!("Got member data for /role invoker");
         member.to_mut().remove_roles(&ctx.serenity_context(), &config.roles_color).await?;
+        tracing::debug!("Removed roles of user");
 
         let response_embed = if selected == NONE_VALUE {
             embeds::make_success_embed(ctx.serenity_context(), "Success! Removed your colorrole")
@@ -77,6 +91,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         } else {
             let role_id = selected.parse::<RoleId>().context("Invalid role")?;
             member.to_mut().add_role(&ctx.serenity_context(), role_id).await?;
+            tracing::debug!("added role {} to {}", role_id, member.user.tag());
 
             embeds::make_success_embed(
                 ctx.serenity_context(),
@@ -85,18 +100,12 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
             .await
         };
 
-        interaction
-            .create_response(
-                &ctx.serenity_context(),
-                CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::default()
-                        .embed(response_embed)
-                        .components(vec![]),
-                ),
-            )
+        handle
+            .edit(ctx, CreateReply::default().embed(response_embed))
             .await
-            .context("Failed to create interactionresponse")?;
+            .context("Failed to edit message")?;
     } else {
+        tracing::debug!("Role selection timed out");
         let timed_out_embed =
             embeds::make_error_embed(ctx.serenity_context(), "No role chosen").await;
         handle
