@@ -72,7 +72,7 @@ async fn start_attachment_log_handler(ctx: client::Context) {
     let config = ctx.get_config().await;
     tokio::spawn(async move {
         loop {
-            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(60 * 5)).await;
 
             log_error!(
                 "Failed to clean up attachments",
