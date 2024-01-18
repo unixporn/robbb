@@ -82,7 +82,10 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
 
         let mut member = ctx.author_member().await.user_error("Not a member")?;
         tracing::debug!("Got member data for /role invoker");
-        member.to_mut().remove_roles(&ctx.serenity_context(), &config.roles_color).await?;
+        let current_color_roles = member.roles.iter().filter(|x| config.roles_color.contains(x));
+        for role in current_color_roles {
+            member.remove_role(&ctx.serenity_context(), role).await?;
+        }
         tracing::debug!("Removed roles of user");
 
         let response_embed = if selected == NONE_VALUE {
