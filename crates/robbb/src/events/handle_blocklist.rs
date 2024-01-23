@@ -179,11 +179,11 @@ fn collect_interaction_values(interaction: &CommandInteraction) -> InteractionVa
         match value {
             ResolvedValue::String(s) => vec![s],
             ResolvedValue::SubCommand(sub) => sub
-                .into_iter()
+                .iter()
                 .flat_map(|x| values_from_resolved_value(&x.value).into_iter())
                 .collect(),
             ResolvedValue::SubCommandGroup(sub) => sub
-                .into_iter()
+                .iter()
                 .flat_map(|x| values_from_resolved_value(&x.value).into_iter())
                 .collect(),
             _ => vec![],
