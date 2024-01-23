@@ -70,7 +70,7 @@ async fn make_mod_info_embed(ctx: Ctx<'_>, member: &Member) -> Res<CreateEmbed> 
     let embed_content = note_counts
         .iter()
         .filter(|(_, count)| **count > 0)
-        .map(|(note_type, count)| format!("**{}s**: {}", note_type.to_string(), count))
+        .map(|(note_type, count)| format!("**{}s**: {}", note_type, count))
         .join("\n");
 
     Ok(make_info_embed(ctx, member).await.description(embed_content))
