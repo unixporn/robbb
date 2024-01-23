@@ -29,6 +29,9 @@ poise = "0.6.1"
 [profile.dev]
 split-debuginfo = "unpacked"
 
+[profile.release]
+debug = true
+
 
 [patch.crates-io]
 #poise = { git = "https://github.com/kangalioo/poise", rev = "0f2eb876397d1712d38432adc759ca3b9186d7ff" }

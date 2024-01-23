@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 RUN apt-get -y update && apt-get -y install ca-certificates wget \
   && rm -rf /var/lib/apt/lists/*
-  # gdb heaptrack \
+# gdb heaptrack \
 
 RUN wget https://github.com/koute/bytehound/releases/download/0.11.0/bytehound-x86_64-unknown-linux-gnu.tgz \
   && tar -xvzf bytehound-x86_64-unknown-linux-gnu.tgz
