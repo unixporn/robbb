@@ -2,7 +2,12 @@ use robbb_util::extensions::ClientContextExt;
 use serenity::{all::ActionExecution, client};
 
 pub async fn execution(ctx: client::Context, execution: ActionExecution) -> anyhow::Result<()> {
-    tracing::info!(execution = ?execution, "Automod execution");
+    tracing::info!(
+        execution.action = ?execution.action,
+        execution = ?execution,
+        "Automod execution: {:?}",
+        execution.action
+    );
     if !matches!(execution.action, serenity::all::automod::Action::Alert { .. }) {
         return Ok(());
     }

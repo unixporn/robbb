@@ -10,10 +10,12 @@ use robbb_util::{
 use serenity::builder::CreateEmbedAuthor;
 use std::time::SystemTime;
 
+#[tracing::instrument(skip_all)]
 async fn handle_htm_evasion(ctx: &client::Context, new_member: &mut Member) -> Result<()> {
     let (config, db) = ctx.get_config_and_db().await;
     let is_htm = db.check_user_htm(new_member.user.id).await?;
     if is_htm {
+        tracing::info!("Re-adding hard-to-moderate-role due to htm evasion");
         config
             .channel_modlog
             .send_embed_builder(&ctx, |e| {
@@ -34,10 +36,12 @@ async fn handle_htm_evasion(ctx: &client::Context, new_member: &mut Member) -> R
 
 /// check if there's an active mute of a user that just joined.
 /// if so, reapply the mute and log their mute-evasion attempt in modlog
+#[tracing::instrument(skip_all)]
 async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Result<()> {
     let (config, db) = ctx.get_config_and_db().await;
     let active_mute = db.get_active_mute(new_member.user.id).await?;
     if let Some(mute) = active_mute {
+        tracing::info!("Re-adding mute-role due to mute evasion");
         commands::mute::set_mute_role(&ctx, new_member.clone()).await?;
         let embed = embeds::base_embed_ctx(ctx)
             .await
@@ -56,6 +60,7 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
 }
 
 pub async fn guild_member_addition(ctx: client::Context, mut new_member: Member) -> Result<()> {
+    tracing::info!(user.id = %new_member.user.id, user.name = %new_member.user.tag(), "Handling guild_member_addtion");
     let config = ctx.get_config().await;
     if config.guild != new_member.guild_id {
         return Ok(());

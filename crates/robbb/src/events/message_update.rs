@@ -5,7 +5,7 @@ use super::*;
 pub async fn message_update(
     ctx: &client::Context,
     old_if_available: Option<Message>,
-    _new: Option<Message>,
+    new: Option<Message>,
     event: MessageUpdateEvent,
 ) -> Result<()> {
     let config = ctx.get_config().await;
@@ -16,6 +16,12 @@ pub async fn message_update(
     {
         return Ok(());
     };
+
+    tracing::info!(
+        msg.id = %event.id,
+        msg.content = new.map(|x| x.content).unwrap_or_default(),
+        "handling message_update event"
+    );
 
     let mut msg = event.channel_id.message(&ctx, event.id).await?;
     msg.guild_id = event.guild_id;

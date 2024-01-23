@@ -15,6 +15,13 @@ pub async fn guild_member_removal(
         return Ok(());
     }
 
+    tracing::info!(
+        user.id = %user.id,
+        user.name = %user.tag(),
+        "Handling guild_member_removal event for user {}",
+        user.tag(),
+    );
+
     if let Some(member) = member {
         let roles = member.roles(&ctx).unwrap_or_default();
         if roles.iter().any(|x| x.id == config.role_htm) {

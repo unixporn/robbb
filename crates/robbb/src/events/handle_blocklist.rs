@@ -178,14 +178,12 @@ fn collect_interaction_values(interaction: &CommandInteraction) -> InteractionVa
     fn values_from_resolved_value<'a>(value: &ResolvedValue<'a>) -> Vec<&'a str> {
         match value {
             ResolvedValue::String(s) => vec![s],
-            ResolvedValue::SubCommand(sub) => sub
-                .iter()
-                .flat_map(|x| values_from_resolved_value(&x.value).into_iter())
-                .collect(),
-            ResolvedValue::SubCommandGroup(sub) => sub
-                .iter()
-                .flat_map(|x| values_from_resolved_value(&x.value).into_iter())
-                .collect(),
+            ResolvedValue::SubCommand(sub) => {
+                sub.iter().flat_map(|x| values_from_resolved_value(&x.value).into_iter()).collect()
+            }
+            ResolvedValue::SubCommandGroup(sub) => {
+                sub.iter().flat_map(|x| values_from_resolved_value(&x.value).into_iter()).collect()
+            }
             _ => vec![],
         }
     }

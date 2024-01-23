@@ -288,7 +288,11 @@ impl client::EventHandler for Handler {
         );
     }
 
-    #[tracing::instrument(skip_all, fields(entry = ?entry))]
+    #[tracing::instrument(skip_all, fields(
+        auditlog.entry.id = %entry.id,
+        auditlog.entry.action = ?entry.action,
+        auditlog.entry = ?entry
+    ))]
     async fn guild_audit_log_entry_create(
         &self,
         ctx: client::Context,

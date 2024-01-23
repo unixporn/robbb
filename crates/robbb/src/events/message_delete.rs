@@ -20,6 +20,8 @@ pub async fn message_delete(
         return Ok(());
     };
 
+    tracing::info!(msg.id = %deleted_message_id, msg.channel_id = %channel_id, "Handling message_delete event");
+
     let attachments = crate::attachment_logging::find_attachments_for(
         &config.attachment_cache_path,
         channel_id,

@@ -21,7 +21,9 @@ use crate::logging::*;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
+
     let pyroscope_url = std::env::var("PYROSCOPE_URL").ok();
+    let pyroscope_project = std::env::var("PYROSCOPE_PROJECT").ok();
     let pyroscope_user = std::env::var("PYROSCOPE_USER").ok();
     let pyroscope_password = std::env::var("PYROSCOPE_PASSWORD").ok();
 
@@ -30,10 +32,10 @@ async fn main() -> anyhow::Result<()> {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
 
-    let pyroscope_running = if let Some(pyroscope_url) = pyroscope_url {
+    let pyroscope_running = if let Some((url, project)) = pyroscope_url.zip(pyroscope_project) {
         tracing::info!("Enabling pyroscope profiling");
-        let mut agent_builder = PyroscopeAgent::builder(pyroscope_url, "robbb-dev".to_string());
-        if let (Some(username), Some(password)) = (pyroscope_user, pyroscope_password) {
+        let mut agent_builder = PyroscopeAgent::builder(url, project);
+        if let Some((username, password)) = pyroscope_user.zip(pyroscope_password) {
             agent_builder = agent_builder.basic_auth(username, password);
         }
         let agent =

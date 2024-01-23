@@ -9,6 +9,14 @@ pub async fn guild_audit_log_entry_create(
     ctx: client::Context,
     entry: AuditLogEntry,
 ) -> anyhow::Result<()> {
+    tracing::info!(
+        auditlog.entry.id = %entry.id,
+        auditlog.entry.action = ?entry.action,
+        auditlog.entry = ?entry,
+        "New audit log entry created with action {:?}",
+        entry.action
+    );
+
     if entry.user_id == ctx.cache.current_user().id {
         return Ok(());
     }
@@ -77,9 +85,7 @@ pub async fn guild_audit_log_entry_create(
                 })
                 .await;
         }
-        _ => {
-            tracing::info!("unhandled audit log entry: {:?}", entry);
-        }
+        _ => {}
     }
     Ok(())
 }
