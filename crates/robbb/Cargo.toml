@@ -52,3 +52,7 @@ opentelemetry = { version = "0.21.0", features = ["trace", "logs"] }
 opentelemetry-otlp = { version = "0.14.0", features = ["http-proto", "reqwest-client", "grpc-tonic"] }
 opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
 tracing-opentelemetry = "0.22.0"
+
+
+pyroscope = "0.5.4"
+pyroscope_pprofrs = "0.2"
