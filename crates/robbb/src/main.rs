@@ -1,6 +1,9 @@
 #![allow(clippy::needless_borrow)]
 
+use anyhow::Context;
 use poise::{serenity_prelude::GatewayIntents, CommandInteractionType};
+use pyroscope::PyroscopeAgent;
+use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use robbb_commands::{checks, commands};
 use robbb_db::Db;
 
@@ -18,15 +21,35 @@ use crate::logging::*;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
+    let pyroscope_url = std::env::var("PYROSCOPE_URL").ok();
+    let pyroscope_user = std::env::var("PYROSCOPE_USER").ok();
+    let pyroscope_password = std::env::var("PYROSCOPE_PASSWORD").ok();
 
     init_tracing();
     if let Some(honeycomb_api_key) = honeycomb_api_key {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
 
+    let pyroscope_running = if let Some(pyroscope_url) = pyroscope_url {
+        tracing::info!("Enabling pyroscope profiling");
+        let mut agent_builder = PyroscopeAgent::builder(pyroscope_url, "robbb-dev".to_string());
+        if let (Some(username), Some(password)) = (pyroscope_user, pyroscope_password) {
+            agent_builder = agent_builder.basic_auth(username, password);
+        }
+        let agent =
+            agent_builder.backend(pprof_backend(PprofConfig::new().sample_rate(100))).build()?;
+        Some(agent.start()?)
+    } else {
+        None
+    };
+
     let mut client = setup_discord_client().await?;
     tracing::info!("Starting discord client");
     client.start().await?;
+    if let Some(pyroscope_running) = pyroscope_running {
+        let pyroscope_ready = pyroscope_running.stop().context("Failed to stop pyroscope agent")?;
+        pyroscope_ready.shutdown();
+    }
 
     Ok(())
 }
