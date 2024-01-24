@@ -250,6 +250,11 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
 
 #[tracing::instrument(skip_all)]
 async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
+    let config = ctx.get_config().await;
+    if msg.channel_id == config.channel_showcase {
+        return Ok(());
+    }
+
     lazy_static::lazy_static! {
         static ref MSG_LINK_PATTERN: Regex = Regex::new(r"<?https://(?:canary\.|ptb\.)?discord(?:app)?\.com/channels/(\d+)/(\d+)/(\d+)>?").unwrap();
     }
