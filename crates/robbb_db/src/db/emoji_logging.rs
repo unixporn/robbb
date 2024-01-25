@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 
 use super::Db;
 
-use serenity::model::{id::EmojiId, misc::EmojiIdentifier};
+use serenity::model::id::EmojiId;
 
 pub struct EmojiStats {
     pub emoji: EmojiIdentifier,
@@ -14,6 +14,13 @@ impl EmojiStats {
     pub fn new(emoji_id: EmojiIdentifier) -> EmojiStats {
         EmojiStats { emoji: emoji_id, reactions: 0, in_text: 0 }
     }
+}
+
+#[derive(Clone)]
+pub struct EmojiIdentifier {
+    pub id: EmojiId,
+    pub animated: bool,
+    pub name: String,
 }
 
 pub enum Ordering {
@@ -29,7 +36,7 @@ impl Db {
         emoji: &EmojiIdentifier,
     ) -> Result<EmojiStats> {
         let emoji_str = &emoji.name;
-        let id = emoji.id.0 as i64;
+        let id: i64 = emoji.id.into();
         sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, reaction_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set reaction_usage=max(0, reaction_usage + ?3)",
             id, emoji_str, amount, emoji.animated)
             .execute(&self.pool)
@@ -43,7 +50,7 @@ impl Db {
         amount: i64,
         emoji: &EmojiIdentifier,
     ) -> Result<EmojiStats> {
-        let id = emoji.id.0 as i64;
+        let id: i64 = emoji.id.into();
         let emoji_str = &emoji.name;
         sqlx::query!("insert into emoji_stats (emoji_id, emoji_name, in_text_usage, animated) values (?1, ?2, max(0, ?3), ?4) on conflict(emoji_id) do update set in_text_usage=max(0, in_text_usage + ?3)",
             id, emoji_str, amount, emoji.animated)
@@ -54,14 +61,14 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_emoji_usage_by_id(&self, emoji: &EmojiIdentifier) -> Result<EmojiStats> {
-        let emoji_id = emoji.id.0 as i64;
+        let emoji_id: i64 = emoji.id.into();
         let value = sqlx::query!("select * from emoji_stats where emoji_id=?", emoji_id)
             .fetch_optional(&self.pool)
             .await?;
         Ok(value
             .map(|x| EmojiStats {
                 emoji: EmojiIdentifier {
-                    id: EmojiId(x.emoji_id as u64),
+                    id: EmojiId::new(x.emoji_id as u64),
                     animated: x.animated != 0,
                     name: x.emoji_name.unwrap(),
                 },
@@ -79,7 +86,7 @@ impl Db {
         value
             .map(|x| EmojiStats {
                 emoji: EmojiIdentifier {
-                    id: EmojiId(x.emoji_id as u64),
+                    id: EmojiId::new(x.emoji_id as u64),
                     animated: x.animated != 0,
                     name: x.emoji_name.unwrap(),
                 },
@@ -105,7 +112,7 @@ impl Db {
                     .into_iter()
                     .map(|x| EmojiStats {
                         emoji: EmojiIdentifier {
-                            id: EmojiId(x.emoji_id as u64),
+                            id: EmojiId::new(x.emoji_id as u64),
                             animated: x.animated != 0,
                             name: x.emoji_name.unwrap(),
                         },

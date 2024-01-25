@@ -117,7 +117,7 @@ impl Db {
     #[tracing::instrument(skip_all)]
     pub async fn remove_highlight(&self, user: UserId, trigger: String) -> Result<()> {
         {
-            let user = user.0 as i64;
+            let user: i64 = user.into();
             sqlx::query!("delete from highlights where word=? and usr=?", trigger, user)
                 .execute(&self.pool)
                 .await?;
@@ -139,7 +139,7 @@ impl Db {
             );
         }
         {
-            let user = user.0 as i64;
+            let user: i64 = user.into();
             sqlx::query!("insert into highlights (word, usr) values (?, ?)", word, user)
                 .execute(&self.pool)
                 .await?;
@@ -155,7 +155,7 @@ impl Db {
     #[tracing::instrument(skip_all)]
     pub async fn rm_highlights_of(&self, user: UserId) -> Result<()> {
         {
-            let user = user.0 as i64;
+            let user: i64 = user.into();
             sqlx::query!("delete from highlights where usr=?", user).execute(&self.pool).await?;
         }
 

@@ -9,7 +9,6 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn tag(
@@ -28,13 +27,15 @@ pub async fn tag(
     if util::validate_url(&tag.content) {
         ctx.say(&tag.content).await?;
     } else {
-        ctx.send_embed(|e| {
-            e.title(&tag.name);
-            e.description(&tag.content);
-            e.footer(|f| f.text(format!("Written by {}", moderator.tag())));
+        ctx.reply_embed_builder(|mut e| {
+            e = e
+                .title(&tag.name)
+                .description(&tag.content)
+                .footer_str(format!("Written by {}", moderator.tag()));
             if let Some(date) = tag.create_date {
-                e.timestamp(date);
+                e = e.timestamp(date);
             }
+            e
         })
         .await?;
     }
@@ -46,7 +47,6 @@ pub async fn tag(
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }",
     rename = "taglist"
 )]
@@ -54,12 +54,7 @@ pub async fn taglist(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
 
     let tags = db.list_tags().await?;
-
-    ctx.send_embed(|e| {
-        e.title("Tags").description(&tags.join(", "));
-    })
-    .await?;
-
+    ctx.reply_embed_builder(|e| e.title("Tags").description(tags.join(", "))).await?;
     Ok(())
 }
 
@@ -78,7 +73,6 @@ pub async fn settag(_ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "delete"
 )]
@@ -145,12 +139,7 @@ async fn tag_autocomplete(ctx: Ctx<'_>, partial: &str) -> impl Iterator<Item = S
 /// Autocomplete all tags
 async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: &str) -> impl Iterator<Item = String> {
     let db = ctx.get_db();
-    let tags = match db.list_tags().await {
-        Ok(tags) => tags,
-        Err(_) => Vec::new(),
-    };
-
+    let tags = db.list_tags().await.unwrap_or_default();
     let partial = partial.to_ascii_lowercase();
-
     tags.into_iter().filter(move |tag| tag.to_ascii_lowercase().starts_with(&partial))
 }

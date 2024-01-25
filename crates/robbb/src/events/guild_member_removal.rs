@@ -1,4 +1,5 @@
 use robbb_db::Db;
+use serenity::builder::CreateEmbedAuthor;
 
 use super::*;
 
@@ -14,6 +15,13 @@ pub async fn guild_member_removal(
         return Ok(());
     }
 
+    tracing::info!(
+        user.id = %user.id,
+        user.name = %user.tag(),
+        "Handling guild_member_removal event for user {}",
+        user.tag(),
+    );
+
     if let Some(member) = member {
         let roles = member.roles(&ctx).unwrap_or_default();
         if roles.iter().any(|x| x.id == config.role_htm) {
@@ -23,10 +31,10 @@ pub async fn guild_member_removal(
 
     config
         .channel_bot_traffic
-        .send_embed(&ctx, |e| {
-            e.author(|a| a.name("Member Leave").icon_url(user.face()));
-            e.title(user.name_with_disc_and_id());
-            e.field("Leave Date", util::format_date(chrono::Utc::now()), false);
+        .send_embed_builder(&ctx, |e| {
+            e.author(CreateEmbedAuthor::new("Member Leave").icon_url(user.face()))
+                .title(user.name_with_disc_and_id())
+                .field("Leave Date", util::format_date(chrono::Utc::now()), false)
         })
         .await?;
     db.rm_highlights_of(user.id).await?;

@@ -3,9 +3,9 @@ use poise::serenity_prelude::MessageUpdateEvent;
 use super::*;
 
 pub async fn message_update(
-    ctx: client::Context,
+    ctx: &client::Context,
     old_if_available: Option<Message>,
-    _new: Option<Message>,
+    new: Option<Message>,
     event: MessageUpdateEvent,
 ) -> Result<()> {
     let config = ctx.get_config().await;
@@ -16,6 +16,12 @@ pub async fn message_update(
     {
         return Ok(());
     };
+
+    tracing::info!(
+        msg.id = %event.id,
+        msg.content = new.map(|x| x.content).unwrap_or_default(),
+        "handling message_update event"
+    );
 
     let mut msg = event.channel_id.message(&ctx, event.id).await?;
     msg.guild_id = event.guild_id;
@@ -30,11 +36,14 @@ pub async fn message_update(
 
     config
         .guild
-        .send_embed(&ctx, config.channel_bot_messages, |e| {
-            e.author(|a| a.name("Message Edit").icon_url(msg.author.face()));
-            e.title(msg.author.name_with_disc_and_id());
-            e.description(indoc::formatdoc!(
-                "
+        .send_embed(&ctx, config.channel_bot_messages, |mut e| {
+            if let Some(edited_timestamp) = event.edited_timestamp {
+                e = e.timestamp(edited_timestamp);
+            }
+            e.author_icon("Message Edit", msg.author.face())
+                .title(msg.author.name_with_disc_and_id())
+                .description(indoc::formatdoc!(
+                    "
                         **Before:**
                         {}
 
@@ -43,16 +52,13 @@ pub async fn message_update(
 
                         {}
                     ",
-                old_if_available
-                    .map(|old| old.content)
-                    .unwrap_or_else(|| "<Unavailable>".to_string()),
-                event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
-                msg.to_context_link()
-            ));
-            if let Some(edited_timestamp) = event.edited_timestamp {
-                e.timestamp(&edited_timestamp);
-            }
-            e.footer(|f| f.text(format!("#{}", channel_name)));
+                    old_if_available
+                        .map(|old| old.content)
+                        .unwrap_or_else(|| "<Unavailable>".to_string()),
+                    event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
+                    msg.to_context_link()
+                ))
+                .footer_str(format!("#{channel_name}"))
         })
         .await?;
     Ok(())

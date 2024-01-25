@@ -12,7 +12,6 @@ pub use errors::*;
 
 use crate::checks::PermissionLevel;
 
-pub mod ask;
 pub mod ban;
 pub mod blocklist;
 pub mod emojistats;
@@ -26,7 +25,6 @@ pub mod move_users;
 pub mod mute;
 pub mod note;
 pub mod pfp;
-pub mod poise_commands;
 pub mod poll;
 pub mod purge;
 pub mod role;
@@ -34,7 +32,6 @@ pub mod small;
 pub mod tag;
 pub mod top;
 pub mod unban;
-pub mod version;
 pub mod warn;
 
 pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
@@ -44,11 +41,9 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         info::info(),
         help::help(),
         role::role(),
-        version::version(),
         poll::poll(),
         tag::tag(),
         tag::taglist(),
-        ask::ask(),
         modping::modping(),
         highlights::highlights(),
         small::latency(),
@@ -58,6 +53,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         small::description(),
         small::git(),
         small::dotfiles(),
+        small::version(),
         fetch::fetch(),
         fetch::set_fetch(),
         top::top(),
@@ -70,14 +66,14 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         warn::warn(),
         ban::ban(),
         kick::kick(),
+        ban::ban_many(),
         unban::unban(),
         emojistats::emojistats(),
         blocklist::blocklist(),
         note::note(),
         mute::mute(),
         purge::purge(),
-        poise_commands::register(),
-        poise_commands::delete(),
+        small::manage_commands(),
         // context menu
         info::menu_info(),
         ban::menu_ban(),
@@ -103,11 +99,11 @@ pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
         };
         command.default_member_permissions = match meta.perms {
             PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
-            PermissionLevel::User => Permissions::USE_SLASH_COMMANDS,
+            PermissionLevel::User => Permissions::USE_APPLICATION_COMMANDS,
         };
-        command.category = Some(command.category.unwrap_or(match meta.perms {
-            PermissionLevel::Mod | PermissionLevel::Helper => "Moderation",
-            PermissionLevel::User => "Member",
+        command.category = Some(command.category.clone().unwrap_or(match meta.perms {
+            PermissionLevel::Mod | PermissionLevel::Helper => "Moderation".to_string(),
+            PermissionLevel::User => "Member".to_string(),
         }));
     }
 

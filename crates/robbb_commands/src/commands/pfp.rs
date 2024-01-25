@@ -6,7 +6,6 @@ use super::*;
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }"
 )]
 pub async fn pfp(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
@@ -17,28 +16,21 @@ pub async fn pfp(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> 
 
     if user_pfp != server_pfp {
         embeds.push(
-            embeds::make_create_embed(ctx.serenity_context(), |e| {
-                e.title(format!("{}'s Server Profile Picture", member.user.tag()))
-                    .image(member.face())
-            })
-            .await,
+            embeds::base_embed(&ctx)
+                .title(format!("{}'s Server Profile Picture", member.user.tag()))
+                .image(member.face()),
         );
     }
 
     embeds.push(
-        embeds::make_create_embed(ctx.serenity_context(), |e| {
-            e.title(format!("{}'s User Profile Picture", member.user.tag()))
-                .image(member.user.face())
-        })
-        .await,
+        embeds::base_embed(&ctx)
+            .title(format!("{}'s User Profile Picture", member.user.tag()))
+            .image(member.user.face()),
     );
 
-    embeds::PaginatedEmbed::create(
-        embeds,
-        embeds::make_create_embed(ctx.serenity_context(), |e| e).await,
-    )
-    .await
-    .reply_to(ctx, false)
-    .await?;
+    embeds::PaginatedEmbed::create(embeds, embeds::base_embed(&ctx))
+        .await
+        .reply_to(ctx, false)
+        .await?;
     Ok(())
 }

@@ -15,11 +15,12 @@ pub async fn highlights(_: Ctx<'_>) -> Res<()> {
 }
 
 /// Add a new highlight
-#[poise::command(prefix_command, slash_command, guild_only, rename = "add")]
+#[poise::command(slash_command, guild_only, rename = "add")]
 pub async fn highlights_add(
     ctx: Ctx<'_>,
     #[description = "The word you want to be notified about"] trigger: String,
 ) -> Res<()> {
+    ctx.defer().await?;
     if trigger.len() < 3 {
         abort_with!("Highlight has to be longer than 2 characters");
     }
@@ -35,7 +36,7 @@ pub async fn highlights_add(
     let highlights_by_user_cnt = highlights.triggers_for_user(ctx.author().id).count();
 
     if highlights_by_user_cnt >= max_highlight_cnt {
-        abort_with!(UserErr::Other(format!(
+        abort_with!(UserErr::new(format!(
             "Sorry, you can only watch a maximum of {} highlights",
             max_highlight_cnt
         )));
@@ -46,15 +47,15 @@ pub async fn highlights_add(
         .create_dm_channel(&ctx.serenity_context())
         .await
         .user_error("Couldn't open a DM to you - do you have me blocked?")?
-        .send_message(&ctx.serenity_context(), |m| {
-            m.embed(|e| {
-                e.title("Test to see if you can receive DMs");
-                e.description(format!(
-                    "If everything went ok, you'll be notified whenever someone says `{}`",
-                    trigger
+        .send_message(
+            &ctx.serenity_context(),
+            CreateEmbed::default()
+                .title("Test to see if you can receive DMs")
+                .description(format!(
+                    "If everything went ok, you'll be notified whenever someone says `{trigger}`",
                 ))
-            })
-        })
+                .into_create_message(),
+        )
         .await
         .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
 
@@ -62,13 +63,13 @@ pub async fn highlights_add(
         "Couldn't add highlight, something went wrong (highlight might already be present)",
     )?;
 
-    ctx.say_success(format!("You will be notified whenever someone says {}", trigger)).await?;
+    ctx.say_success(format!("You will be notified whenever someone says {trigger}")).await?;
 
     Ok(())
 }
 
 /// List all of your highlights
-#[poise::command(prefix_command, slash_command, guild_only, rename = "list")]
+#[poise::command(slash_command, guild_only, rename = "list")]
 pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
     let highlights = db.get_highlights().await?;
@@ -78,9 +79,8 @@ pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
     if highlights_list.is_empty() {
         abort_with!("You don't seem to have set any highlights");
     } else {
-        try_dm_or_ephemeral_response(ctx, |e| {
-            e.title("Your highlights");
-            e.description(highlights_list);
+        ctx.reply_embed_ephemeral_builder(|e| {
+            e.title("Your highlights").description(highlights_list)
         })
         .await?;
     }
@@ -88,7 +88,7 @@ pub async fn highlights_list(ctx: Ctx<'_>) -> Res<()> {
 }
 
 /// Remove a highlight
-#[poise::command(prefix_command, slash_command, guild_only, rename = "remove")]
+#[poise::command(slash_command, guild_only, rename = "remove")]
 pub async fn highlights_remove(
     ctx: Ctx<'_>,
     #[autocomplete = "autocomplete_highlights"]
@@ -105,44 +105,11 @@ pub async fn highlights_remove(
 }
 
 /// Remove all of your highlights
-#[poise::command(prefix_command, slash_command, guild_only, rename = "clear")]
+#[poise::command(slash_command, guild_only, rename = "clear")]
 pub async fn highlights_clear(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
     db.rm_highlights_of(ctx.author().id).await?;
     ctx.say_success("Your highlights have been successfully cleared.").await?;
-    Ok(())
-}
-
-/// When in an `ApplicationContext`, send the reply as a ephemeral message.
-/// When in a `PrefixContext`, attempt to send the message in DMs,
-/// and give a generic error message when the user doesn't allow for that.
-async fn try_dm_or_ephemeral_response(
-    ctx: Ctx<'_>,
-    build: impl FnOnce(&mut CreateEmbed) + Send + Sync,
-) -> Res<()> {
-    match ctx {
-        poise::Context::Application(_) => {
-            ctx.send_embed_full(true, |e| {
-                build(e);
-            })
-            .await?;
-        }
-        poise::Context::Prefix(_) => {
-            ctx.author()
-                .id
-                .create_dm_channel(&ctx.serenity_context())
-                .await
-                .user_error("Couldn't open a DM to you - do you have me blocked?")?
-                .send_message(&ctx.serenity_context(), |m| {
-                    m.embed(|e| {
-                        build(e);
-                        e
-                    })
-                })
-                .await
-                .user_error("Couldn't send you a DM :/\nDo you allow DMs from server members?")?;
-        }
-    }
     Ok(())
 }
 

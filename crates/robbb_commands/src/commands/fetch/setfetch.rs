@@ -1,6 +1,10 @@
 use anyhow::Context;
 use chrono::Utc;
-use poise::serenity_prelude::{Attachment, AttachmentType, ChannelId, Http};
+use poise::serenity_prelude::{Attachment, ChannelId};
+use serenity::{
+    builder::{CreateAttachment, CreateMessage},
+    http::CacheHttp,
+};
 
 use super::*;
 use std::{borrow::Cow, collections::HashMap};
@@ -29,10 +33,7 @@ pub async fn set_fetch(_ctx: Ctx<'_>) -> Res<()> {
 /// Use our custom fetch script to fill in your entire fetch automatically!
 #[poise::command(slash_command, guild_only, rename = "script")]
 pub async fn set_fetch_script(ctx: Ctx<'_>) -> Res<()> {
-    ctx.send_embed_full(true, |e| {
-        e.description(SETFETCH_USAGE);
-    })
-    .await?;
+    ctx.reply_embed_ephemeral_builder(|e| e.description(SETFETCH_USAGE)).await?;
     Ok(())
 }
 
@@ -113,7 +114,7 @@ pub async fn set_fetch_update(
 }
 
 /// Clear your fetch data
-#[poise::command(slash_command, guild_only, prefix_command, rename = "clear")]
+#[poise::command(slash_command, guild_only, rename = "clear")]
 pub async fn set_fetch_clear(
     ctx: Ctx<'_>,
     #[description = "Field you want to clear"] field: Option<FetchField>,
@@ -136,17 +137,13 @@ pub async fn set_fetch_clear(
 
 #[tracing::instrument(skip_all)]
 pub async fn dump_attachment(
-    http: impl AsRef<Http>,
+    http: impl CacheHttp,
     dump_channel: ChannelId,
     attachment: Attachment,
 ) -> anyhow::Result<String> {
     let file = attachment.download().await?;
-    let message = dump_channel
-        .send_files(
-            http,
-            [AttachmentType::Bytes { data: Cow::from(file), filename: attachment.filename }],
-            |m| m,
-        )
-        .await?;
+    let create_attachment = CreateAttachment::bytes(Cow::from(file), attachment.filename);
+    let message =
+        dump_channel.send_files(http, vec![create_attachment], CreateMessage::default()).await?;
     Ok(message.attachments.first().context("No attachment in dump message, weird")?.url.to_string())
 }

@@ -2,7 +2,6 @@ use anyhow::Context;
 use chrono::Utc;
 use poise::serenity_prelude::User;
 use robbb_db::mod_action::ModActionKind;
-use robbb_util::modal::create_modal_command_ir;
 use serenity::client;
 
 use crate::modlog;
@@ -25,17 +24,17 @@ struct MuteModal {
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn menu_mute(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
-    let ctx = Ctx::Application(app_ctx);
-    let member = ctx.guild().unwrap().member(&ctx.serenity_context(), user.id).await?;
-    let ctx = Ctx::Application(app_ctx);
-    let interaction = match app_ctx.interaction {
-        poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
-        _ => anyhow::bail!("Menu interaction was not an application command?"),
-    };
-    let response = create_modal_command_ir::<MuteModal>(app_ctx, interaction, None).await?;
-    let duration =
-        response.duration.parse::<humantime::Duration>().user_error("Invalid duration")?;
-    do_mute(ctx, member, duration, response.reason).await?;
+    let guild = app_ctx.guild().context("Not in a guild")?.to_owned();
+    let member = guild.member(&app_ctx.serenity_context(), user.id).await?;
+
+    let response: Option<MuteModal> = poise::execute_modal(app_ctx, None, None).await?;
+    if let Some(response) = response {
+        let duration =
+            response.duration.parse::<humantime::Duration>().user_error("Invalid duration")?;
+        do_mute(app_ctx.into(), member.as_ref(), duration, response.reason).await?;
+    } else {
+        Ctx::Application(app_ctx).say_error("Cancelled").await?;
+    }
     Ok(())
 }
 
@@ -43,7 +42,6 @@ pub async fn menu_mute(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]
 pub async fn mute(
@@ -54,14 +52,14 @@ pub async fn mute(
     #[rest]
     reason: Option<String>,
 ) -> Res<()> {
-    do_mute(ctx, user, duration, reason).await?;
+    do_mute(ctx, &user, duration, reason).await?;
     Ok(())
 }
 
 /// Run a mute from a command or context menu
 async fn do_mute(
     ctx: Ctx<'_>,
-    member: Member,
+    member: &Member,
     duration: humantime::Duration,
     reason: Option<String>,
 ) -> Res<()> {
@@ -135,7 +133,7 @@ pub async fn apply_mute(
 /// Adds the mute role to the user, but does _not_ add any database entry.
 /// This should only be used if we know that an active database entry for the mute already exists,
 /// or else we run the risk of accidentally muting someone forever.
-pub async fn set_mute_role(ctx: &client::Context, mut member: Member) -> anyhow::Result<()> {
+pub async fn set_mute_role(ctx: &client::Context, member: Member) -> anyhow::Result<()> {
     let config = ctx.get_config().await;
     member.add_role(&ctx, config.role_mute).await?;
     Ok(())

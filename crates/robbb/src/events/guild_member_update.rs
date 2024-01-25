@@ -1,3 +1,4 @@
+use serenity::builder::EditMember;
 use tracing_futures::Instrument;
 
 use super::*;
@@ -7,21 +8,23 @@ static HOISTING_CHAR: &[char] = &['!', '"', '#', '$', '\'', '(', ')', '*', '-', 
 pub async fn guild_member_update(
     ctx: client::Context,
     _old: Option<Member>,
-    new: Member,
+    new: Option<Member>,
+    event: GuildMemberUpdateEvent,
 ) -> Result<()> {
     let (config, db) = ctx.get_config_and_db().await;
-    dehoist_member(ctx.clone(), new.clone()).await?;
+    if let Some(new) = new {
+        dehoist_member(ctx.clone(), new.clone()).await?;
+    }
 
-    let roles = new.roles(&ctx).unwrap_or_default();
-    if roles.iter().any(|x| x.id == config.role_htm) {
-        log_error!(db.add_htm(new.user.id).await);
+    if event.roles.iter().any(|x| *x == config.role_htm) {
+        log_error!(db.add_htm(event.user.id).await);
     }
 
     Ok(())
 }
 
-pub async fn dehoist_member(ctx: client::Context, member: Member) -> Result<()> {
-    let display_name = member.display_name();
+pub async fn dehoist_member(ctx: client::Context, mut member: Member) -> Result<()> {
+    let display_name = member.display_name().to_string();
     if !display_name.starts_with(HOISTING_CHAR) {
         return Ok(());
     }
@@ -33,10 +36,11 @@ pub async fn dehoist_member(ctx: client::Context, member: Member) -> Result<()> 
         cleaned_name.to_string()
     };
     tracing::info!(user.old_name = %display_name, user.cleaned_name = %cleaned_name, "Dehoisting user");
+    let tag = member.user.tag();
     member
-        .edit(&ctx, |edit| edit.nickname(&cleaned_name))
-        .instrument(tracing::info_span!("dehoist-edit-nickname", member.tag = %member.user.tag(), dehoist.old_nick = %display_name, dehoist.new_nick = %cleaned_name))
+        .edit(&ctx, EditMember::default().nickname(&cleaned_name))
+        .instrument(tracing::info_span!("dehoist-edit-nickname", member.tag = %tag, dehoist.old_nick = %display_name, dehoist.new_nick = %cleaned_name))
         .await
-        .with_context(|| format!("Failed to rename user {}", member.user.tag()))?;
+        .with_context(|| format!("Failed to rename user {tag}"))?;
     Ok(())
 }

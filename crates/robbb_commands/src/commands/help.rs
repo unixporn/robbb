@@ -1,5 +1,6 @@
 use poise::serenity_prelude::Message;
 use robbb_util::embeds;
+use serenity::builder::CreateEmbed;
 
 use crate::checks;
 
@@ -27,10 +28,8 @@ pub async fn help(
 
     if let Some(desired_command) = command {
         let command = commands
-            .find(|c| {
-                c.name == desired_command.as_str() || c.aliases.contains(&desired_command.as_str())
-            })
-            .user_error(&format!("Unknown command `{}`", desired_command))?;
+            .find(|c| c.name == desired_command.as_str() || c.aliases.contains(&desired_command))
+            .user_error(&format!("Unknown command `{desired_command}`"))?;
         reply_help_single(ctx, command).await?;
     } else {
         let permission_level =
@@ -50,36 +49,34 @@ pub async fn help(
 }
 
 async fn reply_help_single(ctx: Ctx<'_>, command: &Command<UserData, Error>) -> Res<Message> {
-    let handle = ctx
-        .send_embed_full(true, move |e| {
-            e.title(format!("Help for {}", command.name));
-            if let Some(desc) = command.help_text {
-                e.description(desc());
-            } else if let Some(help) = &command.description {
-                e.description(help);
-            }
+    let mut embed = CreateEmbed::default().title(format!("Help for {}", command.name));
+    if let Some(desc) = &command.help_text {
+        embed = embed.description(desc);
+    } else if let Some(help) = &command.description {
+        embed = embed.description(help);
+    }
 
-            if !command.subcommands.is_empty() {
-                let subcommands_text = command
-                    .subcommands
-                    .iter()
-                    .map(|subcommand| {
-                        if let Some(usage) = &subcommand.description {
-                            format!("**/{} {}** - ``{} ``", command.name, subcommand.name, usage)
-                        } else {
-                            format!("**/{} {}**", command.name, subcommand.name)
-                        }
-                    })
-                    .join("\n");
+    if !command.subcommands.is_empty() {
+        let subcommands_text = command
+            .subcommands
+            .iter()
+            .map(|subcommand| {
+                if let Some(usage) = &subcommand.description {
+                    format!("**/{} {}** - ``{} ``", command.name, subcommand.name, usage)
+                } else {
+                    format!("**/{} {}**", command.name, subcommand.name)
+                }
+            })
+            .join("\n");
 
-                e.field("Subcommands", subcommands_text, false);
-            }
-        })
-        .await?;
+        embed = embed.field("Subcommands", subcommands_text, false)
+    }
+
+    let handle = ctx.reply_embed_ephemeral(embed).await?;
     Ok(handle.message().await?.into_owned())
 }
 
-async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -> Res<Message> {
+async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -> Res<()> {
     let fields = commands.iter().map(|command| {
         let name = if command.slash_action.is_some() {
             format!("**/{}**", command.name)
@@ -93,9 +90,10 @@ async fn reply_help_full(ctx: Ctx<'_>, commands: &[&Command<UserData, Error>]) -
     embeds::PaginatedEmbed::create_from_fields(
         "Help".to_string(),
         fields,
-        embeds::make_create_embed(ctx.serenity_context(), |e| e).await,
+        embeds::base_embed(&ctx),
     )
     .await
     .reply_to(ctx, true)
-    .await
+    .await?;
+    Ok(())
 }

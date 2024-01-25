@@ -37,7 +37,7 @@ impl Db {
         create_date: Option<DateTime<Utc>>,
     ) -> Result<Fetch> {
         {
-            let user = user.0 as i64;
+            let user: i64 = user.into();
             let info = serde_json::to_string(&info)?;
 
             sqlx::query!(
@@ -55,7 +55,7 @@ impl Db {
 
     #[tracing::instrument(skip_all)]
     pub async fn get_fetch(&self, user: UserId) -> Result<Option<Fetch>> {
-        let user = user.0 as i64;
+        let user: i64 = user.into();
         let value = sqlx::query!("select * from fetch where usr=?", user)
             .fetch_optional(&self.pool)
             .await?;
@@ -64,7 +64,7 @@ impl Db {
                 .create_date
                 .map(|date| chrono::DateTime::from_naive_utc_and_offset(date, chrono::Utc));
             Ok(Some(Fetch {
-                user: UserId(x.usr as u64),
+                user: UserId::new(x.usr as u64),
                 info: serde_json::from_str(&x.info).context("Failed to deserialize fetch data")?,
                 create_date,
             }))
@@ -99,7 +99,7 @@ impl Db {
                     .create_date
                     .map(|date| chrono::DateTime::from_naive_utc_and_offset(date, chrono::Utc));
                 Ok(Fetch {
-                    user: UserId(x.usr as u64),
+                    user: UserId::new(x.usr as u64),
                     info: serde_json::from_str(&x.info)
                         .context("Failed to deserialize fetch data")?,
                     create_date,

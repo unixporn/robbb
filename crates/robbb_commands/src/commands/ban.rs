@@ -1,7 +1,8 @@
 use anyhow::Context;
 use chrono::{Duration, Utc};
 use poise::serenity_prelude::{Message, User};
-use robbb_util::{embeds, modal::create_modal_command_ir};
+use robbb_util::embeds;
+use serenity::builder::{CreateEmbed, EditMessage};
 
 use crate::checks::{self, PermissionLevel};
 
@@ -20,20 +21,18 @@ struct BanModal {
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
 pub async fn menu_ban(app_ctx: AppCtx<'_>, user: User) -> Res<()> {
-    let ctx = Ctx::Application(app_ctx);
-    let interaction = match app_ctx.interaction {
-        poise::ApplicationCommandOrAutocompleteInteraction::ApplicationCommand(x) => x,
-        _ => anyhow::bail!("Menu interaction was not an application command?"),
-    };
-    let response = create_modal_command_ir::<BanModal>(app_ctx, interaction, None).await?;
-    do_ban(ctx, vec![user], response.reason, 0).await?;
+    let response: Option<BanModal> = poise::execute_modal(app_ctx, None, None).await?;
+    if let Some(response) = response {
+        do_ban(app_ctx.into(), vec![user], response.reason, 0).await?;
+    } else {
+        Ctx::Application(app_ctx).say_error("Cancelled").await?;
+    }
     Ok(())
 }
 
 /// Ban a user from the server.
 #[poise::command(
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]
@@ -56,7 +55,6 @@ pub async fn ban(
 #[poise::command(
     rename = "banmany",
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Helper }"
 )]
@@ -87,7 +85,7 @@ pub async fn ban_many(
 }
 
 async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8) -> Res<()> {
-    let guild = ctx.guild().context("Failed to load guild")?;
+    let guild = ctx.guild().context("Failed to load guild")?.to_owned();
 
     let mut disallowed_bans = Vec::new();
     let mut successful_bans = Vec::new();
@@ -137,7 +135,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
         let _ = ctx.say_error(
             format!(
                 "Failed to ban the following users because of the 3 day account / join age restriction for helpers:\n{}", 
-                disallowed_bans.into_iter().map(|x| format!("- {} ({})", x.tag(), x.id)).join("\n")
+                disallowed_bans.iter().map(|x| format!("- {} ({})", x.tag(), x.id)).join("\n")
             )
         ).await;
     }
@@ -155,9 +153,11 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
         )
         .await;
 
-        main_response.edit(&ctx.serenity_context(), |e| e.set_embed(embed)).await?;
+        main_response.edit(&ctx.serenity_context(), EditMessage::default().embed(embed)).await?;
 
         crate::modlog::log_ban(ctx, &main_response, &successful_bans, &reason).await;
+    } else {
+        main_response.delete(&ctx.serenity_context()).await?;
     }
 
     Ok(())
@@ -196,12 +196,13 @@ async fn handle_single_ban(
     }
 
     let _ = user
-        .dm(&ctx.serenity_context(), |m| {
-            m.embed(|e| {
-                e.title(format!("You were banned from {}", guild.name));
-                e.field("Reason", reason, false)
-            })
-        })
+        .dm(
+            &ctx.serenity_context(),
+            CreateEmbed::default()
+                .title(format!("You were banned from {}", guild.name))
+                .field("Reason", reason, false)
+                .into_create_message(),
+        )
         .await;
 
     let db = ctx.get_db();

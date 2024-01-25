@@ -67,7 +67,9 @@ jobs:
           docker build -f Dockerfile artifacts >/dev/null 2>/dev/null &
           prebuild_pid=$!
 
-          VERSION="Profile: ${{ matrix.profile }}; [$(git log --format=oneline -n 1 HEAD)](https://github.com/unixporn/robbb/commit/$(git log --format='%H' -n 1 HEAD))" \
+          ROBBB_PROFILE=${{ matrix.profile }} \
+            ROBBB_COMMIT_HASH="$(git log --format='%H' -n 1 HEAD)" \
+            ROBBB_COMMIT_MSG="$(git log --format='%s' -n 1 HEAD)" \
             ${{ matrix.cargo_env }} \
             cargo build ${{ matrix.cargo_flags }} --locked &
           cargo_pid=$!

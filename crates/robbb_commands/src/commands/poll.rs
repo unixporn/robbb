@@ -1,7 +1,8 @@
 use super::*;
 use anyhow::Context;
-use poise::{serenity_prelude::ReactionType, Modal};
+use poise::{serenity_prelude::ReactionType, CreateReply, Modal};
 use regex::Regex;
+use serenity::builder::{CreateEmbed, CreateEmbedFooter};
 
 lazy_static::lazy_static! {
     static ref POLL_OPTION_START_OF_LINE_PATTERN: Regex = Regex::new(r"^\s*-|^\s*\d\.|^\s*\*").unwrap();
@@ -22,7 +23,6 @@ pub async fn poll(_ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::User }",
     rename = "vote"
 )]
@@ -35,11 +35,11 @@ pub async fn poll_vote(
     }
 
     let poll_msg = ctx
-        .send_embed(|e| {
-            e.author_user(ctx.author());
-            e.title("Poll");
-            e.description(question.clone());
-            e.footer(|f| f.text(format!("From: {}", ctx.author().tag())));
+        .reply_embed_builder(|e| {
+            e.author_user(ctx.author())
+                .title("Poll")
+                .description(question.clone())
+                .footer_str(format!("From: {}", ctx.author().tag()))
         })
         .await?;
 
@@ -89,7 +89,7 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     let options_lines = modal_result.options.lines().collect_vec();
 
     if options_lines.len() > SELECTION_EMOJI.len() || options_lines.len() < 2 {
-        abort_with!(UserErr::Other(format!(
+        abort_with!(UserErr::new(format!(
             "There must be between 2 and {} options",
             SELECTION_EMOJI.len()
         )))
@@ -102,16 +102,13 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     let options = SELECTION_EMOJI.iter().zip(options_lines).collect_vec();
 
     let poll_msg = ctx
-        .send(|m| {
-            m.embed(|e| {
-                e.title("Poll");
-                e.description(&modal_result.title);
-                for (emoji, option) in options.iter() {
-                    e.field(format!("Option {}", emoji), option, false);
-                }
-                e.footer(|f| f.text(format!("from: {}", ctx.author().tag())))
-            })
-        })
+        .send(CreateReply::default().embed({
+            let mut e = CreateEmbed::default().title("Poll").description(&modal_result.title);
+            for (emoji, option) in options.iter() {
+                e = e.field(format!("Option {}", emoji), option, false);
+            }
+            e.footer(CreateEmbedFooter::new(format!("from: {}", ctx.author().tag())))
+        }))
         .await?;
     let poll_msg = poll_msg.message().await?;
 

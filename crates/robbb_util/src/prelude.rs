@@ -1,4 +1,4 @@
-use poise::serenity_prelude::{CreateEmbed, CreateMessage};
+use poise::serenity_prelude::CreateEmbed;
 
 pub use crate::UserData;
 
@@ -11,7 +11,7 @@ pub type Ctx<'a> = poise::Context<'a, UserData, Error>;
 pub type AppCtx<'a> = poise::ApplicationContext<'a, UserData, Error>;
 pub type PrefixCtx<'a> = poise::PrefixContext<'a, UserData, Error>;
 
-pub type BoxedCreateMessageBuilder = Box<
-    dyn for<'a, 'b> FnOnce(&'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> + Send + Sync,
->;
+//pub type BoxedCreateMessageBuilder = Box<
+//    dyn for<'a, 'b> FnOnce(&'a mut CreateMessage<'b>) -> &'a mut CreateMessage<'b> + Send + Sync,
+//>;
 pub type BoxedCreateEmbedBuilder<'a> = Box<dyn FnOnce(&mut CreateEmbed) + Send + Sync + 'a>;

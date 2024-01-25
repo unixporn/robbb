@@ -6,11 +6,35 @@ use serenity::{
 };
 use std::env;
 
-/// return with an error value immediately.
+#[derive(Debug, Clone, Copy)]
+pub struct BotVersion {
+    pub commit_hash: &'static str,
+    pub commit_msg: &'static str,
+    pub profile: &'static str,
+}
+impl BotVersion {
+    /// Return the bot version data, as read from environment variables at build time
+    pub fn get() -> Self {
+        Self {
+            commit_hash: option_env!("ROBBB_COMMIT_HASH").unwrap_or("<no commit hash>"),
+            commit_msg: option_env!("ROBBB_COMMIT_MSG").unwrap_or("<no commit msg>"),
+            profile: option_env!("ROBBB_PROFILE").unwrap_or("<no profile>"),
+        }
+    }
+    pub fn commit_url(&self) -> String {
+        format!("https://github.com/unixporn/robbb/commit/{}", self.commit_hash)
+    }
+
+    pub fn commit_link(&self) -> String {
+        format!("[{}]({})", self.commit_hash, self.commit_url())
+    }
+}
+
+/// return with an error value immediately. If given a literal string, will abort with a [`UserErr`]
 #[macro_export]
 macro_rules! abort_with {
     ($err:literal) => {
-        return Err(UserErr::other($err).into())
+        return Err(UserErr::new($err).into())
     };
     ($err:expr) => {
         return Err($err.into())
@@ -170,11 +194,6 @@ pub fn is_image_file(s: &str) -> bool {
         Some(ext) => matches!(ext, "png" | "jpg" | "jpeg" | "gif" | "webp"),
         None => false,
     }
-}
-
-/// Return the bot version, as read from the VERSION environment variable at build time.
-pub fn bot_version() -> &'static str {
-    option_env!("VERSION").unwrap_or("<no version>")
 }
 
 pub async fn channel_name(ctx: &client::Context, channel_id: ChannelId) -> Result<String> {

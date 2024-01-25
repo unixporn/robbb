@@ -1,7 +1,9 @@
+use poise::CreateReply;
+
 use super::*;
 
 /// Ping all online moderators. Do not abuse!
-#[poise::command(slash_command, guild_only, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn modping(
     ctx: Ctx<'_>,
     #[description = "Why are you modpinging?"]
@@ -10,13 +12,12 @@ pub async fn modping(
 ) -> Res<()> {
     use poise::serenity_prelude::OnlineStatus::*;
     let config = ctx.get_config();
-    let guild = ctx.guild().user_error("not in a guild")?;
+    let guild = ctx.guild().user_error("not in a guild")?.to_owned();
 
     let mods_and_helpers = guild
         .members_with_status(Online)
-        .into_iter()
-        .chain(guild.members_with_status(Idle).into_iter())
-        .chain(guild.members_with_status(DoNotDisturb).into_iter())
+        .chain(guild.members_with_status(Idle))
+        .chain(guild.members_with_status(DoNotDisturb))
         .filter(|member| {
             member.roles.contains(&config.role_mod) || member.roles.contains(&config.role_helper)
         })
@@ -29,11 +30,10 @@ pub async fn modping(
         mods_and_helpers.iter().map(|m| m.mention()).join(", ")
     };
 
-    ctx.send(|m| {
-        m.content(
-            format!("{} pinged staff {} for reason {}", ctx.author().mention(), mods, reason,),
-        )
-    })
+    ctx.send(
+        CreateReply::default()
+            .content(format!("{} pinged staff {mods} for reason {reason}", ctx.author().mention())),
+    )
     .await?;
 
     Ok(())

@@ -1,11 +1,14 @@
 use chrono::Utc;
-use poise::serenity_prelude::application::component::ActionRowComponent;
 use robbb_commands::{
     checks::{self, PermissionLevel},
     commands::blocklist::SHOULD_NEVER_TRIGGER_BLOCKLIST,
 };
 use robbb_db::mod_action::ModActionKind;
 use robbb_util::util::{generate_message_link, time_to_discord_snowflake};
+use serenity::{
+    all::{CommandInteraction, ResolvedValue},
+    builder::{CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage},
+};
 use tracing_futures::Instrument;
 
 use super::*;
@@ -34,32 +37,28 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         let word = word.as_str();
 
         tracing::info!(blocklist.word = %word, "Found blocked word '{}'", word);
-        tracing::Span::current().record("blocklist.blocked_word", &word);
+        tracing::Span::current().record("blocklist.blocked_word", word);
 
+        let dm_embed = CreateEmbed::default()
+            .description(&msg.content)
+            .title(
+                format!("Your message has been deleted for containing a blocked word: `{word}`",),
+            )
+            .into_create_message();
         let dm_future = async {
-            let _ = msg
-                .author
-                .dm(&ctx, |m| {
-                    m.embed(|e| {
-                        e.description(&msg.content).title(format!(
-                            "Your message has been deleted for containing a blocked word: `{}`",
-                            word
-                        ))
-                    })
-                })
-                .await;
+            let _ = msg.author.dm(&ctx, dm_embed).await;
         };
 
         let bot_log_future = config.log_automod_action(&ctx, |e| {
-            e.author_user(&msg.author);
-            e.title("Message Autodelete");
-            e.field("Deleted because of", word, false);
-            e.description(format!("{}\n{}", msg.content, msg.to_context_link()));
+            e.author_user(&msg.author)
+                .title("Message Autodelete")
+                .field("Deleted because of", word, false)
+                .description(format!("{}\n{}", msg.content, msg.to_context_link()))
         });
 
         let note_future = async {
-            let bot_id = ctx.cache.current_user_id();
-            let note_content = format!("Message deleted because of word `{}`", word);
+            let bot_id = ctx.cache.current_user().id;
+            let note_content = format!("Message deleted because of word `{word}`");
             let _ = db
                 .add_mod_action(
                     bot_id,
@@ -89,88 +88,23 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
     }
 }
 
-// TODORW this doesn't yet really work for modals, apparently...
 /// Returns true if the interaction had a blocked word, in which case handling the interaction event should be stopped early.
 #[tracing::instrument(skip_all, fields(blocklist.blocked_word, interaction.user))]
-pub async fn handle_blocklist_in_interaction(
+pub async fn handle_blocklist_in_command_interaction(
     ctx: &client::Context,
-    interaction: &Interaction,
+    interaction: &CommandInteraction,
 ) -> Result<bool> {
-    let values = match collect_interaction_values(interaction) {
-        Some(x) if !x.values.is_empty() => x,
-        _ => return Ok(false),
-    };
+    let values = collect_interaction_values(interaction);
 
-    let (config, db) = ctx.get_config_and_db().await;
+    let db = ctx.get_db().await;
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     for value in &values.values {
         let normalized = value.replace(INVISIBLE_CHARS, "");
+        if checks::get_permission_level(&ctx, &values.user).await? == PermissionLevel::Mod {
+            return Ok(false);
+        }
         if let Some(word) = blocklist_regex.find(&normalized) {
-            if checks::get_permission_level(&ctx, &values.user).await? == PermissionLevel::Mod {
-                return Ok(false);
-            }
-            let word = word.as_str();
-
-            tracing::info!(blocklist.word = %word, "Found blocked word in interaction '{}'", word);
-            tracing::Span::current().record("blocklist.blocked_word", &word);
-            tracing::Span::current().record("interaction.user", &values.user.tag().as_str());
-
-            let context_link = generate_message_link(
-                values.guild_id,
-                values.channel_id,
-                time_to_discord_snowflake(Utc::now()),
-            );
-
-            let bot_log_future = config.log_automod_action(&ctx, |e| {
-                e.author_user(&values.user);
-                e.title("Interaction aborted because of blocked word");
-                e.field("Aborted because of", word, false);
-                e.field("Interaction", values.title, false);
-            });
-
-            let note_future = async {
-                let bot_id = ctx.cache.current_user_id();
-                let note_content = format!(
-                    "Interaction `{}` interrupted because of word `{}`",
-                    values.title, word
-                );
-                let _ = db
-                    .add_mod_action(
-                        bot_id,
-                        values.user.id,
-                        note_content,
-                        Utc::now(),
-                        context_link,
-                        ModActionKind::BlocklistViolation,
-                    )
-                    .await;
-            };
-
-            let reply_future = async {
-                match interaction {
-                    Interaction::ApplicationCommand(x) => {
-                        let _ = x
-                            .create_interaction_response(&ctx, |ir| {
-                                ir.interaction_response_data(|m| m.content("Bruh"))
-                            })
-                            .await;
-                    }
-                    Interaction::ModalSubmit(x) => {
-                        let _ = x
-                            .create_interaction_response(&ctx, |ir| {
-                                ir.interaction_response_data(|m| m.content("Bruh"))
-                            })
-                            .await;
-                    }
-                    _ => {}
-                }
-            };
-
-            tokio::join!(
-                bot_log_future.instrument(tracing::debug_span!("blocklist-automod-entry")),
-                note_future.instrument(tracing::debug_span!("blocklist-note")),
-                reply_future.instrument(tracing::debug_span!("blocklist-interaction-response"))
-            );
+            handle_blocked_word_in_interaction(ctx, interaction, word.as_str(), values).await;
             return Ok(true);
         }
     }
@@ -178,6 +112,60 @@ pub async fn handle_blocklist_in_interaction(
     Ok(false)
 }
 
+async fn handle_blocked_word_in_interaction(
+    ctx: &client::Context,
+    interaction: &CommandInteraction,
+    word: &str,
+    values: InteractionValues<'_>,
+) {
+    let db = ctx.get_db().await;
+    tracing::info!(blocklist.word = %word, "Found blocked word in interaction '{word}'");
+    tracing::Span::current().record("blocklist.blocked_word", word);
+    tracing::Span::current().record("interaction.user", values.user.tag().as_str());
+
+    let bot_log_future = ctx.log_automod_action(|e| {
+        e.author_user(&values.user)
+            .title("Interaction aborted because of blocked word")
+            .field("Aborted because of", word, false)
+            .field("Interaction", values.title, false)
+    });
+
+    let note_future = async {
+        let bot_id = ctx.cache.current_user().id;
+        let note_content =
+            format!("Interaction `{}` interrupted because of word `{word}`", values.title);
+        let context_link = generate_message_link(
+            values.guild_id,
+            values.channel_id,
+            time_to_discord_snowflake(Utc::now()),
+        );
+        let _ = db
+            .add_mod_action(
+                bot_id,
+                values.user.id,
+                note_content,
+                Utc::now(),
+                context_link,
+                ModActionKind::BlocklistViolation,
+            )
+            .await;
+    };
+
+    let reply_future = async {
+        let interaction_response = CreateInteractionResponse::Message(
+            CreateInteractionResponseMessage::default().content("Bruh"),
+        );
+        log_error!(interaction.create_response(&ctx, interaction_response).await);
+    };
+
+    tokio::join!(
+        bot_log_future.instrument(tracing::debug_span!("blocklist-automod-entry")),
+        note_future.instrument(tracing::debug_span!("blocklist-note")),
+        reply_future.instrument(tracing::debug_span!("blocklist-interaction-response"))
+    );
+}
+
+#[derive(Debug)]
 struct InteractionValues<'a> {
     values: Vec<&'a str>,
     user: &'a User,
@@ -186,56 +174,32 @@ struct InteractionValues<'a> {
     title: &'a str,
 }
 
-fn collect_interaction_values(interaction: &Interaction) -> Option<InteractionValues> {
-    match interaction {
-        Interaction::Ping(_) | Interaction::MessageComponent(_) | Interaction::Autocomplete(_) => {
-            None
+fn collect_interaction_values(interaction: &CommandInteraction) -> InteractionValues {
+    fn values_from_resolved_value<'a>(value: &ResolvedValue<'a>) -> Vec<&'a str> {
+        match value {
+            ResolvedValue::String(s) => vec![s],
+            ResolvedValue::SubCommand(sub) => {
+                sub.iter().flat_map(|x| values_from_resolved_value(&x.value).into_iter()).collect()
+            }
+            ResolvedValue::SubCommandGroup(sub) => {
+                sub.iter().flat_map(|x| values_from_resolved_value(&x.value).into_iter()).collect()
+            }
+            _ => vec![],
         }
-        Interaction::ApplicationCommand(interaction) => {
-            let values = interaction
-                .data
-                .options
-                .iter()
-                .flat_map(|x| get_options_from_option(x).into_iter())
-                .collect();
+    }
 
-            Some(InteractionValues {
-                values,
-                channel_id: interaction.channel_id,
-                guild_id: interaction.guild_id,
-                user: &interaction.user,
-                title: &interaction.data.name,
-            })
-        }
-        Interaction::ModalSubmit(interaction) => Some(InteractionValues {
-            values: interaction
-                .data
-                .components
-                .iter()
-                .flat_map(|x| x.components.iter())
-                .filter_map(|x| match x {
-                    ActionRowComponent::InputText(text) => Some(text.value.as_str()),
-                    _ => None,
-                })
-                .collect(),
-            user: &interaction.user,
-            channel_id: interaction.channel_id,
-            guild_id: interaction.guild_id,
-            title: "Modal",
-        }),
-    }
-}
+    let values = interaction
+        .data
+        .options()
+        .iter()
+        .flat_map(|x| values_from_resolved_value(&x.value))
+        .collect();
 
-/// Recursively traverse an `ApplicationCommandInteractionDataOption`
-/// to get all the `ApplicationCommandInteractionDataOptionValue`s of it and it's subcommands / groups
-#[allow(deprecated)]
-fn get_options_from_option(option: &poise::serenity_prelude::CommandDataOption) -> Vec<&str> {
-    let mut values = Vec::new();
-    if let Some(value) = option.value.as_ref().and_then(|x| x.as_str()) {
-        values.push(value);
+    InteractionValues {
+        values,
+        channel_id: interaction.channel_id,
+        guild_id: interaction.guild_id,
+        user: &interaction.user,
+        title: &interaction.data.name,
     }
-    for option in &option.options {
-        values.append(&mut get_options_from_option(option));
-    }
-    values
 }

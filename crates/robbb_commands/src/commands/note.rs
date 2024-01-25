@@ -26,7 +26,6 @@ pub async fn note(_ctx: Ctx<'_>) -> Res<()> {
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "add"
 )]
@@ -120,7 +119,6 @@ pub async fn note_edit(
 #[poise::command(
     slash_command,
     guild_only,
-    prefix_command,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }",
     rename = "list"
 )]
@@ -151,11 +149,9 @@ pub async fn note_list(
         )
     });
 
-    let base_embed = embeds::make_create_embed(ctx.serenity_context(), |e| {
-        e.description(format!("{} notes about {}", notes.len(), user.mention()));
-        e.author_user(&user)
-    })
-    .await;
+    let base_embed = embeds::base_embed(&ctx)
+        .description(format!("{} notes about {}", notes.len(), user.mention()))
+        .author_user(&user);
 
     embeds::PaginatedEmbed::create_from_fields("Notes".to_string(), fields, base_embed)
         .await

@@ -10,7 +10,6 @@ use robbb_db::emoji_logging::{EmojiStats, Ordering};
 /// Get statistics about the usage of emotes
 #[poise::command(
     slash_command,
-    prefix_command,
     guild_only,
     custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
 )]
@@ -33,7 +32,14 @@ pub async fn emojistats(
     match emote {
         Some(emote_name) => {
             let found_emoji = match util::find_emojis(&emote_name).first() {
-                Some(searched_emoji) => db.get_emoji_usage_by_id(searched_emoji).await,
+                Some(searched_emoji) => {
+                    db.get_emoji_usage_by_id(&robbb_db::emoji_logging::EmojiIdentifier {
+                        id: searched_emoji.id,
+                        animated: searched_emoji.animated,
+                        name: searched_emoji.name.clone(),
+                    })
+                    .await
+                }
                 None => db.get_emoji_usage_by_name(&emote_name).await,
             };
             let emoji_data = found_emoji.user_error("Could not find that emote")?;
@@ -41,23 +47,23 @@ pub async fn emojistats(
             let emoji = guild_emojis
                 .get(&emoji_data.emoji.id)
                 .user_error("Could not find emoji in guild")?;
-            ctx.send_embed(|e| {
-                e.title(format!("Emoji usage for *{}*", emoji.name));
-                e.thumbnail(emoji.url());
-                e.description(format!(
-                    "**Reactions:** {} \n**In Text:** {} \n**Total:** {}",
-                    emoji_data.reactions,
-                    emoji_data.in_text,
-                    emoji_data.reactions + emoji_data.in_text
-                ));
+            ctx.reply_embed_builder(|e| {
+                e.title(format!("Emoji usage for *{}*", emoji.name))
+                    .thumbnail(emoji.url())
+                    .description(format!(
+                        "**Reactions:** {} \n**In Text:** {} \n**Total:** {}",
+                        emoji_data.reactions,
+                        emoji_data.in_text,
+                        emoji_data.reactions + emoji_data.in_text
+                    ))
             })
             .await?;
         }
         None => {
             let emojis = db.get_top_emoji_stats(10, ordering).await?;
-            ctx.send_embed(|e| {
-                e.title("Emoji usage");
-                e.description(display_emoji_list(&guild_emojis, emojis.into_iter()));
+            ctx.reply_embed_builder(|e| {
+                e.title("Emoji usage")
+                    .description(display_emoji_list(&guild_emojis, emojis.into_iter()))
             })
             .await?;
         }
