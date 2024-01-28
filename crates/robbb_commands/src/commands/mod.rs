@@ -12,6 +12,7 @@ pub use errors::*;
 
 use crate::checks::PermissionLevel;
 
+pub mod attachment_hack;
 pub mod ban;
 pub mod blocklist;
 pub mod emojistats;
@@ -74,6 +75,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         mute::mute(),
         purge::purge(),
         small::manage_commands(),
+        attachment_hack::gather_attachments(),
         // context menu
         info::menu_info(),
         ban::menu_ban(),

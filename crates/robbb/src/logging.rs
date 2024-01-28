@@ -5,6 +5,13 @@ use tracing_subscriber::{
     EnvFilter, Layer,
 };
 
+fn make_pretty_formatter<T>() -> impl Layer<T>
+where
+    T: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
+{
+    tracing_subscriber::fmt::layer().with_ansi(true).with_level(true).with_target(true)
+}
+
 /// Initializes tracing and logging configuration.
 /// To configure tracing, set up the Opentelemetry tracing environment variables:
 ///
@@ -17,6 +24,8 @@ use tracing_subscriber::{
 ///
 /// Will also respect the `RUST_LOG` environment variable for log filters.
 pub fn init_tracing() {
+    let format_pretty = std::env::var("ROBBB_LOG_PRETTY").is_ok();
+
     let log_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
             EnvFilter::try_new("info,robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off")
@@ -54,6 +63,7 @@ pub fn init_tracing() {
         .with_file(true)
         .with_line(true)
         .with_module(true);
+
     let sub = tracing_subscriber::registry()
         .with(log_filter)
         .with(remove_presence_update_filter)
@@ -96,10 +106,18 @@ pub fn init_tracing() {
             .with_filter(traces_extra_filter);
 
         println!("OTEL_EXPORTER_OTLP_ENDPOINT is set, initializing tracing layer");
-        sub.with(telemetry).with(logfmt_builder.layer()).init();
+        if format_pretty {
+            sub.with(telemetry).with(make_pretty_formatter()).init();
+        } else {
+            sub.with(telemetry).with(logfmt_builder.layer()).init();
+        }
     } else {
         println!("No OTEL_EXPORTER_OTLP_ENDPOINT is set, only initializing logging");
-        sub.with(logfmt_builder.layer()).init();
+        if format_pretty {
+            sub.with(make_pretty_formatter()).init();
+        } else {
+            sub.with(logfmt_builder.layer()).init();
+        }
     };
 }
 

@@ -1,10 +1,19 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use robbb_db::{fetch::Fetch, fetch_field::FetchField};
 use robbb_util::embeds;
 use serenity::builder::CreateEmbedAuthor;
 
+use crate::commands::attachment_hack::FakeCdnId;
+
 use super::*;
+
+async fn get_image_url_from_value(
+    ctx: &serenity::client::Context,
+    value: &str,
+) -> anyhow::Result<String> {
+    FakeCdnId::from_str(value)?.get_link(ctx).await
+}
 
 /// Fetch a users system information.
 #[poise::command(slash_command, guild_only, rename = "fetch")]
@@ -43,7 +52,8 @@ pub async fn fetch(
                 embed = embed.timestamp(date);
             }
             if desired_field == FetchField::Image {
-                embed = embed.image(value);
+                let new_link = get_image_url_from_value(ctx.serenity_context(), &value).await?;
+                embed = embed.image(new_link);
             } else if let Some(value) = format_fetch_field_value(&field_name, value) {
                 embed = embed.description(value);
             } else {
@@ -61,7 +71,8 @@ pub async fn fetch(
 
             for (key, value) in fetch_data {
                 if key == FetchField::Image {
-                    embed = embed.image(value);
+                    let new_link = get_image_url_from_value(ctx.serenity_context(), &value).await?;
+                    embed = embed.image(new_link);
                 } else {
                     if key == FetchField::Distro {
                         if let Some(url) = find_distro_image(&value) {
