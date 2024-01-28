@@ -1,3 +1,4 @@
+pub mod cdn_hack;
 pub mod collect_interaction;
 pub mod config;
 pub mod embeds;

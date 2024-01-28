@@ -1,19 +1,10 @@
 use std::{collections::HashMap, str::FromStr};
 
 use robbb_db::{fetch::Fetch, fetch_field::FetchField};
-use robbb_util::embeds;
+use robbb_util::{cdn_hack::FakeCdnId, embeds};
 use serenity::builder::CreateEmbedAuthor;
 
-use crate::commands::attachment_hack::FakeCdnId;
-
 use super::*;
-
-async fn get_image_url_from_value(
-    ctx: &serenity::client::Context,
-    value: &str,
-) -> anyhow::Result<String> {
-    FakeCdnId::from_str(value)?.get_link(ctx).await
-}
 
 /// Fetch a users system information.
 #[poise::command(slash_command, guild_only, rename = "fetch")]
@@ -50,7 +41,7 @@ pub async fn fetch(
                 .color_opt(color)
                 .timestamp_opt(create_date);
             if desired_field == FetchField::Image {
-                let new_link = get_image_url_from_value(ctx.serenity_context(), &value).await?;
+                let new_link = FakeCdnId::from_str(&value)?.resolve(&ctx).await?;
                 embed = embed.image(new_link);
             } else if let Some(value) = format_fetch_field_value(&field_name, value) {
                 embed = embed.description(value);
@@ -69,7 +60,7 @@ pub async fn fetch(
 
             for (key, value) in fetch_data {
                 if key == FetchField::Image {
-                    let new_link = get_image_url_from_value(ctx.serenity_context(), &value).await?;
+                    let new_link = FakeCdnId::from_str(&value)?.resolve(&ctx).await?;
                     embed = embed.image(new_link);
                 } else {
                     if key == FetchField::Distro {

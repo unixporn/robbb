@@ -2363,6 +2363,7 @@ dependencies = [
  "poise",
  "rand",
  "regex",
+ "reqwest",
  "robbb_db",
  "serde",
  "serde_json",
