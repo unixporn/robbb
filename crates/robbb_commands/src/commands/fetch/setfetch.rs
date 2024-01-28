@@ -1,13 +1,9 @@
-use anyhow::Context;
 use chrono::Utc;
-use poise::serenity_prelude::{Attachment, ChannelId};
-use serenity::{
-    builder::{CreateAttachment, CreateMessage},
-    http::CacheHttp,
-};
+use poise::serenity_prelude::Attachment;
+use robbb_util::cdn_hack;
 
 use super::*;
-use std::{borrow::Cow, collections::HashMap};
+use std::collections::HashMap;
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
     Run this: 
@@ -53,7 +49,7 @@ pub async fn set_fetch_update(
     #[description = "Resolution"] resolution: Option<String>,
     #[description = "Display Protocol"] display_protocol: Option<String>,
     #[description = "GTK3 Theme"] gtk3_theme: Option<String>,
-    #[description = "GTK icon theme"] gtk_icon_theme: Option<String>,
+    #[description = "GTK Icon Theme"] gtk_icon_theme: Option<String>,
     #[description = "CPU"] cpu: Option<String>,
     #[description = "GPU"] gpu: Option<String>,
     #[description = "Description"] description: Option<String>,
@@ -61,28 +57,28 @@ pub async fn set_fetch_update(
     #[description = "Git"] git: Option<String>,
     #[description = "Memory"] memory: Option<String>,
 ) -> Res<()> {
-    let config = ctx.get_config();
-    let image = match (image, config.channel_attachment_dump) {
-        (Some(image), Some(dump_channel)) => {
+    let image = match image {
+        Some(attachment) => {
             ctx.defer().await?;
-            Some(dump_attachment(&ctx.serenity_context(), dump_channel, image).await?)
+            let meta =
+                serde_json::json!({"kind": "fetch".to_string(), "user_id": ctx.author().id.get() });
+            Some(
+                cdn_hack::persist_attachment(ctx.serenity_context(), &attachment.url, meta)
+                    .await?
+                    .encode(),
+            )
         }
-        (None, _) => None,
-        (Some(image), None) => {
-            tracing::warn!("Setfetch called with image, but there is no attachment dump configured. Discord will delete the image after a while. Please configure an attachment_dump channel.");
-            Some(image.url)
-        }
+        None => None,
     };
 
-    let memory = if let Some(memory) = memory {
-        Some(
+    let memory = match memory {
+        Some(memory) => Some(
             byte_unit::Byte::from_str(memory)
                 .user_error("Malformed value provided for Memory")?
                 .get_bytes()
                 .to_string(),
-        )
-    } else {
-        None
+        ),
+        _ => None,
     };
 
     let data = maplit::hashmap! {
@@ -133,17 +129,4 @@ pub async fn set_fetch_clear(
         ctx.say_success("Successfully cleared your fetch data!").await?;
     }
     Ok(())
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn dump_attachment(
-    http: impl CacheHttp,
-    dump_channel: ChannelId,
-    attachment: Attachment,
-) -> anyhow::Result<String> {
-    let file = attachment.download().await?;
-    let create_attachment = CreateAttachment::bytes(Cow::from(file), attachment.filename);
-    let message =
-        dump_channel.send_files(http, vec![create_attachment], CreateMessage::default()).await?;
-    Ok(message.attachments.first().context("No attachment in dump message, weird")?.url.to_string())
 }

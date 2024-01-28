@@ -1,9 +1,10 @@
 use anyhow::Context;
 use chrono::Utc;
 use poise::Modal;
+use robbb_util::cdn_hack;
 use tracing_futures::Instrument;
 
-use super::{attachment_hack::FakeCdnId, *};
+use super::*;
 
 /// Get the text stored in a tag
 #[poise::command(
@@ -24,7 +25,8 @@ pub async fn tag(
 
     let moderator = tag.moderator.to_user(&ctx.serenity_context()).await?;
 
-    let content = fix_fake_cdn_links(ctx.serenity_context(), &tag.content).await?;
+    let content =
+        cdn_hack::resolve_cdn_links_in_string(ctx.serenity_context(), &tag.content).await?;
     if util::validate_url(&content) {
         ctx.say(content).await?;
     } else {
@@ -121,7 +123,13 @@ pub async fn tag_set(
         .await?
         .context("Modal timed out")?;
 
-    db.set_tag(ctx.author().id, tag_name, result.content, true, Some(Utc::now())).await?;
+    let content = cdn_hack::persist_cdn_links_in_string(
+        ctx.serenity_context(),
+        &result.content,
+        serde_json::json!({"kind": "tag", "tag_name": tag_name}),
+    )
+    .await?;
+    db.set_tag(ctx.author().id, tag_name, content, true, Some(Utc::now())).await?;
     ctx.say_success("Succesfully set!").await?;
     Ok(())
 }
@@ -139,17 +147,4 @@ async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: &str) -> impl Iterator
     let tags = db.list_tags().await.unwrap_or_default();
     let partial = partial.to_ascii_lowercase();
     tags.into_iter().filter(move |tag| tag.to_ascii_lowercase().starts_with(&partial))
-}
-
-async fn fix_fake_cdn_links(
-    ctx: &serenity::client::Context,
-    value: &str,
-) -> anyhow::Result<String> {
-    let mut new_value = value.to_string();
-    for mat in FakeCdnId::pattern().find_iter(value) {
-        let fake_cdn_id = mat.as_str().parse::<FakeCdnId>()?;
-        let new_link = fake_cdn_id.get_link(ctx).await?;
-        new_value.replace_range(mat.range(), &new_link);
-    }
-    Ok(new_value)
 }
