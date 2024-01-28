@@ -10,3 +10,5 @@ cache
 base.db-shm
 base.db-wal
 result
+local.db
+local.db-*
