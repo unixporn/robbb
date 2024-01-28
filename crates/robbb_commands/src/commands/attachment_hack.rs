@@ -44,8 +44,7 @@ pub async fn gather_attachments(ctx: Ctx<'_>) -> Res<()> {
         }
     }
 
-    ctx.say_success("Successfully went through tag data and re-uploaded attachments!")
-        .await?;
+    ctx.say_success("Successfully went through tag data and re-uploaded attachments!").await?;
 
     let fetches = db.get_all_fetches().await?;
     for fetch in fetches {
@@ -81,8 +80,7 @@ pub async fn gather_attachments(ctx: Ctx<'_>) -> Res<()> {
         .await?;
     }
 
-    ctx.say_success("Successfully went through fetch data and re-uploaded attachments!")
-        .await?;
+    ctx.say_success("Successfully went through fetch data and re-uploaded attachments!").await?;
 
     Ok(())
 }

@@ -9,6 +9,7 @@ use robbb_commands::{commands, modlog};
 use robbb_db::emoji_logging::EmojiIdentifier;
 use robbb_db::fetch_field::FetchField;
 
+use robbb_util::cdn_hack;
 use serenity::builder::{CreateEmbed, CreateEmbedFooter, CreateMessage, GetMessages};
 use tracing::debug;
 use tracing_futures::Instrument;
@@ -408,9 +409,10 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
         if let Some(attachment) = msg.attachments.first() {
             if util::is_image_file(&attachment.filename) {
                 let db = ctx.get_db().await;
+                let fake_cdn_id = cdn_hack::FakeCdnId::from_message(msg, 0);
                 db.update_fetch(
                     msg.author.id,
-                    hashmap! { FetchField::Image => attachment.url.to_string() },
+                    hashmap! { FetchField::Image => fake_cdn_id.encode() },
                 )
                 .await?;
             }
