@@ -12,7 +12,7 @@ use crate::extensions::ClientContextExt;
 
 lazy_static::lazy_static! {
     pub static ref CDN_LINK_PATTERN: Regex = Regex::new(
-        r"\b(https?://(?:media|cdn)\.discord(?:app)?\.(?:net|com)/attachments/\d+/\d*/.+)\b"
+        r"\b(https?://(?:media|cdn)\.discord(?:app)?\.(?:net|com)/attachments/\d+/\d*/.+&?)\b"
     ).unwrap();
 
     pub static ref FAKE_CDN_ID_PATTERN: Regex = Regex::new(
@@ -20,6 +20,9 @@ lazy_static::lazy_static! {
     ).unwrap();
 }
 
+/// ID referencing a message that contains an attachment.
+/// We use these IDs rather than direct attachment links, because discord CDN links expire after a short while.
+/// With these IDs, we can re-fetch a new, valid CDN link whenever we need to.
 #[derive(Debug, Clone)]
 pub struct FakeCdnId {
     guild_id: Option<GuildId>,
@@ -142,7 +145,10 @@ pub async fn persist_cdn_links_in_string(
 
 /// Replace all [`FakeCdnId`]s in a string with the corresponding attachment url,
 /// fetching a new CDN URL if necessary.
-pub async fn resolve_cdn_links_in_string(ctx: impl CacheHttp, value: &str) -> anyhow::Result<String> {
+pub async fn resolve_cdn_links_in_string(
+    ctx: impl CacheHttp,
+    value: &str,
+) -> anyhow::Result<String> {
     let mut new_value = value.to_string();
     for mat in FakeCdnId::pattern().find_iter(value) {
         let mat = mat.as_str();
