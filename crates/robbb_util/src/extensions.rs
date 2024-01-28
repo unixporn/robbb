@@ -16,7 +16,7 @@ use serenity::{
         guild::Emoji,
         id::{ChannelId, EmojiId, GuildId},
         prelude::User,
-        Colour,
+        Colour, Timestamp,
     },
     prelude::Mentionable,
 };
@@ -311,17 +311,18 @@ pub impl CreateEmbed {
         value: Option<impl Into<String>>,
         inline: bool,
     ) -> Self {
-        match value {
-            Some(value) => self.field(name, value, inline),
-            None => self,
-        }
+        let Some(value) = value else { return self };
+        self.field(name, value, inline)
     }
 
-    fn color_opt(self, c: Option<impl Into<Colour>>) -> CreateEmbed {
-        match c {
-            Some(c) => self.color(c),
-            None => self,
-        }
+    fn color_opt(self, x: Option<impl Into<Colour>>) -> CreateEmbed {
+        let Some(x) = x else { return self };
+        self.color(x)
+    }
+
+    fn timestamp_opt(self, x: Option<impl Into<Timestamp>>) -> CreateEmbed {
+        let Some(x) = x else { return self };
+        self.timestamp(x)
     }
 
     fn author_icon(self, name: impl Into<String>, icon_url: impl Into<String>) -> Self {

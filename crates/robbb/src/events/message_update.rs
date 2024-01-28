@@ -50,11 +50,9 @@ pub async fn message_update(
 
     config
         .guild
-        .send_embed(&ctx, config.channel_bot_messages, |mut e| {
-            if let Some(edited_timestamp) = event.edited_timestamp {
-                e = e.timestamp(edited_timestamp);
-            }
-            e.author_icon("Message Edit", msg.author.face())
+        .send_embed(&ctx, config.channel_bot_messages, |e| {
+            e.timestamp_opt(event.edited_timestamp)
+                .author_icon("Message Edit", msg.author.face())
                 .title(msg.author.name_with_disc_and_id())
                 .description(indoc::formatdoc!(
                     "
