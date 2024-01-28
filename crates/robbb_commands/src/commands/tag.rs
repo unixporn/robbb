@@ -3,7 +3,7 @@ use chrono::Utc;
 use poise::Modal;
 use tracing_futures::Instrument;
 
-use super::*;
+use super::{attachment_hack::FakeCdnId, *};
 
 /// Get the text stored in a tag
 #[poise::command(
@@ -24,18 +24,15 @@ pub async fn tag(
 
     let moderator = tag.moderator.to_user(&ctx.serenity_context()).await?;
 
-    if util::validate_url(&tag.content) {
-        ctx.say(&tag.content).await?;
+    let content = fix_fake_cdn_links(ctx.serenity_context(), &tag.content).await?;
+    if util::validate_url(&content) {
+        ctx.say(content).await?;
     } else {
-        ctx.reply_embed_builder(|mut e| {
-            e = e
-                .title(&tag.name)
-                .description(&tag.content)
-                .footer_str(format!("Written by {}", moderator.tag()));
-            if let Some(date) = tag.create_date {
-                e = e.timestamp(date);
-            }
-            e
+        ctx.reply_embed_builder(|e| {
+            e.title(&tag.name)
+                .description(content)
+                .footer_str(format!("Written by {}", moderator.tag()))
+                .timestamp_opt(tag.create_date)
         })
         .await?;
     }
@@ -142,4 +139,17 @@ async fn tag_autocomplete_existing(ctx: Ctx<'_>, partial: &str) -> impl Iterator
     let tags = db.list_tags().await.unwrap_or_default();
     let partial = partial.to_ascii_lowercase();
     tags.into_iter().filter(move |tag| tag.to_ascii_lowercase().starts_with(&partial))
+}
+
+async fn fix_fake_cdn_links(
+    ctx: &serenity::client::Context,
+    value: &str,
+) -> anyhow::Result<String> {
+    let mut new_value = value.to_string();
+    for mat in FakeCdnId::pattern().find_iter(value) {
+        let fake_cdn_id = mat.as_str().parse::<FakeCdnId>()?;
+        let new_link = fake_cdn_id.get_link(ctx).await?;
+        new_value.replace_range(mat.range(), &new_link);
+    }
+    Ok(new_value)
 }

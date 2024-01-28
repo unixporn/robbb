@@ -47,10 +47,8 @@ pub async fn fetch(
             let mut embed = embeds::base_embed(&ctx)
                 .author(CreateEmbedAuthor::new(user.user.tag()).icon_url(user.user.face()))
                 .title(format!("{}'s {}", user.user.name, field_name))
-                .color_opt(color);
-            if let Some(date) = create_date {
-                embed = embed.timestamp(date);
-            }
+                .color_opt(color)
+                .timestamp_opt(create_date);
             if desired_field == FetchField::Image {
                 let new_link = get_image_url_from_value(ctx.serenity_context(), &value).await?;
                 embed = embed.image(new_link);
@@ -64,10 +62,10 @@ pub async fn fetch(
 
         // Handle fetching all fields
         None => {
-            let mut embed = embeds::base_embed(&ctx).author_user(&user.user).color_opt(color);
-            if let Some(date) = create_date {
-                embed = embed.timestamp(date);
-            }
+            let mut embed = embeds::base_embed(&ctx)
+                .author_user(&user.user)
+                .color_opt(color)
+                .timestamp_opt(create_date);
 
             for (key, value) in fetch_data {
                 if key == FetchField::Image {

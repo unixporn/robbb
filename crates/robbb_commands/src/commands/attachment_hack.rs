@@ -29,13 +29,13 @@ impl From<&Message> for FakeCdnId {
 }
 
 impl FakeCdnId {
-    fn pattern() -> &'static regex::Regex {
+    pub fn pattern() -> &'static regex::Regex {
         lazy_static::lazy_static! {
             static ref PATTERN: regex::Regex = regex::Regex::new(r";;;;fakecdn;;;;(\d*);;;;(\d*);;;;(\d*);;;;(.*);;;;").unwrap();
         }
         &PATTERN
     }
-    fn encode(&self) -> String {
+    pub fn encode(&self) -> String {
         format!(
             ";;;;fakecdn;;;;{};;;;{};;;;{};;;;{};;;;",
             self.guild_id.map(|x| x.get().to_string()).unwrap_or_default(),
