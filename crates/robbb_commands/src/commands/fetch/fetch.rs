@@ -1,8 +1,9 @@
 use std::{collections::HashMap, str::FromStr};
 
+use anyhow::Context;
 use robbb_db::{fetch::Fetch, fetch_field::FetchField};
 use robbb_util::{cdn_hack::FakeCdnId, embeds};
-use serenity::builder::CreateEmbedAuthor;
+use serenity::{all::User, builder::CreateEmbedAuthor};
 
 use super::*;
 
@@ -10,23 +11,28 @@ use super::*;
 #[poise::command(slash_command, guild_only, rename = "fetch")]
 pub async fn fetch(
     ctx: Ctx<'_>,
-    #[description = "The user"] user: Option<Member>,
+    #[description = "The user"] user: Option<User>,
     #[description = "The specific field you care about"] field: Option<FetchField>,
 ) -> Res<()> {
+    let guild_id = ctx.guild_id().context("Not in a guild")?;
     let db = ctx.get_db();
-    let user = member_or_self(ctx, user).await?;
+    let user = user.unwrap_or_else(|| ctx.author().clone());
     ctx.defer().await?;
 
     // Query the database
-    let fetch_info: Fetch = db.get_fetch(user.user.id).await?.unwrap_or_else(|| Fetch {
-        user: user.user.id,
+    let fetch_info: Fetch = db.get_fetch(user.id).await?.unwrap_or_else(|| Fetch {
+        user: user.id,
         info: HashMap::new(),
         create_date: None,
     });
 
     let create_date = fetch_info.create_date;
     let fetch_data: Vec<(FetchField, String)> = fetch_info.get_values_ordered();
-    let color = user.colour(ctx.serenity_context());
+    let color = if let Ok(member) = guild_id.member(&ctx, user.id).await {
+        member.colour(ctx.serenity_context())
+    } else {
+        None
+    };
 
     match field {
         // Handle fetching a single field
@@ -36,8 +42,8 @@ pub async fn fetch(
                 .find(|(k, _)| k == &desired_field)
                 .user_error("Failed to get that value. Maybe the user hasn't set it?")?;
             let mut embed = embeds::base_embed(&ctx)
-                .author(CreateEmbedAuthor::new(user.user.tag()).icon_url(user.user.face()))
-                .title(format!("{}'s {}", user.user.name, field_name))
+                .author(CreateEmbedAuthor::new(user.tag()).icon_url(user.face()))
+                .title(format!("{}'s {}", user.name, field_name))
                 .color_opt(color)
                 .timestamp_opt(create_date);
             if desired_field == FetchField::Image {
@@ -54,7 +60,7 @@ pub async fn fetch(
         // Handle fetching all fields
         None => {
             let mut embed = embeds::base_embed(&ctx)
-                .author_user(&user.user)
+                .author_user(&user)
                 .color_opt(color)
                 .timestamp_opt(create_date);
 
