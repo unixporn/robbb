@@ -33,7 +33,6 @@ pub async fn message_delete(
     // if the message can't be loaded, there's no need to try anything more,
     // so let's just give up. No need to error.
     let Some(msg) = msg else {
-        tracing::info!(msg.id = %deleted_message_id, msg.channel_id = %channel_id, "Deleted message not in cache");
         return Ok(());
     };
 
