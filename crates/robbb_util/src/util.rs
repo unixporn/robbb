@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use poise::serenity_prelude::GuildId;
 use serenity::{
-    client,
+    client::{self},
     model::{id::ChannelId, misc::EmojiIdentifier},
 };
 use std::env;

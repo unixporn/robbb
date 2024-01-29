@@ -7,7 +7,7 @@ use pyroscope_pprofrs::{pprof_backend, PprofConfig};
 use robbb_commands::{checks, commands};
 use robbb_db::Db;
 
-use robbb_util::{config::Config, prelude::Ctx, UserData};
+use robbb_util::{config::Config, extensions::ChannelIdExt, prelude::Ctx, UserData};
 use serenity::all::OnlineStatus;
 use std::sync::Arc;
 
@@ -138,11 +138,7 @@ async fn pre_command(ctx: Ctx<'_>) {
         poise::Context::Application(_) => ctx.invocation_string(),
         poise::Context::Prefix(prefix) => prefix.msg.content.to_string(),
     };
-    let channel_name = ctx
-        .channel_id()
-        .to_channel_cached(ctx.cache())
-        .map(|x| x.name.to_string())
-        .unwrap_or_default();
+    let channel_name = ctx.channel_id().name_cached_or_fallback(&ctx.cache());
 
     let span = tracing::Span::current();
     span.record("command_name", ctx.command().qualified_name.as_str());

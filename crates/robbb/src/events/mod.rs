@@ -119,7 +119,8 @@ impl client::EventHandler for Handler {
         skip_all,
         fields(
             command_name, invocation, message_create.notified_user_cnt, message_create.emoji_used,
-            %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id
+            %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id,
+            msg.channel = %msg.channel_id.name_cached_or_fallback(&ctx.cache),
         )
     )]
     async fn message(&self, ctx: client::Context, msg: Message) {
