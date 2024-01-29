@@ -17,11 +17,25 @@ pub async fn message_update(
         return Ok(());
     };
 
-    tracing::info!(
-        msg.id = %event.id,
-        msg.content = new.map(|x| x.content).unwrap_or_default(),
-        "handling message_update event"
-    );
+    let old_content = old_if_available
+        .as_ref()
+        .map(|x| x.content.to_string())
+        .unwrap_or_else(|| "<Unavailable>".to_string());
+
+    if let Some(new) = new {
+        tracing::info!(
+            msg.id = %event.id,
+            msg.author = %new.author.tag(),
+            msg.author_id = %new.author.id,
+            msg.channel = %new.channel_id.name_cached_or_fallback(&ctx.cache),
+            msg.channel_id = %new.channel_id,
+            msg.content = %new.content,
+            msg.old_content = %old_content,
+            "handling message_update event"
+        );
+    } else {
+        tracing::info!(msg.id = %event.id, "handling message_update event");
+    }
 
     let mut msg = event.channel_id.message(&ctx, event.id).await?;
     msg.guild_id = event.guild_id;
@@ -52,9 +66,7 @@ pub async fn message_update(
 
                         {}
                     ",
-                    old_if_available
-                        .map(|old| old.content)
-                        .unwrap_or_else(|| "<Unavailable>".to_string()),
+                    old_content,
                     event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
                     msg.to_context_link()
                 ))

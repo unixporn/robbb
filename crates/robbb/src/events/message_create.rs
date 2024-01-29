@@ -32,6 +32,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         msg.author = %msg.author.tag(),
         msg.author_id = %msg.author.id,
         msg.id = %msg.id,
+        msg.channel = %msg.channel_id.name_cached_or_fallback(&ctx.cache),
         msg.channel_id = %msg.channel_id,
         "new message from {}: {}",
         msg.author.tag(),

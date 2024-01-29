@@ -32,15 +32,28 @@ pub async fn message_delete(
     let msg = ctx.cache.message(channel_id, deleted_message_id).map(|x| x.to_owned());
     // if the message can't be loaded, there's no need to try anything more,
     // so let's just give up. No need to error.
-    let Some(msg) = msg else { return Ok(()) };
+    let Some(msg) = msg else {
+        tracing::info!(msg.id = %deleted_message_id, msg.channel_id = %channel_id, "Deleted message not in cache");
+        return Ok(());
+    };
 
     if msg.author.bot {
         return Ok(());
     }
 
+    let channel_name = channel_id.name(&ctx).await.unwrap_or_else(|_| "unknown".to_string());
+
+    tracing::info!(
+        msg.id = %deleted_message_id,
+        msg.channel_id = %channel_id,
+        msg.channel = %channel_name,
+        msg.author = %msg.author.tag(),
+        msg.author_id = %msg.author.id,
+        msg.content = %msg.content,
+        "Found deleted message in cache"
+    );
+
     let deletor = find_deletor(&ctx, &config, &msg).await?;
-    let channel_name =
-        util::channel_name(&ctx, channel_id).await.unwrap_or_else(|_| "unknown".to_string());
 
     let attachments: Vec<_> = futures::stream::iter(attachments.iter())
         .then(|(path, file)| {

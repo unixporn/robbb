@@ -10,7 +10,7 @@ use serenity::{
         CreateAllowedMentions, CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, CreateMessage,
         CreateThread,
     },
-    client,
+    client::{self, Cache},
     model::{
         channel::{GuildChannel, Message},
         guild::Emoji,
@@ -292,6 +292,14 @@ pub impl ChannelId {
     ) -> Result<Message> {
         let msg = CreateMessage::default().embed(build(embeds::base_embed_ctx(ctx).await));
         Ok(self.send_message(&ctx, msg).await.context("Failed to send embed message")?)
+    }
+
+    fn name_cached(&self, cache: &Cache) -> Option<String> {
+        self.to_channel_cached(&cache).map(|c| c.name().to_string())
+    }
+
+    fn name_cached_or_fallback(&self, cache: &Cache) -> String {
+        self.name_cached(cache).unwrap_or_else(|| "non-cached channel".to_string())
     }
 }
 
