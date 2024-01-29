@@ -295,7 +295,7 @@ pub impl ChannelId {
     }
 
     fn name_cached(&self, cache: &Cache) -> Option<String> {
-        self.to_channel_cached(&cache).map(|c| c.name().to_string())
+        self.to_channel_cached(cache).map(|c| c.name().to_string())
     }
 
     fn name_cached_or_fallback(&self, cache: &Cache) -> String {
