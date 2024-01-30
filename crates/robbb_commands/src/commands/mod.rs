@@ -75,7 +75,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         mute::mute(),
         purge::purge(),
         small::manage_commands(),
-        attachment_hack::gather_attachments(),
+        //attachment_hack::gather_attachments(),
         // context menu
         info::menu_info(),
         ban::menu_ban(),
