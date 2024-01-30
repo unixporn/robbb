@@ -7,6 +7,7 @@ edition = "2021"
 [dependencies]
 serenity.workspace = true
 poise.workspace = true
+autometrics.workspace = true
 anyhow = "1.0"
 chrono = "0.4"
 chrono-humanize = "0.2"

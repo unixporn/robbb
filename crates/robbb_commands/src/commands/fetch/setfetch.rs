@@ -6,10 +6,10 @@ use super::*;
 use std::collections::HashMap;
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
-    Run this: 
+    Run this:
     `curl -s https://raw.githubusercontent.com/unixporn/robbb/master/fetcher.sh | sh`
-    and follow the instructions. It's recommended that you download and read the script before running it, 
-    as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
+    and follow the instructions. It's recommended that you download and read the script before running it,
+    as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>)
 
     **NOTE**: use `/setfetch update` to manually update your fetch (including the image!).
     **NOTE**: /git, /dotfiles, and /description are different commands"
@@ -28,6 +28,7 @@ pub async fn set_fetch(_ctx: Ctx<'_>) -> Res<()> {
 
 /// Use our custom fetch script to fill in your entire fetch automatically!
 #[poise::command(slash_command, guild_only, rename = "script")]
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 pub async fn set_fetch_script(ctx: Ctx<'_>) -> Res<()> {
     ctx.reply_embed_ephemeral_builder(|e| e.description(SETFETCH_USAGE)).await?;
     Ok(())
@@ -36,6 +37,7 @@ pub async fn set_fetch_script(ctx: Ctx<'_>) -> Res<()> {
 /// Update your fetch data
 #[poise::command(slash_command, guild_only, rename = "update")]
 #[allow(clippy::too_many_arguments)]
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 pub async fn set_fetch_update(
     ctx: Ctx<'_>,
     #[description = "Image"] image: Option<Attachment>,
@@ -111,6 +113,7 @@ pub async fn set_fetch_update(
 
 /// Clear your fetch data
 #[poise::command(slash_command, guild_only, rename = "clear")]
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 pub async fn set_fetch_clear(
     ctx: Ctx<'_>,
     #[description = "Field you want to clear"] field: Option<FetchField>,

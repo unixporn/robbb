@@ -8,6 +8,8 @@ edition = "2018"
 [dependencies]
 serenity.workspace = true
 poise.workspace = true
+autometrics.workspace = true
+tiny_http = "0.11.0"
 anyhow = "1.0"
 chrono = "0.4"
 chrono-humanize = "0.2"

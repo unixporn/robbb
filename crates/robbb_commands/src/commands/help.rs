@@ -7,6 +7,7 @@ use crate::checks;
 use super::*;
 
 /// Show this list
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 #[poise::command(
     slash_command,
     guild_only,

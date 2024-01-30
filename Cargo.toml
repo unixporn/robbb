@@ -24,6 +24,7 @@ serenity = { version = "0.12.0", default-features = false, features = [
     "tokio_task_builder",
 ] }
 poise = "0.6.1"
+autometrics = { version = "1.0.0", features = ["prometheus-exporter", "exemplars-tracing-opentelemetry-0_22", "prometheus-client-0_22"] }
 
 
 [profile.dev]

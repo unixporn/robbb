@@ -8,6 +8,7 @@ use serenity::{all::User, builder::CreateEmbedAuthor};
 use super::*;
 
 /// Fetch a users system information.
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 #[poise::command(slash_command, guild_only, rename = "fetch")]
 pub async fn fetch(
     ctx: Ctx<'_>,

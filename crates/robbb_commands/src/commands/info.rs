@@ -7,6 +7,7 @@ use crate::checks::check_is_moderator;
 use super::*;
 
 /// Get general information about any member
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 #[poise::command(
     guild_only,
     context_menu_command = "Info",
@@ -25,6 +26,7 @@ pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
 }
 
 /// Get general information about any member
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 #[poise::command(
     slash_command,
     guild_only,
@@ -37,6 +39,7 @@ pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) ->
 }
 
 /// Get general information and some moderation specific data about any member
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 #[poise::command(
     slash_command,
     guild_only,
@@ -47,6 +50,7 @@ pub async fn modinfo(ctx: Ctx<'_>, #[description = "User"] user: Member) -> Res<
     Ok(())
 }
 
+#[autometrics::autometrics]
 async fn make_info_embed(ctx: Ctx<'_>, member: &Member) -> CreateEmbed {
     let created_at = member.user.created_at();
     let color = member.colour(ctx.serenity_context());
@@ -64,6 +68,7 @@ async fn make_info_embed(ctx: Ctx<'_>, member: &Member) -> CreateEmbed {
     e
 }
 
+#[autometrics::autometrics(ok_if = Res::is_ok)]
 async fn make_mod_info_embed(ctx: Ctx<'_>, member: &Member) -> Res<CreateEmbed> {
     let db = ctx.get_db();
     let note_counts = db.count_all_mod_actions(member.user.id).await?;

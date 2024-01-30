@@ -68,6 +68,7 @@ impl Handler {
         }
     }
 
+    #[autometrics::autometrics]
     #[tracing::instrument(skip_all, fields(
         event.name = %event.snake_case_name(),
         command_name,
@@ -123,6 +124,7 @@ impl client::EventHandler for Handler {
             msg.channel = %msg.channel_id.name_cached_or_fallback(&ctx.cache),
         )
     )]
+    #[autometrics::autometrics]
     async fn message(&self, ctx: client::Context, msg: Message) {
         match message_create::message_create(ctx.clone(), msg.clone()).await {
             Ok(stop_event_handler) if stop_event_handler => return,
@@ -141,6 +143,7 @@ impl client::EventHandler for Handler {
             interaction_create.user,
         )
     )]
+    #[autometrics::autometrics]
     async fn interaction_create(&self, ctx: client::Context, interaction: Interaction) {
         let user = match &interaction {
             Interaction::Ping(_) => None,
@@ -175,6 +178,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(automod.execution = ?execution))]
+    #[autometrics::autometrics]
     async fn auto_moderation_action_execution(
         &self,
         ctx: client::Context,
@@ -187,6 +191,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %event.user.tag()))]
+    #[autometrics::autometrics]
     async fn guild_member_update(
         &self,
         ctx: client::Context,
@@ -207,6 +212,7 @@ impl client::EventHandler for Handler {
             msg.author = %event.author.as_ref().map_or(String::new(), |x|x.tag())
         )
     )]
+    #[autometrics::autometrics]
     async fn message_update(
         &self,
         ctx: client::Context,
@@ -229,6 +235,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
+    #[autometrics::autometrics]
     async fn message_delete(
         &self,
         ctx: client::Context,
@@ -248,6 +255,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all)]
+    #[autometrics::autometrics]
     async fn message_delete_bulk(
         &self,
         ctx: client::Context,
@@ -268,6 +276,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(user = %new_member.user.tag()))]
+    #[autometrics::autometrics]
     async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
         log_error!(
             "Error while handling guild_member_addition event",
@@ -276,6 +285,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]
+    #[autometrics::autometrics]
     async fn guild_member_removal(
         &self,
         ctx: client::Context,
@@ -294,6 +304,7 @@ impl client::EventHandler for Handler {
         auditlog.entry.action = ?entry.action,
         auditlog.entry = ?entry
     ))]
+    #[autometrics::autometrics]
     async fn guild_audit_log_entry_create(
         &self,
         ctx: client::Context,
@@ -315,6 +326,7 @@ impl client::EventHandler for Handler {
             reaction.message_id = ?event.message_id
         )
     )]
+    #[autometrics::autometrics]
     async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
         log_error!(
             "Error while handling reaction_add event",
@@ -330,6 +342,7 @@ impl client::EventHandler for Handler {
             reaction.message_id = ?event.message_id
         )
     )]
+    #[autometrics::autometrics]
     async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
         log_error!(
             "Error while handling reaction_remove event",
@@ -338,6 +351,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all)]
+    #[autometrics::autometrics]
     async fn guild_emojis_update(
         &self,
         ctx: client::Context,
@@ -359,6 +373,7 @@ impl client::EventHandler for Handler {
         ratelimit.path = %data.path,
         ratelimit.global = ?data.global,
     ))]
+    #[autometrics::autometrics]
     async fn ratelimit(&self, data: serenity::http::RatelimitInfo) {
         tracing::warn!(
             ratelimit.timeout_secs = %data.timeout.as_secs(),
@@ -371,6 +386,7 @@ impl client::EventHandler for Handler {
     }
 }
 
+#[autometrics::autometrics]
 async fn unmute(
     ctx: &client::Context,
     config: &Arc<Config>,

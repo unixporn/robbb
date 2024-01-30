@@ -31,6 +31,20 @@ async fn main() -> anyhow::Result<()> {
     if let Some(honeycomb_api_key) = honeycomb_api_key {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
+    autometrics::settings::AutometricsSettings::builder().service_name("robbb").init();
+
+    tokio::task::spawn_blocking(|| {
+        for req in tiny_http::Server::http("0.0.0.0:1234").unwrap().incoming_requests() {
+            let m = autometrics::prometheus_exporter::encode_http_response();
+            let mut res = tiny_http::Response::from_string(m.body());
+            for (k, v) in m.headers() {
+                res.add_header(
+                    tiny_http::Header::from_bytes(k.to_string().as_bytes(), v.as_bytes()).unwrap(),
+                );
+            }
+            req.respond(res).unwrap();
+        }
+    });
 
     let pyroscope_running = if let Some((url, project)) = pyroscope_url.zip(pyroscope_project) {
         tracing::info!("Enabling pyroscope profiling");

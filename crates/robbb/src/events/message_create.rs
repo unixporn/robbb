@@ -21,6 +21,7 @@ use super::*;
 /// Handle a message-create event. If this returns `Ok(true)`,
 /// the message should _not_ be forwarded to the command framework.
 /// Otherwise, it should be forwarded.
+#[autometrics::autometrics]
 pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> {
     let config = ctx.get_config().await;
 
@@ -94,6 +95,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
     Ok(msg.channel_id == config.channel_showcase)
 }
 
+#[autometrics::autometrics]
 #[tracing::instrument(skip_all, fields(highlights.notified_user_cnt))]
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
     let (config, db) = ctx.get_config_and_db().await;
@@ -187,6 +189,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
     Ok(handled_users.len())
 }
 
+#[autometrics::autometrics]
 #[tracing::instrument(skip_all, fields(msg_emoji_logging.emoji_used, guild_id = ?msg.guild_id))]
 async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Result<usize> {
     let actual_emojis = util::find_emojis(&msg.content);
@@ -222,6 +225,7 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
     Ok(actual_emojis.len())
 }
 
+#[autometrics::autometrics]
 #[tracing::instrument(skip_all)]
 async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     if msg.attachments.is_empty() {
@@ -250,6 +254,7 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     );
 }
 
+#[autometrics::autometrics]
 #[tracing::instrument(skip_all)]
 async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
     let config = ctx.get_config().await;
@@ -321,6 +326,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
     Ok(())
 }
 
+#[autometrics::autometrics]
 #[tracing::instrument(skip_all)]
 async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<bool> {
     let account_age = Utc::now() - *msg.author.created_at();
@@ -387,6 +393,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     }
 }
 
+#[autometrics::autometrics]
 #[tracing::instrument(skip_all)]
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     if msg.kind == MessageType::ThreadCreated {
@@ -421,6 +428,7 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
     Ok(())
 }
 
+#[autometrics::autometrics]
 #[tracing::instrument(skip_all)]
 async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     msg.react(&ctx, ReactionType::Unicode("👍".to_string()))
