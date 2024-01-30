@@ -12,12 +12,7 @@ static EXCLUDED_FETCH_FIELDS: &[FetchField] =
     &[FetchField::Dotfiles, FetchField::Description, FetchField::Git, FetchField::Image];
 
 /// Get statistics about what the community uses.
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }",
-    rename = "top"
-)]
+#[poise::command(slash_command, guild_only, rename = "top")]
 pub async fn top(
     ctx: Ctx<'_>,
     #[description = "What do you care about?"] field: Option<FetchField>,

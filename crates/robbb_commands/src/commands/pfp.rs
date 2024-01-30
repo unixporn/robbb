@@ -3,11 +3,7 @@ use robbb_util::embeds;
 use super::*;
 
 /// Show the profile picture of a user.
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }"
-)]
+#[poise::command(slash_command, guild_only)]
 pub async fn pfp(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
     let member = member_or_self(ctx, user).await?;
     let server_pfp = member.face();

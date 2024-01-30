@@ -7,12 +7,7 @@ use crate::checks;
 use super::*;
 
 /// Show this list
-#[poise::command(
-    slash_command,
-    guild_only,
-    prefix_command,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }"
-)]
+#[poise::command(slash_command, guild_only, prefix_command)]
 pub async fn help(
     ctx: Ctx<'_>,
     #[description = "The command to get help for."]

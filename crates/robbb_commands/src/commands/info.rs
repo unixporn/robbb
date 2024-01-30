@@ -7,11 +7,7 @@ use crate::checks::check_is_moderator;
 use super::*;
 
 /// Get general information about any member
-#[poise::command(
-    guild_only,
-    context_menu_command = "Info",
-    custom_data = "CmdMeta { perms: PermissionLevel::User }"
-)]
+#[poise::command(guild_only, context_menu_command = "Info")]
 pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
     let guild = ctx.guild().context("Not in a guild")?.to_owned();
     let member = guild.member(ctx.serenity_context(), &user).await?;
@@ -25,11 +21,7 @@ pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
 }
 
 /// Get general information about any member
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }"
-)]
+#[poise::command(slash_command, guild_only)]
 pub async fn info(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> Res<()> {
     let user = member_or_self(ctx, user).await?;
     ctx.reply_embed(make_info_embed(ctx, &user).await).await?;

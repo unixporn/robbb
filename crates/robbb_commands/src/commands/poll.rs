@@ -9,23 +9,13 @@ lazy_static::lazy_static! {
 }
 
 /// Get people to vote on your question
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }",
-    subcommands("poll_vote", "poll_multi")
-)]
+#[poise::command(slash_command, guild_only, subcommands("poll_vote", "poll_multi"))]
 pub async fn poll(_ctx: Ctx<'_>) -> Res<()> {
     Ok(())
 }
 
 /// Get people to vote on your yes/no question
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }",
-    rename = "vote"
-)]
+#[poise::command(slash_command, guild_only, rename = "vote")]
 pub async fn poll_vote(
     ctx: Ctx<'_>,
     #[description = "A yes/no question"] question: String,
@@ -75,12 +65,7 @@ struct MultiPollModal {
 }
 
 /// Have others select one of many options.
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }",
-    rename = "multi"
-)]
+#[poise::command(slash_command, guild_only, rename = "multi")]
 pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
     let ctx = poise::Context::Application(app_ctx);
 

@@ -13,11 +13,7 @@ use serenity::{
 use super::*;
 
 /// Select a role. The role can be selected in a popup.
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }"
-)]
+#[poise::command(slash_command, guild_only)]
 pub async fn role(ctx: Ctx<'_>) -> Res<()> {
     const NONE_VALUE: &str = "NONE";
     let config = ctx.get_config();

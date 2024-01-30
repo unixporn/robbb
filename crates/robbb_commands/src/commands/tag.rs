@@ -7,11 +7,7 @@ use tracing_futures::Instrument;
 use super::*;
 
 /// Get the text stored in a tag
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }"
-)]
+#[poise::command(slash_command, guild_only)]
 pub async fn tag(
     ctx: Ctx<'_>,
     #[description = "The tag to show"]
@@ -43,12 +39,7 @@ pub async fn tag(
 }
 
 /// Get the names of all tags
-#[poise::command(
-    slash_command,
-    guild_only,
-    custom_data = "CmdMeta { perms: PermissionLevel::User }",
-    rename = "taglist"
-)]
+#[poise::command(slash_command, guild_only, rename = "taglist")]
 pub async fn taglist(ctx: Ctx<'_>) -> Res<()> {
     let db = ctx.get_db();
 

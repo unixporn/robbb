@@ -82,32 +82,36 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         warn::menu_warn(),
         mute::menu_mute(),
     ];
+
+    poise::framework::set_qualified_names(&mut all_commands);
+
     for command in all_commands.iter_mut() {
         preprocess_command(command);
     }
+
     all_commands
 }
 
 pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
-    if let Some(meta) = command.custom_data.downcast_ref::<CmdMeta>() {
-        match meta.perms {
-            PermissionLevel::Mod => {
-                command.checks.push(|ctx| Box::pin(crate::checks::check_is_moderator(ctx)))
-            }
-            PermissionLevel::Helper => {
-                command.checks.push(|ctx| Box::pin(crate::checks::check_is_helper_or_mod(ctx)))
-            }
-            PermissionLevel::User => {}
-        };
-        command.default_member_permissions = match meta.perms {
-            PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
-            PermissionLevel::User => Permissions::USE_APPLICATION_COMMANDS,
-        };
-        command.category = Some(command.category.clone().unwrap_or(match meta.perms {
-            PermissionLevel::Mod | PermissionLevel::Helper => "Moderation".to_string(),
-            PermissionLevel::User => "Member".to_string(),
-        }));
-    }
+    let meta = command.custom_data.downcast_ref::<CmdMeta>();
+    let perms = meta.map(|m| m.perms).unwrap_or(PermissionLevel::User);
+    match perms {
+        PermissionLevel::Mod => {
+            command.checks.push(|ctx| Box::pin(crate::checks::check_is_moderator(ctx)))
+        }
+        PermissionLevel::Helper => {
+            command.checks.push(|ctx| Box::pin(crate::checks::check_is_helper_or_mod(ctx)))
+        }
+        PermissionLevel::User => {}
+    };
+    command.default_member_permissions = match perms {
+        PermissionLevel::Mod | PermissionLevel::Helper => Permissions::ADMINISTRATOR,
+        PermissionLevel::User => Permissions::USE_APPLICATION_COMMANDS,
+    };
+    command.category = Some(command.category.clone().unwrap_or(match perms {
+        PermissionLevel::Mod | PermissionLevel::Helper => "Moderation".to_string(),
+        PermissionLevel::User => "Member".to_string(),
+    }));
 
     for subcommand in command.subcommands.iter_mut() {
         preprocess_command(subcommand);
