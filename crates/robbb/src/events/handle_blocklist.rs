@@ -95,14 +95,14 @@ pub async fn handle_blocklist_in_command_interaction(
     interaction: &CommandInteraction,
 ) -> Result<bool> {
     let values = collect_interaction_values(interaction);
+    if checks::get_permission_level(&ctx, &values.user).await? == PermissionLevel::Mod {
+        return Ok(false);
+    }
 
     let db = ctx.get_db().await;
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     for value in &values.values {
         let normalized = value.replace(INVISIBLE_CHARS, "");
-        if checks::get_permission_level(&ctx, &values.user).await? == PermissionLevel::Mod {
-            return Ok(false);
-        }
         if let Some(word) = blocklist_regex.find(&normalized) {
             handle_blocked_word_in_interaction(ctx, interaction, word.as_str(), values).await;
             return Ok(true);
