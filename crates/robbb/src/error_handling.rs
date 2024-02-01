@@ -123,6 +123,13 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
         DynamicPrefix { error, .. } => {
             tracing::error!(error.message = %error, "Error in dynamic prefix");
         }
+        UnknownCommand { msg, msg_content, prefix, .. } => {
+            tracing::debug!(
+                msg.id = %msg.id,
+                msg.content = %msg_content,
+                "Message starts with command prefix `{prefix}`, but wasn't a command",
+            );
+        }
         other => {
             if let Some(ctx) = other.ctx() {
                 tracing::error!(
@@ -158,6 +165,7 @@ async fn handle_argument_parse_error(
     } else if let Some(input) = input {
         format!("Malformed argument '{}'", input)
     } else {
+        tracing::warn!(error.message = %error, error = ?error, "Unclear argument parse error: {error}");
         "Command used incorrectly".to_string()
     };
     ctx.say_error(msg).await?;
@@ -168,25 +176,24 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
     match err.downcast_ref::<commands::UserErr>() {
         Some(inner_err) => {
             let issue = inner_err.to_string();
-            let _ = ctx.say_error(format!("Error: {}", issue)).await;
+            let _ = ctx.say_error(format!("Error: {issue}")).await;
             tracing::info!(
-                user_error.message=%issue,
-                user_error.command_name = %ctx.command().qualified_name.as_str(),
-                user_error.invocation = %ctx.invocation_string(),
+                user_error.message = %issue,
+                command_name = %ctx.command().qualified_name.as_str(),
+                invocation = %ctx.invocation_string(),
                 "User error"
             );
         }
         None => match err.downcast_ref::<serenity::Error>() {
             Some(inner_err) => {
                 tracing::warn!(
-                    error.command_name = %ctx.command().qualified_name.as_str(),
-                    error.invocation = %ctx.invocation_string(),
+                    command_name = %ctx.command().qualified_name.as_str(),
+                    invocation = %ctx.invocation_string(),
                     error.message = %err,
                     error.root_cause = %err.root_cause(),
-                    "Serenity error [handling {}]: {} ({:?})",
-                    ctx.command().name,
-                    &err,
-                    &inner_err
+                    error.inner = ?inner_err,
+                    "Serenity error [handling {}]: {err}",
+                    ctx.command().qualified_name,
                 );
                 match inner_err {
                     serenity::Error::Http(err) => {
@@ -201,7 +208,7 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
                         }
                     }
                     serenity::Error::Model(err) => {
-                        let _ = ctx.say_error(format!("{}", err)).await;
+                        let _ = ctx.say_error(err.to_string()).await;
                     }
                     _ => {
                         let _ = ctx.say_error("Something went wrong").await;
@@ -211,14 +218,13 @@ async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
             None => {
                 let _ = ctx.say_error("Something went wrong").await;
                 tracing::warn!(
-                    error.command_name = %ctx.command().qualified_name.as_str(),
-                    error.invocation = %ctx.invocation_string(),
+                    command_name = %ctx.command().qualified_name.as_str(),
+                    invocation = %ctx.invocation_string(),
                     error.message = %err,
                     error.root_cause = %err.root_cause(),
-                    "Internal error [handling {}]: {} ({:#?})",
-                    ctx.command().name,
-                    &err,
-                    &err
+                    error = format!("{err:#?}"),
+                    "Internal error [handling {}]: {err}",
+                    ctx.command().qualified_name,
                 );
             }
         },
