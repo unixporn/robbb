@@ -8,7 +8,6 @@ use poise::serenity_prelude::{
     ChannelId, GuildId, Member, Mentionable, Message, MessageId, ShardManager, User, UserId,
 };
 use poise::serenity_prelude::{MessageUpdateEvent, Reaction, Ready};
-use robbb_db::Db;
 use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
 use robbb_util::{extensions::*, UpEmotes};
 
@@ -369,18 +368,4 @@ impl client::EventHandler for Handler {
             "Encountered ratelimit"
         );
     }
-}
-
-async fn unmute(
-    ctx: &client::Context,
-    config: &Arc<Config>,
-    db: &Arc<Db>,
-    mute: &robbb_db::mute::Mute,
-) -> Result<()> {
-    db.set_mute_inactive(mute.id).await?;
-    let mut member = config.guild.member(&ctx, mute.user).await?;
-    log_error!(member.remove_roles(&ctx, &[config.role_mute]).await);
-    log_error!(member.enable_communication(&ctx).await);
-
-    Ok(())
 }

@@ -45,21 +45,45 @@ async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
         .await;
 }
 
-async fn start_mute_handler(ctx: client::Context) {
+/// End a given mute, ending the users timeout and removing the mute role,
+/// as well as setting the mute to inactive in the db.
+#[tracing::instrument(skip_all, fields(user.id = %mute.user, mute.id = %mute.id))]
+async fn unmute(ctx: &client::Context, mute: &robbb_db::mute::Mute) -> Result<()> {
     let (config, db) = ctx.get_config_and_db().await;
+    db.set_mute_inactive(mute.id).await?;
+    let mut member = config.guild.member(&ctx, mute.user).await?;
+    log_error!(member.remove_roles(&ctx, &[config.role_mute]).await);
+    log_error!(member.enable_communication(&ctx).await);
+    Ok(())
+}
+
+async fn start_mute_handler(ctx: client::Context) {
+    let db = ctx.get_db().await;
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             let mutes = match db.get_newly_expired_mutes().await {
                 Ok(mutes) => mutes,
                 Err(err) => {
-                    tracing::error!(error.message = %err, "Failed to request expired mutes: {}", err);
+                    tracing::error!(error.message = %err, "Failed to request expired mutes");
                     continue;
                 }
             };
             for mute in mutes {
-                if let Err(err) = unmute(&ctx, &config, &db, &mute).await {
-                    tracing::error!(error.message = %err, "Error handling mute removal: {}", err);
+                tracing::info!(
+                    user.id = %mute.user,
+                    mute.id = %mute.id,
+                    mute.end_time = %mute.end_time,
+                    "Mute expired for user {}, unmuting", mute.user
+                );
+                if let Err(err) = unmute(&ctx, &mute).await {
+                    tracing::error!(
+                        error.message = %err,
+                        error = ?err,
+                        mute.id = %mute.id,
+                        user.id = %mute.user,
+                        "Error handling mute removal"
+                    );
                 } else {
                     modlog::log_user_mute_ended(&ctx, &mute).await;
                 }
