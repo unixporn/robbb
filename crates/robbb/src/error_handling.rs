@@ -52,7 +52,7 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
             tracing::error!(
                 error.message = "CommandStructureMismach",
                 error.description = %description,
-                command.invocation = %ctx.invocation_string(),
+                invocation = %ctx.invocation_string(),
                 "Error in command structure: {description}"
             );
         }
@@ -71,9 +71,11 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 .await
             );
             tracing::error!(
-                error.message = "Missing permissions",
-                command.name = ctx.command().qualified_name,
-                command.invocation = %ctx.invocation_string(),
+                error.message = "Bot missing permissions",
+                error.missing_permissions = %missing_permissions,
+                command_name = ctx.command().qualified_name,
+                invocation = %ctx.invocation_string(),
+                author = ctx.author().tag(),
                 "Bot missing permissions: {missing_permissions}",
             )
         }
@@ -82,10 +84,9 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
             tracing::error!(
                 error.message = "User missing permissions",
                 error.missing_permissions = ?missing_permissions,
-                command.author = ctx.author().tag(),
-                command.invocation = %ctx.invocation_string(),
-                "User missing permissions: {:?}",
-                missing_permissions
+                author = ctx.author().tag(),
+                invocation = %ctx.invocation_string(),
+                "User missing permissions: {missing_permissions:?}",
             )
         }
         NotAnOwner { ctx, .. } => {
@@ -107,9 +108,9 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 );
                 tracing::error!(
                     error.message = %error,
-                    command.name = %ctx.command().qualified_name.as_str(),
-                    command.invocation = %ctx.invocation_string(),
-                    "Error while running command check: {}", error
+                    command_name = %ctx.command().qualified_name.as_str(),
+                    invocation = %ctx.invocation_string(),
+                    "Error while running command check: {error}"
                 );
             } else if matches!(ctx, poise::Context::Application(_)) {
                 log_error!(
@@ -136,8 +137,8 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                     error.message = %other,
                     error = ?other,
                     command.author.tag = ctx.author().tag(),
-                    command.name = ctx.command().qualified_name,
-                    command.invocation = %ctx.invocation_string(),
+                    command_name = ctx.command().qualified_name,
+                    invocation = %ctx.invocation_string(),
                     "unhandled error received from poise"
                 );
             } else {
@@ -173,60 +174,54 @@ async fn handle_argument_parse_error(
 }
 
 async fn handle_command_error(ctx: Ctx<'_>, err: prelude::Error) {
-    match err.downcast_ref::<commands::UserErr>() {
-        Some(inner_err) => {
-            let issue = inner_err.to_string();
-            let _ = ctx.say_error(format!("Error: {issue}")).await;
-            tracing::info!(
-                user_error.message = %issue,
-                command_name = %ctx.command().qualified_name.as_str(),
-                invocation = %ctx.invocation_string(),
-                "User error"
-            );
-        }
-        None => match err.downcast_ref::<serenity::Error>() {
-            Some(inner_err) => {
-                tracing::warn!(
-                    command_name = %ctx.command().qualified_name.as_str(),
-                    invocation = %ctx.invocation_string(),
-                    error.message = %err,
-                    error.root_cause = %err.root_cause(),
-                    error.inner = ?inner_err,
-                    "Serenity error [handling {}]: {err}",
-                    ctx.command().qualified_name,
-                );
-                match inner_err {
-                    serenity::Error::Http(err) => {
-                        if let serenity::all::HttpError::UnsuccessfulRequest(res) = err {
-                            if res.status_code == serenity::http::StatusCode::NOT_FOUND
-                                && res.error.message.to_lowercase().contains("unknown user")
-                            {
-                                let _ = ctx.say_error("User not found").await;
-                            } else {
-                                let _ = ctx.say_error("Something went wrong").await;
-                            }
-                        }
-                    }
-                    serenity::Error::Model(err) => {
-                        let _ = ctx.say_error(err.to_string()).await;
-                    }
-                    _ => {
+    if let Some(inner_err) = err.downcast_ref::<commands::UserErr>() {
+        let issue = inner_err.to_string();
+        let _ = ctx.say_error(format!("Error: {issue}")).await;
+        tracing::info!(
+            user_error.message = %issue,
+            command_name = %ctx.command().qualified_name.as_str(),
+            invocation = %ctx.invocation_string(),
+            "User error"
+        );
+    } else if let Some(inner_err) = err.downcast_ref::<serenity::Error>() {
+        tracing::warn!(
+            command_name = %ctx.command().qualified_name.as_str(),
+            invocation = %ctx.invocation_string(),
+            error.message = %err,
+            error.root_cause = %err.root_cause(),
+            error.inner = ?inner_err,
+            "Serenity error [handling {}]: {err}",
+            ctx.command().qualified_name,
+        );
+        match inner_err {
+            serenity::Error::Http(err) => {
+                if let serenity::all::HttpError::UnsuccessfulRequest(res) = err {
+                    if res.status_code == serenity::http::StatusCode::NOT_FOUND
+                        && res.error.message.to_lowercase().contains("unknown user")
+                    {
+                        let _ = ctx.say_error("User not found").await;
+                    } else {
                         let _ = ctx.say_error("Something went wrong").await;
                     }
                 }
             }
-            None => {
-                let _ = ctx.say_error("Something went wrong").await;
-                tracing::warn!(
-                    command_name = %ctx.command().qualified_name.as_str(),
-                    invocation = %ctx.invocation_string(),
-                    error.message = %err,
-                    error.root_cause = %err.root_cause(),
-                    error = format!("{err:#?}"),
-                    "Internal error [handling {}]: {err}",
-                    ctx.command().qualified_name,
-                );
+            serenity::Error::Model(err) => {
+                let _ = ctx.say_error(err.to_string()).await;
             }
-        },
+            _ => {
+                let _ = ctx.say_error("Something went wrong").await;
+            }
+        }
+    } else {
+        let _ = ctx.say_error("Something went wrong").await;
+        tracing::warn!(
+            command_name = %ctx.command().qualified_name.as_str(),
+            invocation = %ctx.invocation_string(),
+            error.message = %err,
+            error.root_cause = %err.root_cause(),
+            error = format!("{err:#?}"),
+            "Internal error [handling {}]: {err}",
+            ctx.command().qualified_name,
+        );
     }
 }
