@@ -37,10 +37,7 @@ pub async fn purge(
     let _working = ctx.defer_or_broadcast().await?;
 
     let recent_messages = channel
-        .messages(
-            &ctx.serenity_context(),
-            GetMessages::default().limit(100).before(response_msg.id),
-        )
+        .messages(&ctx.http(), GetMessages::default().limit(100).before(response_msg.id))
         .await?
         .into_iter()
         .filter(|msg| msg.author.id == user)
@@ -50,18 +47,15 @@ pub async fn purge(
                 && duration.map_or(true, |d| msg_timestamp > now_timestamp - (d.as_secs() as i64))
         })
         .take(count)
+        .map(|x| x.id)
         .collect_vec();
 
-    channel.delete_messages(&ctx.serenity_context(), &recent_messages).await?;
+    channel.delete_messages(&ctx.http(), &recent_messages).await?;
 
     let success_embed = embeds::make_success_mod_action_embed(
-        ctx.serenity_context(),
+        &ctx.user_data(),
         &format!("Successfully deleted {} messages", recent_messages.len()),
-    )
-    .await;
-    response_msg
-        .to_mut()
-        .edit(&ctx.serenity_context(), EditMessage::default().embed(success_embed))
-        .await?;
+    );
+    response_msg.to_mut().edit(&ctx.http(), EditMessage::default().embed(success_embed)).await?;
     Ok(())
 }

@@ -1,7 +1,7 @@
-use std::{collections::HashSet, path::PathBuf, sync::Arc};
+use std::{collections::HashSet, path::PathBuf};
 
 use poise::serenity_prelude::{ChannelId, CreateEmbed, GuildId, RoleId};
-use serenity::{all::UserId, client, prelude::TypeMapKey};
+use serenity::{all::UserId, client};
 
 use crate::{
     extensions::GuildIdExt,
@@ -98,8 +98,4 @@ impl Config {
         let result = self.guild.send_embed(ctx, self.channel_auto_mod, build_embed).await;
         log_error!(result);
     }
-}
-
-impl TypeMapKey for Config {
-    type Value = Arc<Config>;
 }

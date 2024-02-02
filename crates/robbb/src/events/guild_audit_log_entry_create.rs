@@ -6,8 +6,8 @@ use serenity::{
 };
 
 pub async fn guild_audit_log_entry_create(
-    ctx: client::Context,
-    entry: AuditLogEntry,
+    ctx: &client::Context,
+    entry: &AuditLogEntry,
 ) -> anyhow::Result<()> {
     tracing::info!(
         auditlog.entry.id = %entry.id,
@@ -20,7 +20,7 @@ pub async fn guild_audit_log_entry_create(
     if entry.user_id == ctx.cache.current_user().id {
         return Ok(());
     }
-    let (config, db) = ctx.get_config_and_db().await;
+    let (config, db) = ctx.get_config_and_db();
     let user = entry.user_id.to_user(&ctx).await?;
     let Some(target_id) = entry.target_id else { return Ok(()) };
     match entry.action {
@@ -29,7 +29,7 @@ pub async fn guild_audit_log_entry_create(
             db.add_mod_action(
                 user.id,
                 target_user.id,
-                entry.reason.clone().unwrap_or_default(),
+                entry.reason.clone().unwrap_or_default().to_string(),
                 Utc::now(),
                 String::new(),
                 robbb_db::mod_action::ModActionKind::Ban,
@@ -43,7 +43,7 @@ pub async fn guild_audit_log_entry_create(
                             "manually yote user: {}",
                             target_user.mention_and_tag()
                         ))
-                        .field_opt("Reason", entry.reason, false)
+                        .field_opt("Reason", entry.reason.clone(), false)
                 })
                 .await;
         }
@@ -57,7 +57,7 @@ pub async fn guild_audit_log_entry_create(
                             "manually unbanned user: {}",
                             target_user.mention_and_tag()
                         ))
-                        .field_opt("Reason", entry.reason, false)
+                        .field_opt("Reason", entry.reason.clone(), false)
                 })
                 .await;
         }
@@ -67,7 +67,7 @@ pub async fn guild_audit_log_entry_create(
             db.add_mod_action(
                 user.id,
                 target_user.id,
-                entry.reason.clone().unwrap_or_default(),
+                entry.reason.clone().unwrap_or_default().to_string(),
                 Utc::now(),
                 String::new(),
                 robbb_db::mod_action::ModActionKind::Kick,
@@ -81,7 +81,7 @@ pub async fn guild_audit_log_entry_create(
                             "manually kicked user: {}",
                             target_user.mention_and_tag()
                         ))
-                        .field_opt("Reason", entry.reason, false)
+                        .field_opt("Reason", entry.reason.clone(), false)
                 })
                 .await;
         }

@@ -10,7 +10,10 @@ use robbb_db::emoji_logging::EmojiIdentifier;
 use robbb_db::fetch_field::FetchField;
 
 use robbb_util::cdn_hack;
-use serenity::builder::{CreateEmbed, CreateEmbedFooter, CreateMessage, GetMessages};
+use serenity::{
+    builder::{CreateEmbed, CreateEmbedFooter, CreateMessage, GetMessages},
+    small_fixed_array::FixedString,
+};
 use tracing::debug;
 use tracing_futures::Instrument;
 
@@ -21,10 +24,10 @@ use super::*;
 /// Handle a message-create event. If this returns `Ok(true)`,
 /// the message should _not_ be forwarded to the command framework.
 /// Otherwise, it should be forwarded.
-pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> {
-    let config = ctx.get_config().await;
+pub async fn message_create(ctx: &client::Context, msg: &Message) -> Result<bool> {
+    let config = ctx.get_config();
 
-    if msg.author.bot {
+    if msg.author.bot() {
         return Ok(true);
     }
 
@@ -96,7 +99,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
 
 #[tracing::instrument(skip_all, fields(highlights.notified_user_cnt))]
 async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usize> {
-    let (config, db) = ctx.get_config_and_db().await;
+    let (config, db) = ctx.get_config_and_db();
 
     let highlights_data = db.get_highlights().await?;
 
@@ -159,7 +162,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
                 .guild_id
                 .member(&ctx, msg.author.id)
                 .await?
-                .permissions(ctx)?
+                .permissions(&ctx.cache)?
                 .read_message_history();
 
             if user_id == msg.author.id
@@ -210,11 +213,15 @@ async fn handle_msg_emoji_logging(ctx: &client::Context, msg: &Message) -> Resul
     if actual_emojis.is_empty() {
         return Ok(0);
     }
-    let db = ctx.get_db().await;
+    let db = ctx.get_db();
     for emoji in &actual_emojis {
         db.alter_emoji_text_count(
             1,
-            &EmojiIdentifier { name: emoji.name.clone(), id: emoji.id, animated: emoji.animated },
+            &EmojiIdentifier {
+                name: emoji.name.to_string(),
+                id: emoji.id,
+                animated: emoji.animated,
+            },
         )
         .await?;
     }
@@ -227,7 +234,7 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
     if msg.attachments.is_empty() {
         return;
     }
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
 
     let msg_id = msg.id;
     let channel_id = msg.channel_id;
@@ -252,7 +259,7 @@ async fn handle_attachment_logging(ctx: &client::Context, msg: &Message) {
 
 #[tracing::instrument(skip_all)]
 async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
     if msg.channel_id == config.channel_showcase {
         return Ok(());
     }
@@ -282,7 +289,7 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
         .guild_id
         .member(&ctx, msg.author.id)
         .await?
-        .permissions(ctx)?
+        .permissions(&ctx.cache)?
         .read_message_history();
 
     debug!(quote.user_can_see_channel = ?user_can_see_channel, "checked if user can see the channel");
@@ -301,20 +308,20 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
     debug!("retrieved the mentioned message");
 
     if (image_attachment.is_none() && mentioned_msg.content.trim().is_empty())
-        || mentioned_msg.author.bot
+        || mentioned_msg.author.bot()
     {
         return Ok(());
     }
 
     msg.reply_embed(&ctx, |mut e| {
         if let Some(attachment) = image_attachment {
-            e = e.image(&attachment.url);
+            e = e.image(attachment.url.clone().into_string());
         }
         e.footer(
             CreateEmbedFooter::new(format!("Quote of {}", mentioned_msg.author.tag()))
                 .icon_url(mentioned_msg.author.face()),
         )
-        .description(&mentioned_msg.content)
+        .description(mentioned_msg.content.to_string())
         .timestamp(mentioned_msg.timestamp)
     })
     .await?;
@@ -331,7 +338,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 
     // TODO should the messages be cached here? given the previous checks this is rare enough to probably not matter.
     let msgs =
-        msg.channel_id.messages(&ctx, GetMessages::default().before(msg.id).limit(10)).await?;
+        msg.channel_id.messages(&ctx.http, GetMessages::default().before(msg.id).limit(10)).await?;
 
     let spam_msgs =
         msgs.iter().filter(|x| x.author == msg.author && x.content == msg.content).collect_vec();
@@ -349,7 +356,7 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     let ping_spam_msgs = msgs.iter().filter(|x| x.author == msg.author).collect_vec();
     let is_ping_spam = default_pfp
         && ping_spam_msgs.len() > 3
-        && ping_spam_msgs.iter().map(|m| m.mentions.len()).sum::<usize>() as f32
+        && ping_spam_msgs.iter().map(|m| m.mentions.len()).sum::<u32>() as f32
             >= ping_spam_msgs.len() as f32 * 1.5
         && match spam_msgs.iter().minmax_by_key(|x| *x.timestamp) {
             itertools::MinMaxResult::NoElements => false,
@@ -378,7 +385,14 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
         modlog::log_mute_for_spamming(ctx, msg, duration).await;
         log_error!(
             msg.channel_id
-                .delete_messages(&ctx, msgs.iter().filter(|m| m.author == msg.author))
+                .delete_messages(
+                    &ctx.http,
+                    &msgs
+                        .iter()
+                        .filter(|m| m.author == msg.author)
+                        .map(|x| x.id)
+                        .collect::<Vec<_>>()
+                )
                 .await
         );
         Ok(true)
@@ -402,13 +416,13 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
                 "))
             ).await.context("Failed to send DM about invalid showcase submission")?;
     } else {
-        msg.react(&ctx, ReactionType::Unicode("❤️".to_string()))
+        msg.react(&ctx, ReactionType::Unicode(FixedString::from_str_trunc("❤️")))
             .await
             .context("Error reacting to showcase submission with ❤️")?;
 
         if let Some(attachment) = msg.attachments.first() {
             if util::is_image_file(&attachment.filename) {
-                let db = ctx.get_db().await;
+                let db = ctx.get_db();
                 let fake_cdn_id = cdn_hack::FakeCdnId::from_message(msg, 0);
                 db.update_fetch(
                     msg.author.id,
@@ -423,10 +437,10 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
 
 #[tracing::instrument(skip_all)]
 async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()> {
-    msg.react(&ctx, ReactionType::Unicode("👍".to_string()))
+    msg.react(&ctx, ReactionType::Unicode(FixedString::from_str_trunc("👍")))
         .await
         .context("Error reacting to feedback submission with 👍")?;
-    msg.react(&ctx, ReactionType::Unicode("👎".to_string()))
+    msg.react(&ctx, ReactionType::Unicode(FixedString::from_str_trunc("👎")))
         .await
         .context("Error reacting to feedback submission with 👎")?;
 
@@ -438,10 +452,14 @@ async fn handle_feedback_post(ctx: &client::Context, msg: &Message) -> Result<()
     }
 
     // retrieve the last keep-at-bottom message the bot wrote
-    let recent_messages = msg.channel_id.messages(&ctx, GetMessages::default().before(msg)).await?;
+    let recent_messages =
+        msg.channel_id.messages(&ctx.http, GetMessages::default().before(msg.id)).await?;
 
     let last_bottom_pin_msg = recent_messages.iter().find(|m| {
-        m.author.bot && m.embeds.iter().any(|e| e.title == Some("CONTRIBUTING.md".to_string()))
+        m.author.bot()
+            && m.embeds
+                .iter()
+                .any(|e| e.title.as_ref().map_or(false, |x| x.as_str() == "CONTRIBUTING.md"))
     });
     if let Some(bottom_pin_msg) = last_bottom_pin_msg {
         bottom_pin_msg.delete(&ctx).await?;

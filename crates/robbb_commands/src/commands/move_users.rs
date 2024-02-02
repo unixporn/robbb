@@ -73,8 +73,8 @@ async fn send_move(ctx: Ctx<'_>, target_channel: ChannelId, mentions: String) ->
     async fn make_continuation_embed<'a>(
         ctx: Ctx<'_>,
         continuation_msg: Option<Cow<'a, Message>>,
-    ) -> CreateEmbed {
-        embeds::base_embed(&ctx).author_user(ctx.author()).description(indoc::formatdoc!(
+    ) -> CreateEmbed<'a> {
+        embeds::base_embed(&ctx.user_data()).author_user(ctx.author()).description(indoc::formatdoc!(
             "Continuation from {}
                     [Conversation]({})",
             ctx.channel_id().mention(),

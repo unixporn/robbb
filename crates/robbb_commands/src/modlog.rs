@@ -19,7 +19,7 @@ pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
                     ctx.author().id.mention(),
                     user.mention_and_tag(),
                 ))
-                .field("Note", note_content, false)
+                .field("Note", note_content.to_string(), false)
         })
         .await;
 }
@@ -42,7 +42,7 @@ pub async fn log_warn(
                     util::format_count(warn_count),
                     context_msg.to_context_link(),
                 ))
-                .field("Reason", reason, false)
+                .field("Reason", reason.to_string(), false)
         })
         .await;
 }
@@ -59,7 +59,7 @@ pub async fn log_kick(ctx: Ctx<'_>, context_msg: &Message, user: User, reason: &
                     ctx.author().id.mention(),
                     context_msg.to_context_link()
                 ))
-                .field("Reason", reason, false)
+                .field("Reason", reason.to_string(), false)
         })
         .await;
 }
@@ -74,7 +74,7 @@ pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[Use
                     successful_bans.iter().map(|x| format!("- {}", x.mention_and_tag())).join("\n"),
                     context_msg.to_context_link(),
                 ))
-                .field("Reason", reason, false)
+                .field("Reason", reason.to_string(), false)
         })
         .await;
 }

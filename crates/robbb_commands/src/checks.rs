@@ -43,7 +43,7 @@ pub async fn check_is_not_muted(ctx: Ctx<'_>) -> Res<bool> {
 
 #[tracing::instrument(skip_all, fields(user_id = %user.id.get(), role_id = %role.get()))]
 async fn check_role(ctx: &client::Context, user: &User, role: RoleId) -> Res<bool> {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
     Ok(user.has_role(ctx, config.guild, role).await?)
 }
 
@@ -57,7 +57,7 @@ pub enum PermissionLevel {
 
 #[tracing::instrument(skip_all)]
 pub async fn get_permission_level(ctx: &client::Context, user: &User) -> Res<PermissionLevel> {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
     Ok(if check_role(ctx, user, config.role_mod).await? {
         PermissionLevel::Mod
     } else if check_role(ctx, user, config.role_helper).await? {

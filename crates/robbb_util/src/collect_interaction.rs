@@ -31,7 +31,7 @@ pub fn await_component_interactions_by(
     timeout: std::time::Duration,
 ) -> UserSpecificComponentInteractionCollector<impl Stream<Item = ComponentInteraction>> {
     let stream = message
-        .await_component_interaction(ctx)
+        .await_component_interaction(ctx.shard.clone())
         .filter(move |x| x.user.id == user_id)
         .timeout(timeout)
         .stream();

@@ -97,7 +97,7 @@ pub async fn apply_mute(
     reason: Option<String>,
     context: String,
 ) -> anyhow::Result<()> {
-    let db = ctx.get_db().await;
+    let db = ctx.get_db();
 
     let start_time = Utc::now();
     let end_time = start_time + chrono::Duration::from_std(duration).unwrap();
@@ -123,7 +123,7 @@ pub async fn apply_mute(
         .date_naive();
 
     if end_time.date_naive() <= latest_possible_timeout {
-        member.disable_communication_until_datetime(&ctx, end_time.into()).await?;
+        member.disable_communication_until(&ctx.http, end_time.into()).await?;
     }
 
     set_mute_role(ctx, member).await?;
@@ -134,7 +134,7 @@ pub async fn apply_mute(
 /// This should only be used if we know that an active database entry for the mute already exists,
 /// or else we run the risk of accidentally muting someone forever.
 pub async fn set_mute_role(ctx: &client::Context, member: Member) -> anyhow::Result<()> {
-    let config = ctx.get_config().await;
-    member.add_role(&ctx, config.role_mute).await?;
+    let config = ctx.get_config();
+    member.add_role(&ctx.http, config.role_mute).await?;
     Ok(())
 }

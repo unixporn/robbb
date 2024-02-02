@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::num::NonZeroU16;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
@@ -31,35 +32,28 @@ pub mod ready;
 
 pub struct Handler {
     pub options: poise::FrameworkOptions<UserData, Error>,
-    pub shard_manager: parking_lot::RwLock<Option<Arc<ShardManager>>>,
+    pub shard_manager: Arc<parking_lot::RwLock<Option<Arc<ShardManager>>>>,
     pub bot_id: parking_lot::RwLock<Option<UserId>>,
-    pub user_data: UserData,
 }
 
 impl Handler {
-    pub fn new(options: poise::FrameworkOptions<UserData, Error>, user_data: UserData) -> Self {
+    pub fn new(options: poise::FrameworkOptions<UserData, Error>) -> Self {
         Self {
             options,
-            user_data,
-            shard_manager: parking_lot::RwLock::new(None),
+            shard_manager: Arc::new(parking_lot::RwLock::new(None)),
             bot_id: parking_lot::RwLock::new(None),
         }
     }
 
-    pub fn set_shard_manager(&self, manager: Arc<ShardManager>) {
-        *self.shard_manager.write() = Some(manager);
-    }
-
     async fn update_emojis(&self, ctx: &client::Context, up_emotes: UpEmotes) {
         let up_emotes = Arc::new(up_emotes);
-        *self.user_data.up_emotes.write() = Some(up_emotes.clone());
-        ctx.data.write().await.insert::<UpEmotes>(up_emotes);
+        *ctx.user_data().up_emotes.write() = Some(up_emotes);
     }
 
     async fn init_ready_data(&self, ctx: &client::Context, user_id: UserId) {
         *self.bot_id.write() = Some(user_id);
 
-        match robbb_util::load_up_emotes(&ctx, self.user_data.config.guild).await {
+        match robbb_util::load_up_emotes(&ctx, ctx.user_data().config.guild).await {
             Ok(up_emotes) => {
                 self.update_emojis(ctx, up_emotes).await;
             }
@@ -78,39 +72,38 @@ impl Handler {
         msg.channel_id,
         msg.channel,
     ))]
-    async fn dispatch_poise_event(&self, ctx: &client::Context, event: serenity::all::FullEvent) {
+    async fn dispatch_poise_event(&self, ctx: &client::Context, event: &serenity::all::FullEvent) {
         let shard_manager = (*self.shard_manager.read()).clone().unwrap();
         let framework_data = poise::FrameworkContext {
-            bot_id: self.bot_id.read().unwrap_or_else(|| UserId::new(0)),
+            serenity_context: ctx,
             options: &self.options,
-            user_data: &self.user_data,
             shard_manager: &shard_manager,
         };
-        poise::dispatch_event(framework_data, ctx, event).await;
+        poise::dispatch_event(framework_data, event).await;
     }
 }
 
 #[async_trait]
 impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all)]
-    async fn ready(&self, ctx: client::Context, data_about_bot: Ready) {
+    async fn ready(&self, ctx: &client::Context, data_about_bot: &Ready) {
         self.init_ready_data(&ctx, data_about_bot.user.id).await;
 
         log_error!("Error while handling ready event", ready::ready(ctx, data_about_bot).await);
     }
 
     #[tracing::instrument(skip_all)]
-    async fn cache_ready(&self, _ctx: client::Context, _guilds: Vec<GuildId>) {
+    async fn cache_ready(&self, _ctx: &client::Context, _guilds: &Vec<GuildId>) {
         tracing::info!("Cache ready");
     }
 
     #[tracing::instrument(skip_all, fields(total_shards))]
-    async fn shards_ready(&self, _ctx: client::Context, total_shards: u32) {
+    async fn shards_ready(&self, _ctx: &client::Context, total_shards: &NonZeroU16) {
         tracing::info!("all {total_shards} shards ready");
     }
 
     #[tracing::instrument(skip_all, fields(event))]
-    async fn resume(&self, _ctx: client::Context, _event: ResumedEvent) {
+    async fn resume(&self, _ctx: &client::Context, _event: &ResumedEvent) {
         tracing::info!("Bot connection resumed");
     }
 
@@ -122,12 +115,12 @@ impl client::EventHandler for Handler {
             msg.channel = %msg.channel_id.name_cached_or_fallback(&ctx.cache),
         )
     )]
-    async fn message(&self, ctx: client::Context, msg: Message) {
-        match message_create::message_create(ctx.clone(), msg.clone()).await {
+    async fn message(&self, ctx: &client::Context, msg: &Message) {
+        match message_create::message_create(ctx, msg).await {
             Ok(stop_event_handler) if stop_event_handler => return,
             err => log_error!("Error handling message_create event", err),
         };
-        self.dispatch_poise_event(&ctx, FullEvent::Message { new_message: msg }).await;
+        self.dispatch_poise_event(&ctx, &FullEvent::Message { new_message: msg.to_owned() }).await;
     }
 
     #[tracing::instrument(
@@ -140,7 +133,7 @@ impl client::EventHandler for Handler {
             interaction_create.user,
         )
     )]
-    async fn interaction_create(&self, ctx: client::Context, interaction: Interaction) {
+    async fn interaction_create(&self, ctx: &client::Context, interaction: &Interaction) {
         let user = match &interaction {
             Interaction::Ping(_) => None,
             Interaction::Command(x) => Some(&x.user),
@@ -170,14 +163,18 @@ impl client::EventHandler for Handler {
             };
         }
 
-        self.dispatch_poise_event(&ctx, FullEvent::InteractionCreate { interaction }).await;
+        self.dispatch_poise_event(
+            &ctx,
+            &FullEvent::InteractionCreate { interaction: interaction.to_owned() },
+        )
+        .await;
     }
 
     #[tracing::instrument(skip_all, fields(automod.execution = ?execution))]
     async fn auto_moderation_action_execution(
         &self,
-        ctx: client::Context,
-        execution: ActionExecution,
+        ctx: &client::Context,
+        execution: &ActionExecution,
     ) {
         log_error!(
             "Error while handling auto_moderation_action_execution event",
@@ -188,10 +185,10 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all, fields(member_update.old = ?old, member_update.new = ?new, member.tag = %event.user.tag()))]
     async fn guild_member_update(
         &self,
-        ctx: client::Context,
-        old: Option<Member>,
-        new: Option<Member>,
-        event: GuildMemberUpdateEvent,
+        ctx: &client::Context,
+        old: &Option<Member>,
+        new: &Option<Member>,
+        event: &GuildMemberUpdateEvent,
     ) {
         log_error!(
             "Error while handling guild member update event",
@@ -208,10 +205,10 @@ impl client::EventHandler for Handler {
     )]
     async fn message_update(
         &self,
-        ctx: client::Context,
-        old_if_available: Option<Message>,
-        new: Option<Message>,
-        event: MessageUpdateEvent,
+        ctx: &client::Context,
+        old_if_available: &Option<Message>,
+        new: &Option<Message>,
+        event: &MessageUpdateEvent,
     ) {
         log_error!(
             "Error while handling message_update event",
@@ -223,25 +220,36 @@ impl client::EventHandler for Handler {
             )
             .await
         );
-        self.dispatch_poise_event(&ctx, FullEvent::MessageUpdate { old_if_available, new, event })
-            .await;
+        self.dispatch_poise_event(
+            &ctx,
+            &FullEvent::MessageUpdate {
+                old_if_available: old_if_available.to_owned(),
+                new: new.to_owned(),
+                event: event.to_owned(),
+            },
+        )
+        .await;
     }
 
     #[tracing::instrument(skip_all, fields(msg.id = %deleted_message_id, msg.channel_id = %channel_id))]
     async fn message_delete(
         &self,
-        ctx: client::Context,
-        channel_id: ChannelId,
-        deleted_message_id: MessageId,
-        guild_id: Option<GuildId>,
+        ctx: &client::Context,
+        channel_id: &ChannelId,
+        deleted_message_id: &MessageId,
+        guild_id: &Option<GuildId>,
     ) {
         log_error!(
             "Error while handling message_delete event",
-            message_delete::message_delete(&ctx, channel_id, deleted_message_id, guild_id).await
+            message_delete::message_delete(&ctx, *channel_id, *deleted_message_id, *guild_id).await
         );
         self.dispatch_poise_event(
             &ctx,
-            FullEvent::MessageDelete { channel_id, deleted_message_id, guild_id },
+            &FullEvent::MessageDelete {
+                channel_id: channel_id.to_owned(),
+                deleted_message_id: deleted_message_id.to_owned(),
+                guild_id: guild_id.to_owned(),
+            },
         )
         .await;
     }
@@ -249,10 +257,10 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all)]
     async fn message_delete_bulk(
         &self,
-        ctx: client::Context,
-        channel_id: ChannelId,
-        multiple_deleted_messages_ids: Vec<MessageId>,
-        guild_id: Option<GuildId>,
+        ctx: &client::Context,
+        channel_id: &ChannelId,
+        multiple_deleted_messages_ids: &Vec<MessageId>,
+        guild_id: &Option<GuildId>,
     ) {
         log_error!(
             "Error while handling message_delete event",
@@ -267,7 +275,7 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(user = %new_member.user.tag()))]
-    async fn guild_member_addition(&self, ctx: client::Context, new_member: Member) {
+    async fn guild_member_addition(&self, ctx: &client::Context, new_member: &Member) {
         log_error!(
             "Error while handling guild_member_addition event",
             guild_member_addition::guild_member_addition(ctx, new_member).await
@@ -277,14 +285,14 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all, fields(member.tag = %user.tag()))]
     async fn guild_member_removal(
         &self,
-        ctx: client::Context,
-        guild_id: GuildId,
-        user: User,
-        _member: Option<Member>,
+        ctx: &client::Context,
+        guild_id: &GuildId,
+        user: &User,
+        _member: &Option<Member>,
     ) {
         log_error!(
             "Error while handling guild_member_removal event",
-            guild_member_removal::guild_member_removal(ctx, guild_id, user, _member).await
+            guild_member_removal::guild_member_removal(ctx, *guild_id, user, _member).await
         );
     }
 
@@ -295,9 +303,9 @@ impl client::EventHandler for Handler {
     ))]
     async fn guild_audit_log_entry_create(
         &self,
-        ctx: client::Context,
-        entry: serenity::model::prelude::AuditLogEntry,
-        _guild_id: GuildId,
+        ctx: &client::Context,
+        entry: &serenity::model::prelude::AuditLogEntry,
+        _guild_id: &GuildId,
     ) {
         log_error!(
             "Error while handling guild_audit_log_entry_create event",
@@ -314,7 +322,7 @@ impl client::EventHandler for Handler {
             reaction.message_id = ?event.message_id
         )
     )]
-    async fn reaction_add(&self, ctx: client::Context, event: Reaction) {
+    async fn reaction_add(&self, ctx: &client::Context, event: &Reaction) {
         log_error!(
             "Error while handling reaction_add event",
             reaction_add::reaction_add(ctx, event).await
@@ -329,7 +337,7 @@ impl client::EventHandler for Handler {
             reaction.message_id = ?event.message_id
         )
     )]
-    async fn reaction_remove(&self, ctx: client::Context, event: Reaction) {
+    async fn reaction_remove(&self, ctx: &client::Context, event: &Reaction) {
         log_error!(
             "Error while handling reaction_remove event",
             reaction_remove::reaction_remove(ctx, event).await
@@ -339,12 +347,12 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all)]
     async fn guild_emojis_update(
         &self,
-        ctx: client::Context,
-        _guild_id: GuildId,
-        current_state: HashMap<EmojiId, Emoji>,
+        ctx: &client::Context,
+        _guild_id: &GuildId,
+        current_state: &HashMap<EmojiId, Emoji>,
     ) {
         tracing::info!("Updating cached emojis");
-        let new_emojis = current_state.into_iter().map(|x| x.1).collect::<Vec<_>>();
+        let new_emojis = current_state.into_iter().map(|x| x.1.clone()).collect::<Vec<_>>();
         match UpEmotes::from_emojis(new_emojis) {
             Ok(up_emotes) => self.update_emojis(&ctx, up_emotes).await,
             Err(err) => tracing::error!(error.message = %err, "Failed to update emojis"),
@@ -358,7 +366,7 @@ impl client::EventHandler for Handler {
         ratelimit.path = %data.path,
         ratelimit.global = ?data.global,
     ))]
-    async fn ratelimit(&self, data: serenity::http::RatelimitInfo) {
+    async fn ratelimit(&self, data: &serenity::http::RatelimitInfo) {
         tracing::warn!(
             ratelimit.timeout_secs = %data.timeout.as_secs(),
             ratelimit.limit = %data.limit,

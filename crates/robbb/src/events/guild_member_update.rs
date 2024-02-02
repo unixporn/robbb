@@ -6,12 +6,12 @@ use super::*;
 static HOISTING_CHAR: &[char] = &['!', '"', '#', '$', '\'', '(', ')', '*', '-', '+', '.', '/', '='];
 
 pub async fn guild_member_update(
-    ctx: client::Context,
-    _old: Option<Member>,
-    new: Option<Member>,
-    event: GuildMemberUpdateEvent,
+    ctx: &client::Context,
+    _old: &Option<Member>,
+    new: &Option<Member>,
+    event: &GuildMemberUpdateEvent,
 ) -> Result<()> {
-    let (config, db) = ctx.get_config_and_db().await;
+    let (config, db) = ctx.get_config_and_db();
     if let Some(new) = new {
         dehoist_member(ctx.clone(), new.clone()).await?;
     }
@@ -38,7 +38,7 @@ pub async fn dehoist_member(ctx: client::Context, mut member: Member) -> Result<
     tracing::info!(user.old_name = %display_name, user.cleaned_name = %cleaned_name, "Dehoisting user");
     let tag = member.user.tag();
     member
-        .edit(&ctx, EditMember::default().nickname(&cleaned_name))
+        .edit(&ctx.http, EditMember::default().nickname(&cleaned_name))
         .instrument(tracing::info_span!("dehoist-edit-nickname", member.tag = %tag, dehoist.old_nick = %display_name, dehoist.new_nick = %cleaned_name))
         .await
         .with_context(|| format!("Failed to rename user {tag}"))?;

@@ -12,19 +12,19 @@ pub async fn pfp(ctx: Ctx<'_>, #[description = "User"] user: Option<Member>) -> 
 
     if user_pfp != server_pfp {
         embeds.push(
-            embeds::base_embed(&ctx)
+            embeds::base_embed(&ctx.user_data())
                 .title(format!("{}'s Server Profile Picture", member.user.tag()))
                 .image(member.face()),
         );
     }
 
     embeds.push(
-        embeds::base_embed(&ctx)
+        embeds::base_embed(&ctx.user_data())
             .title(format!("{}'s User Profile Picture", member.user.tag()))
             .image(member.user.face()),
     );
 
-    embeds::PaginatedEmbed::create(embeds, embeds::base_embed(&ctx))
+    embeds::PaginatedEmbed::create(embeds, embeds::base_embed(&ctx.user_data()))
         .await
         .reply_to(ctx, false)
         .await?;

@@ -38,10 +38,8 @@ pub async fn on_error(error: poise::FrameworkError<'_, UserData, prelude::Error>
                 "Command panicked"
             );
         }
-        Setup { error, .. } => {
-            tracing::error!(error.message = %error, "Error during setup: {}", error)
-        }
-        EventHandler { error, event, ctx: _, framework: _, .. } => {
+
+        EventHandler { error, event, framework: _, .. } => {
             tracing::error!(event = ?event, error.message = %error, "Error in event listener: {}", error);
         }
         ArgumentParse { input, ctx, error, .. } => {

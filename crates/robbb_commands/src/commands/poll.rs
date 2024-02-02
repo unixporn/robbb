@@ -2,7 +2,10 @@ use super::*;
 use anyhow::Context;
 use poise::{serenity_prelude::ReactionType, CreateReply, Modal};
 use regex::Regex;
-use serenity::builder::{CreateEmbed, CreateEmbedFooter};
+use serenity::{
+    builder::{CreateEmbed, CreateEmbedFooter},
+    small_fixed_array::FixedString,
+};
 
 lazy_static::lazy_static! {
     static ref POLL_OPTION_START_OF_LINE_PATTERN: Regex = Regex::new(r"^\s*-|^\s*\d\.|^\s*\*").unwrap();
@@ -34,9 +37,15 @@ pub async fn poll_vote(
         .await?;
 
     let poll_msg = poll_msg.message().await?;
-    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("✅".to_string())).await?;
-    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("🤷".to_string())).await?;
-    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("❎".to_string())).await?;
+    poll_msg
+        .react(&ctx.serenity_context(), ReactionType::Unicode(FixedString::from_str_trunc("✅")))
+        .await?;
+    poll_msg
+        .react(&ctx.serenity_context(), ReactionType::Unicode(FixedString::from_str_trunc("🤷")))
+        .await?;
+    poll_msg
+        .react(&ctx.serenity_context(), ReactionType::Unicode(FixedString::from_str_trunc("❎")))
+        .await?;
 
     let config = ctx.get_config();
     if ctx.channel_id() == config.channel_mod_polls {
@@ -97,10 +106,17 @@ pub async fn poll_multi(app_ctx: AppCtx<'_>) -> Res<()> {
         .await?;
     let poll_msg = poll_msg.message().await?;
 
-    for (emoji, _) in options.into_iter() {
-        poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode(emoji.to_string())).await?;
+    for (emoji, _) in options.clone().into_iter() {
+        poll_msg
+            .react(
+                &ctx.serenity_context(),
+                ReactionType::Unicode(FixedString::from_string_trunc(emoji.to_string())),
+            )
+            .await?;
     }
-    poll_msg.react(&ctx.serenity_context(), ReactionType::Unicode("🤷".to_string())).await?;
+    poll_msg
+        .react(&ctx.serenity_context(), ReactionType::Unicode(FixedString::from_str_trunc("🤷")))
+        .await?;
 
     let config = ctx.get_config();
     if ctx.channel_id() == config.channel_mod_polls {

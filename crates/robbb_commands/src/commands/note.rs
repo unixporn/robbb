@@ -149,7 +149,7 @@ pub async fn note_list(
         )
     });
 
-    let base_embed = embeds::base_embed(&ctx)
+    let base_embed = embeds::base_embed(&ctx.user_data())
         .description(format!("{} notes about {}", notes.len(), user.mention()))
         .author_user(&user);
 

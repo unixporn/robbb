@@ -1,4 +1,4 @@
-use crate::{config::Config, embeds, log_error, prelude::Ctx, UpEmotes};
+use crate::{config::Config, embeds, log_error, prelude::Ctx, UpEmotes, UserData};
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
@@ -20,13 +20,17 @@ use serenity::{
     },
     prelude::Mentionable,
 };
-use std::{collections::HashMap, fmt::Display, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, fmt::Display, sync::Arc};
 
 type StdResult<T, E> = std::result::Result<T, E>;
 
 #[extend::ext(name = PoiseContextExt)]
 #[async_trait]
 pub impl<'a> Ctx<'a> {
+    fn user_data(&self) -> Arc<UserData> {
+        self.data()
+    }
+
     fn get_config(&self) -> Arc<Config> {
         self.data().config.clone()
     }
@@ -48,7 +52,7 @@ pub impl<'a> Ctx<'a> {
         &self,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        self.reply_embed_ephemeral(build(embeds::base_embed(self))).await
+        self.reply_embed_ephemeral(build(embeds::base_embed(&self.user_data()))).await
     }
 
     /// Reply with an embed.
@@ -56,11 +60,14 @@ pub impl<'a> Ctx<'a> {
         &self,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
-        self.reply_embed(build(embeds::base_embed(self))).await
+        self.reply_embed(build(embeds::base_embed(&self.user_data()))).await
     }
 
     /// Reply with an embed.
-    async fn reply_embed(&self, embed: CreateEmbed) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+    async fn reply_embed(
+        &self,
+        embed: CreateEmbed<'a>,
+    ) -> StdResult<ReplyHandle<'a>, serenity::Error> {
         let reply = CreateReply::default().ephemeral(false).embed(embed).reply(true);
         self.send(reply).await
     }
@@ -68,8 +75,8 @@ pub impl<'a> Ctx<'a> {
     /// Reply with an ephemeral embed.
     async fn reply_embed_ephemeral(
         &self,
-        embed: CreateEmbed,
-    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+        embed: CreateEmbed<'a>,
+    ) -> StdResult<ReplyHandle<'a>, serenity::Error> {
         let reply = CreateReply::default().ephemeral(true).embed(embed).reply(true);
         self.send(reply).await
     }
@@ -77,17 +84,15 @@ pub impl<'a> Ctx<'a> {
     async fn say_success(
         &self,
         text: impl Display + Send + Sync + 'static,
-    ) -> StdResult<ReplyHandle<'_>, serenity::Error> {
+    ) -> StdResult<ReplyHandle<'a>, serenity::Error> {
         tracing::info!(
             msg.ephemeral = true,
             msg.content = %text,
             msg.responding_to_user = %self.author().tag(),
             "Sending success message to user"
         );
-        self.reply_embed_ephemeral(
-            embeds::make_success_embed(self.serenity_context(), &text.to_string()).await,
-        )
-        .await
+        self.reply_embed_ephemeral(embeds::make_success_embed(&self.user_data(), &text.to_string()))
+            .await
     }
 
     async fn say_error(
@@ -100,10 +105,8 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending error message to user"
         );
-        self.reply_embed_ephemeral(
-            embeds::make_error_embed(self.serenity_context(), &text.to_string()).await,
-        )
-        .await
+        self.reply_embed_ephemeral(embeds::make_error_embed(&self.user_data(), &text.to_string()))
+            .await
     }
     async fn say_success_mod_action(
         &self,
@@ -115,9 +118,10 @@ pub impl<'a> Ctx<'a> {
             msg.responding_to_user = %self.author().tag(),
             "Sending success_mod_action message to user"
         );
-        self.reply_embed(
-            embeds::make_success_mod_action_embed(self.serenity_context(), &text.to_string()).await,
-        )
+        self.reply_embed(embeds::make_success_mod_action_embed(
+            &self.user_data(),
+            &text.to_string(),
+        ))
         .await
     }
 
@@ -144,7 +148,7 @@ pub impl<'a> Ctx<'a> {
 #[async_trait]
 pub impl client::Context {
     async fn get_guild_emojis(&self, id: GuildId) -> Result<HashMap<EmojiId, Emoji>> {
-        if let Some(up_emotes) = self.get_up_emotes().await {
+        if let Some(up_emotes) = self.get_up_emotes() {
             Ok(up_emotes.all_emoji.clone())
         } else {
             tracing::info!("Requesting guild emotes from discord");
@@ -152,34 +156,40 @@ pub impl client::Context {
         }
     }
 
-    async fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
-        self.data.read().await.get::<UpEmotes>().cloned()
+    fn user_data(&self) -> Arc<UserData> {
+        self.data::<UserData>()
     }
 
-    async fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>) {
-        tokio::join!(self.get_config(), self.get_db())
+    fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
+        self.user_data().up_emotes.read().clone()
     }
 
-    async fn get_config(&self) -> Arc<Config> {
-        self.data.read().await.get::<Config>().cloned().unwrap()
+    fn get_config_and_db(&self) -> (Arc<Config>, Arc<Db>) {
+        let user_data = self.user_data();
+        (user_data.config.clone(), user_data.db.clone())
     }
-    async fn get_db(&self) -> Arc<Db> {
-        self.data.read().await.get::<Db>().cloned().unwrap()
+
+    fn get_config(&self) -> Arc<Config> {
+        self.user_data().config.clone()
+    }
+
+    fn get_db(&self) -> Arc<Db> {
+        self.user_data().db.clone()
     }
 
     async fn log_bot_action(
         &self,
-        build_embed: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+        build_embed: impl for<'a> FnOnce(CreateEmbed<'a>) -> CreateEmbed<'a> + Send + Sync,
     ) {
-        let config = self.get_config().await;
+        let config = self.get_config();
         log_error!(config.guild.send_embed(self, config.channel_modlog, build_embed).await);
     }
 
     async fn log_automod_action(
         &self,
-        build_embed: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+        build_embed: impl for<'a> FnOnce(CreateEmbed<'a>) -> CreateEmbed<'a> + Send + Sync,
     ) {
-        let config = self.get_config().await;
+        let config = self.get_config();
         log_error!(config.guild.send_embed(self, config.channel_auto_mod, build_embed).await);
     }
 }
@@ -206,7 +216,7 @@ pub impl GuildId {
         channel_id: ChannelId,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> Result<Message> {
-        let embed = build(embeds::base_embed_ctx(ctx).await);
+        let embed = build(embeds::base_embed(&ctx.user_data()));
         Ok(channel_id
             .send_message(&ctx, CreateMessage::default().embed(embed))
             .await
@@ -221,7 +231,7 @@ pub impl Message {
         self.embeds
             .iter()
             .filter_map(|embed| embed.image.clone())
-            .map(|image| image.url)
+            .map(|image| image.url.to_string())
             .chain(
                 self.attachments
                     .iter()
@@ -242,7 +252,7 @@ pub impl Message {
                 CreateMessage::default()
                     .allowed_mentions(CreateAllowedMentions::default().replied_user(false))
                     .reference_message(self)
-                    .embed(build(embeds::base_embed_ctx(ctx).await)),
+                    .embed(build(embeds::base_embed(&ctx.user_data()))),
             )
             .await
             .context("Failed to send embed")
@@ -253,7 +263,7 @@ pub impl Message {
         ctx: &client::Context,
         text: impl Display + Send + Sync + 'static,
     ) -> Result<Message> {
-        let embed = embeds::make_error_embed(ctx, &text.to_string()).await;
+        let embed = embeds::make_error_embed(&ctx.user_data(), &text.to_string());
         self.reply_embed(ctx, |_| embed).await
     }
 
@@ -267,7 +277,7 @@ pub impl Message {
             .context("Failed to fetch message channel")?
             .guild()
             .context("Failed to request guild channel")?
-            .create_thread_from_message(&ctx, self, CreateThread::new(title.to_string()))
+            .create_thread_from_message(&ctx.http, self.id, CreateThread::new(title.to_string()))
             .await
             .context("Failed to create a thread")
     }
@@ -280,7 +290,7 @@ pub impl Message {
 #[extend::ext]
 #[async_trait]
 pub impl ChannelId {
-    async fn send_embed(&self, ctx: &client::Context, embed: CreateEmbed) -> Result<Message> {
+    async fn send_embed(&self, ctx: &client::Context, embed: CreateEmbed<'_>) -> Result<Message> {
         let msg = CreateMessage::default().embed(embed);
         Ok(self.send_message(&ctx, msg).await.context("Failed to send embed message")?)
     }
@@ -290,7 +300,7 @@ pub impl ChannelId {
         ctx: &client::Context,
         build: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
     ) -> Result<Message> {
-        let msg = CreateMessage::default().embed(build(embeds::base_embed_ctx(ctx).await));
+        let msg = CreateMessage::default().embed(build(embeds::base_embed(&ctx.user_data())));
         Ok(self.send_message(&ctx, msg).await.context("Failed to send embed message")?)
     }
 
@@ -303,33 +313,33 @@ pub impl ChannelId {
     }
 }
 
-#[extend::ext]
-pub impl CreateEmbed {
+#[extend::ext(name = CreateEmbedExt)]
+pub impl<'a> CreateEmbed<'a> {
     fn field_opt(
         self,
-        name: impl Into<String>,
-        value: Option<impl Into<String>>,
+        name: impl Into<Cow<'a, str>>,
+        value: Option<impl Into<Cow<'a, str>>>,
         inline: bool,
     ) -> Self {
         let Some(value) = value else { return self };
         self.field(name, value, inline)
     }
 
-    fn color_opt(self, x: Option<impl Into<Colour>>) -> CreateEmbed {
+    fn color_opt(self, x: Option<impl Into<Colour>>) -> Self {
         let Some(x) = x else { return self };
         self.color(x)
     }
 
-    fn timestamp_opt(self, x: Option<impl Into<Timestamp>>) -> CreateEmbed {
+    fn timestamp_opt(self, x: Option<impl Into<Timestamp>>) -> Self {
         let Some(x) = x else { return self };
         self.timestamp(x)
     }
 
-    fn author_icon(self, name: impl Into<String>, icon_url: impl Into<String>) -> Self {
+    fn author_icon(self, name: impl Into<Cow<'a, str>>, icon_url: impl Into<Cow<'a, str>>) -> Self {
         self.author(CreateEmbedAuthor::new(name).icon_url(icon_url))
     }
 
-    fn footer_str(self, name: impl Into<String>) -> Self {
+    fn footer_str(self, name: impl Into<Cow<'a, str>>) -> Self {
         self.footer(CreateEmbedFooter::new(name))
     }
 
@@ -342,7 +352,7 @@ pub impl CreateEmbed {
     }
 
     /// Create a [`CreateMessage`] that only contains this embed.
-    fn into_create_message(self) -> CreateMessage {
+    fn into_create_message(self) -> CreateMessage<'a> {
         CreateMessage::default().embed(self)
     }
 }

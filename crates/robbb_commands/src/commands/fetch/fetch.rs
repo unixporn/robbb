@@ -29,7 +29,7 @@ pub async fn fetch(
     let create_date = fetch_info.create_date;
     let fetch_data: Vec<(FetchField, String)> = fetch_info.get_values_ordered();
     let color = if let Ok(member) = guild_id.member(&ctx, user.id).await {
-        member.colour(ctx.serenity_context())
+        member.colour(ctx.cache())
     } else {
         None
     };
@@ -41,7 +41,7 @@ pub async fn fetch(
                 .into_iter()
                 .find(|(k, _)| k == &desired_field)
                 .user_error("Failed to get that value. Maybe the user hasn't set it?")?;
-            let mut embed = embeds::base_embed(&ctx)
+            let mut embed = embeds::base_embed(&ctx.user_data())
                 .author(CreateEmbedAuthor::new(user.tag()).icon_url(user.face()))
                 .title(format!("{}'s {}", user.name, field_name))
                 .color_opt(color)
@@ -59,7 +59,7 @@ pub async fn fetch(
 
         // Handle fetching all fields
         None => {
-            let mut embed = embeds::base_embed(&ctx)
+            let mut embed = embeds::base_embed(&ctx.user_data())
                 .author_user(&user)
                 .color_opt(color)
                 .timestamp_opt(create_date);

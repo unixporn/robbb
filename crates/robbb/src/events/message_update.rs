@@ -8,11 +8,11 @@ pub async fn message_update(
     new: Option<Message>,
     event: MessageUpdateEvent,
 ) -> Result<()> {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
 
     if Some(config.guild) != event.guild_id
         || event.edited_timestamp.is_none()
-        || event.author.as_ref().map(|x| x.bot).unwrap_or(false)
+        || event.author.as_ref().map(|x| x.bot()).unwrap_or(false)
     {
         return Ok(());
     };
@@ -65,7 +65,10 @@ pub async fn message_update(
                         {}
                     ",
                     old_content,
-                    event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
+                    event
+                        .content
+                        .map(|x| x.to_string())
+                        .unwrap_or_else(|| "<Unavailable>".to_string()),
                     msg.to_context_link()
                 ))
                 .footer_str(format!("#{channel_name}"))

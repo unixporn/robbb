@@ -10,7 +10,7 @@ use super::*;
 #[poise::command(guild_only, context_menu_command = "Info")]
 pub async fn menu_info(ctx: Ctx<'_>, user: User) -> Res<()> {
     let guild = ctx.guild().context("Not in a guild")?.to_owned();
-    let member = guild.member(ctx.serenity_context(), &user).await?;
+    let member = guild.member(ctx.serenity_context(), user.id).await?;
     let embed = if check_is_moderator(ctx).await? {
         make_mod_info_embed(ctx, member.as_ref()).await?
     } else {
@@ -39,10 +39,10 @@ pub async fn modinfo(ctx: Ctx<'_>, #[description = "User"] user: Member) -> Res<
     Ok(())
 }
 
-async fn make_info_embed(ctx: Ctx<'_>, member: &Member) -> CreateEmbed {
+async fn make_info_embed<'a>(ctx: Ctx<'_>, member: &Member) -> CreateEmbed<'a> {
     let created_at = member.user.created_at();
-    let color = member.colour(ctx.serenity_context());
-    let mut e = embeds::base_embed(&ctx)
+    let color = member.colour(ctx.cache());
+    let mut e = embeds::base_embed(&ctx.user_data())
         .title(member.user.tag())
         .thumbnail(member.user.face())
         .color_opt(color)
@@ -56,7 +56,7 @@ async fn make_info_embed(ctx: Ctx<'_>, member: &Member) -> CreateEmbed {
     e
 }
 
-async fn make_mod_info_embed(ctx: Ctx<'_>, member: &Member) -> Res<CreateEmbed> {
+async fn make_mod_info_embed<'a>(ctx: Ctx<'_>, member: &Member) -> Res<CreateEmbed<'a>> {
     let db = ctx.get_db();
     let note_counts = db.count_all_mod_actions(member.user.id).await?;
     let embed_content = note_counts

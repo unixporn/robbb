@@ -15,7 +15,7 @@ pub async fn message_delete(
     deleted_message_id: MessageId,
     guild_id: Option<GuildId>,
 ) -> Result<()> {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
     if Some(config.guild) != guild_id {
         return Ok(());
     };
@@ -36,7 +36,7 @@ pub async fn message_delete(
         return Ok(());
     };
 
-    if msg.author.bot {
+    if msg.author.bot() {
         return Ok(());
     }
 
@@ -83,19 +83,19 @@ pub async fn message_delete(
 }
 
 pub async fn message_delete_bulk(
-    ctx: client::Context,
-    channel_id: ChannelId,
-    deleted_message_ids: Vec<MessageId>,
-    guild_id: Option<GuildId>,
+    ctx: &client::Context,
+    channel_id: &ChannelId,
+    deleted_message_ids: &Vec<MessageId>,
+    guild_id: &Option<GuildId>,
 ) -> Result<()> {
-    let config = ctx.get_config().await;
-    if Some(config.guild) != guild_id {
+    let config = ctx.get_config();
+    if &Some(config.guild) != guild_id {
         return Ok(());
     };
 
     if deleted_message_ids.len() == 1 {
-        let mut deleted_message_ids = deleted_message_ids;
-        message_delete(&ctx, channel_id, deleted_message_ids.pop().unwrap(), guild_id).await?;
+        let mut deleted_message_ids = deleted_message_ids.clone();
+        message_delete(&ctx, *channel_id, deleted_message_ids.pop().unwrap(), *guild_id).await?;
         return Ok(());
     }
 
@@ -105,7 +105,7 @@ pub async fn message_delete_bulk(
     // Look through the cache to try to find the messages that where just deleted
     let msgs: Vec<_> = deleted_message_ids
         .iter()
-        .filter_map(|id| ctx.cache.message(channel_id, id))
+        .filter_map(|id| ctx.cache.message(*channel_id, *id))
         .map(|x| x.to_owned())
         .collect();
 
@@ -128,8 +128,7 @@ pub async fn message_delete_bulk(
             .context("Could not find any messages from bulk-deletion event in cache")?
             .author
             .clone();
-        let embed = embeds::base_embed_ctx(&ctx)
-            .await
+        let embed = embeds::base_embed(&ctx.user_data())
             .author_icon("Message Bulk-deletion", msg_author.face())
             .title(msg_author.name_with_disc_and_id())
             .description(
@@ -180,7 +179,7 @@ async fn await_audit_log(
     filter: impl Fn(&AuditLogEntry) -> bool,
 ) -> Result<Option<(AuditLogEntry, std::collections::HashMap<UserId, User>)>> {
     for _ in 0..3 {
-        let results = guild.audit_logs(&ctx, Some(action_type), user_id, None, None).await?;
+        let results = guild.audit_logs(&ctx.http, Some(action_type), user_id, None, None).await?;
         let matching_value = results.entries.into_iter().find(|x| filter(x));
         if let Some(matching_value) = matching_value {
             return Ok(Some((matching_value, results.users)));

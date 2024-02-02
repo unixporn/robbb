@@ -45,7 +45,7 @@ impl FakeCdnId {
             channel_id: message.channel_id,
             message_id: message.id,
             nth_attachment,
-            latest_url: url,
+            latest_url: url.map(|x| x.to_string()),
         }
     }
 
@@ -65,7 +65,7 @@ impl FakeCdnId {
     #[tracing::instrument(skip_all, fields(fake_cdn_id = %self))]
     pub async fn resolve(&self, ctx: impl CacheHttp) -> anyhow::Result<String> {
         let message = self.channel_id.message(&ctx, self.message_id).await?;
-        message.attachments.get(self.nth_attachment).map(|x| x.url.clone()).ok_or_else(|| {
+        message.attachments.get(self.nth_attachment).map(|x| x.url.to_string()).ok_or_else(|| {
             anyhow::anyhow!(
                 "No {}th attachments found in message {}",
                 self.nth_attachment,
@@ -106,7 +106,7 @@ pub async fn persist_attachment(
     attachment_url: &str,
     mut metadata: serde_json::Value,
 ) -> anyhow::Result<FakeCdnId> {
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
 
     tracing::info!(%attachment_url, "Persisting attachment in fake cdn: {attachment_url}");
     let attachment_url = attachment_url

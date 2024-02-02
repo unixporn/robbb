@@ -42,7 +42,9 @@ async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachm
     let file_path = dir_path.as_ref().join(attachment.filename);
     tracing::debug!(file_path = %file_path.display(), "Storing file {}", &file_path.display());
 
-    let resp = reqwest::get(&attachment.url).await.context("Failed to load attachment")?;
+    let resp = reqwest::get(attachment.url.as_str().to_string())
+        .await
+        .context("Failed to load attachment")?;
     let mut body = resp
         .bytes_stream()
         .map_err(|e| futures::io::Error::new(futures::io::ErrorKind::Other, e))

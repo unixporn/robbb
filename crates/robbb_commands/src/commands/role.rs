@@ -8,6 +8,7 @@ use serenity::{
         CreateActionRow, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
         CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
     },
+    small_fixed_array::{FixedArray, FixedString},
 };
 
 use super::*;
@@ -51,18 +52,22 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
 
     if let Some(interaction) = roles_msg
         .to_mut()
-        .await_component_interactions(ctx.serenity_context())
+        .await_component_interactions(ctx.serenity_context().shard.clone())
         .author_id(ctx.author().id)
         .timeout(std::time::Duration::from_secs(30))
-        .custom_ids(vec![interaction_custom_id])
+        .custom_ids(FixedArray::from_vec_trunc(vec![FixedString::from_string_trunc(
+            interaction_custom_id.clone(),
+        )]))
         .await
     {
         interaction
             .create_response(
-                &ctx,
+                &ctx.http(),
                 CreateInteractionResponse::UpdateMessage(
                     CreateInteractionResponseMessage::default()
-                        .embed(embeds::base_embed(&ctx).description("Updating roles..."))
+                        .embed(
+                            embeds::base_embed(&ctx.user_data()).description("Updating roles..."),
+                        )
                         .components(vec![]),
                 ),
             )
@@ -80,23 +85,21 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
         tracing::debug!("Got member data for /role invoker");
         let current_color_roles = member.roles.iter().filter(|x| config.roles_color.contains(x));
         for role in current_color_roles {
-            member.remove_role(&ctx.serenity_context(), role).await?;
+            member.remove_role(&ctx.http(), *role).await?;
         }
         tracing::debug!("Removed roles of user");
 
         let response_embed = if selected == NONE_VALUE {
-            embeds::make_success_embed(ctx.serenity_context(), "Success! Removed your colorrole")
-                .await
+            embeds::make_success_embed(&ctx.user_data(), "Success! Removed your colorrole")
         } else {
             let role_id = selected.parse::<RoleId>().context("Invalid role")?;
-            member.to_mut().add_role(&ctx.serenity_context(), role_id).await?;
+            member.to_mut().add_role(&ctx.http(), role_id).await?;
             tracing::debug!("added role {} to {}", role_id, member.user.tag());
 
             embeds::make_success_embed(
-                ctx.serenity_context(),
+                &ctx.user_data(),
                 &format!("Success! You're now {}", role_id.mention()),
             )
-            .await
         };
 
         handle
@@ -105,8 +108,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
             .context("Failed to edit message")?;
     } else {
         tracing::debug!("Role selection timed out");
-        let timed_out_embed =
-            embeds::make_error_embed(ctx.serenity_context(), "No role chosen").await;
+        let timed_out_embed = embeds::make_error_embed(&ctx.user_data(), "No role chosen");
         handle
             .edit(ctx, CreateReply::default().embed(timed_out_embed).components(vec![]))
             .await

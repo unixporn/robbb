@@ -36,7 +36,7 @@ pub async fn emojistats(
                     db.get_emoji_usage_by_id(&robbb_db::emoji_logging::EmojiIdentifier {
                         id: searched_emoji.id,
                         animated: searched_emoji.animated,
-                        name: searched_emoji.name.clone(),
+                        name: searched_emoji.name.to_string(),
                     })
                     .await
                 }

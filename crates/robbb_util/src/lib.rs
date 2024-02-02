@@ -12,7 +12,7 @@ use anyhow::Context;
 use poise::serenity_prelude::{Emoji, GuildId};
 use rand::prelude::IteratorRandom;
 use robbb_db::Db;
-use serenity::{all::EmojiId, client, prelude::TypeMapKey};
+use serenity::{all::EmojiId, client};
 
 #[derive(Debug, Clone)]
 pub struct UpEmotes {
@@ -53,12 +53,8 @@ impl UpEmotes {
 
 #[tracing::instrument(skip_all)]
 pub async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> anyhow::Result<UpEmotes> {
-    let all_emoji = guild.emojis(&ctx).await?;
+    let all_emoji = guild.emojis(&ctx.http).await?;
     UpEmotes::from_emojis(all_emoji)
-}
-
-impl TypeMapKey for UpEmotes {
-    type Value = Arc<UpEmotes>;
 }
 
 #[derive(Debug, Clone)]
@@ -66,4 +62,10 @@ pub struct UserData {
     pub config: Arc<config::Config>,
     pub db: Arc<Db>,
     pub up_emotes: Arc<parking_lot::RwLock<Option<Arc<UpEmotes>>>>,
+}
+
+impl UserData {
+    pub fn up_emotes(&self) -> Option<Arc<UpEmotes>> {
+        self.up_emotes.read().clone()
+    }
 }

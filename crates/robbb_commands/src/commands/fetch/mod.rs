@@ -34,7 +34,7 @@ fn format_bytes(s: &str) -> String {
     }
 }
 
-fn find_distro_image(distro: &str) -> Option<&str> {
+fn find_distro_image(distro: &str) -> Option<&'static str> {
     DISTRO_IMAGES.iter().find(|(d, _)| distro.to_lowercase().starts_with(d)).map(|(_, url)| *url)
 }
 

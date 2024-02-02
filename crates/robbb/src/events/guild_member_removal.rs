@@ -4,13 +4,13 @@ use serenity::builder::CreateEmbedAuthor;
 use super::*;
 
 pub async fn guild_member_removal(
-    ctx: client::Context,
+    ctx: &client::Context,
     guild_id: GuildId,
-    user: User,
-    member: Option<Member>,
+    user: &User,
+    member: &Option<Member>,
 ) -> Result<()> {
-    let db: Arc<Db> = ctx.get_db().await;
-    let config = ctx.get_config().await;
+    let db: Arc<Db> = ctx.get_db();
+    let config = ctx.get_config();
     if config.guild != guild_id {
         return Ok(());
     }
@@ -23,7 +23,7 @@ pub async fn guild_member_removal(
     );
 
     if let Some(member) = member {
-        let roles = member.roles(&ctx).unwrap_or_default();
+        let roles = member.roles(&ctx.cache).unwrap_or_default();
         if roles.iter().any(|x| x.id == config.role_htm) {
             log_error!(db.add_htm(member.user.id).await);
         }

@@ -3,8 +3,8 @@ use serenity::futures::StreamExt;
 
 use super::*;
 
-pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
-    let config = ctx.get_config().await;
+pub async fn ready(ctx: &client::Context, _data_about_bot: &Ready) -> Result<()> {
+    let config = ctx.get_config();
 
     let bot_version = util::BotVersion::get();
     tracing::info!(
@@ -34,7 +34,7 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
 #[tracing::instrument(skip_all)]
 async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
     guild_id
-        .members_iter(&ctx)
+        .members_iter(&ctx.http)
         .filter_map(|x| async { x.ok() })
         .for_each_concurrent(None, |member| async {
             log_error!(
@@ -49,16 +49,16 @@ async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
 /// as well as setting the mute to inactive in the db.
 #[tracing::instrument(skip_all, fields(user.id = %mute.user, mute.id = %mute.id))]
 async fn unmute(ctx: &client::Context, mute: &robbb_db::mute::Mute) -> Result<()> {
-    let (config, db) = ctx.get_config_and_db().await;
+    let (config, db) = ctx.get_config_and_db();
     db.set_mute_inactive(mute.id).await?;
     let mut member = config.guild.member(&ctx, mute.user).await?;
-    log_error!(member.remove_roles(&ctx, &[config.role_mute]).await);
-    log_error!(member.enable_communication(&ctx).await);
+    log_error!(member.remove_roles(&ctx.http, &[config.role_mute]).await);
+    log_error!(member.enable_communication(&ctx.http).await);
     Ok(())
 }
 
 async fn start_mute_handler(ctx: client::Context) {
-    let db = ctx.get_db().await;
+    let db = ctx.get_db();
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
@@ -92,8 +92,8 @@ async fn start_mute_handler(ctx: client::Context) {
     });
 }
 
-async fn start_attachment_log_handler(ctx: client::Context) {
-    let config = ctx.get_config().await;
+async fn start_attachment_log_handler(ctx: &client::Context) {
+    let config = ctx.get_config();
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(60 * 5)).await;

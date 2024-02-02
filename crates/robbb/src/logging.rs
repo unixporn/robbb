@@ -9,7 +9,7 @@ fn make_pretty_formatter<T>() -> impl Layer<T>
 where
     T: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
 {
-    tracing_subscriber::fmt::layer().with_ansi(true).with_level(true).with_target(true)
+    tracing_subscriber::fmt::layer().with_ansi(true).with_level(true).with_target(true).pretty()
 }
 
 /// Initializes tracing and logging configuration.

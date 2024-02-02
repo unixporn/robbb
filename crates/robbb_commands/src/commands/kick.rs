@@ -56,6 +56,6 @@ pub async fn do_kick(ctx: &client::Context, guild: GuildId, user: &User, reason:
                 .into_create_message(),
         )
         .await;
-    guild.kick_with_reason(&ctx, user, reason).await?;
+    guild.kick_with_reason(&ctx.http, user.id, reason).await?;
     Ok(())
 }

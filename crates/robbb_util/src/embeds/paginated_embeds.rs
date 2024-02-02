@@ -16,14 +16,14 @@ const MAX_EMBED_FIELDS: usize = 12; // discords max is 25, but that's ugly
 
 #[derive(Debug)]
 pub struct PaginatedEmbed {
-    pages: Vec<CreateEmbed>,
-    base_embed: CreateEmbed,
+    pages: Vec<CreateEmbed<'static>>,
+    base_embed: CreateEmbed<'static>,
 }
 
 impl PaginatedEmbed {
     pub async fn create(
-        embeds: impl IntoIterator<Item = CreateEmbed>,
-        base_embed: CreateEmbed,
+        embeds: impl IntoIterator<Item = CreateEmbed<'static>>,
+        base_embed: CreateEmbed<'static>,
     ) -> PaginatedEmbed {
         PaginatedEmbed { pages: embeds.into_iter().collect(), base_embed }
     }
@@ -31,7 +31,7 @@ impl PaginatedEmbed {
     pub async fn create_from_fields(
         title: String,
         fields: impl IntoIterator<Item = (String, String)>,
-        base_embed: CreateEmbed,
+        base_embed: CreateEmbed<'static>,
     ) -> PaginatedEmbed {
         let pages = fields.into_iter().chunks(MAX_EMBED_FIELDS);
         let pages: Vec<_> = pages.into_iter().collect();
@@ -42,7 +42,7 @@ impl PaginatedEmbed {
             .map(|(page_idx, fields)| {
                 let mut e = base_embed.clone();
                 if page_cnt < 2 {
-                    e = e.title(&title);
+                    e = e.title(title.clone());
                 } else {
                     e = e.title(format!("{} ({}/{})", title, page_idx + 1, page_cnt));
                 }
@@ -53,7 +53,7 @@ impl PaginatedEmbed {
         PaginatedEmbed { pages, base_embed }
     }
 
-    pub async fn reply_to<'a>(&self, ctx: Ctx<'a>, ephemeral: bool) -> Result<()> {
+    pub async fn reply_to(&self, ctx: Ctx<'_>, ephemeral: bool) -> Result<()> {
         match self.pages.as_slice() {
             [] => {
                 if ephemeral {
@@ -85,17 +85,18 @@ impl PaginatedEmbed {
 #[tracing::instrument(skip_all)]
 async fn handle_pagination_interactions(
     ctx: Ctx<'_>,
-    pages: Vec<CreateEmbed>,
+    pages: Vec<CreateEmbed<'static>>,
     handle: &ReplyHandle<'_>,
 ) -> Result<()> {
     let mut current_page_idx = 0;
     let ctx_id = ctx.id();
 
-    while let Some(interaction) = ComponentInteractionCollector::new(ctx)
-        .filter(move |x| x.data.custom_id.starts_with(&ctx_id.to_string()))
-        .timeout(std::time::Duration::from_secs(30))
-        .author_id(ctx.author().id)
-        .await
+    while let Some(interaction) =
+        ComponentInteractionCollector::new(ctx.serenity_context().shard.clone())
+            .filter(move |x| x.data.custom_id.starts_with(&ctx_id.to_string()))
+            .timeout(std::time::Duration::from_secs(30))
+            .author_id(ctx.author().id)
+            .await
     {
         let direction = interaction.data.clone().custom_id;
         let left_id = format!("{ctx_id}{PAGINATION_LEFT}");
@@ -109,10 +110,7 @@ async fn handle_pagination_interactions(
             .embed(pages.get(current_page_idx).unwrap().clone())
             .components(vec![make_paginate_row(ctx_id, current_page_idx, pages.len())]);
         interaction
-            .create_response(
-                &ctx.serenity_context(),
-                CreateInteractionResponse::UpdateMessage(response_msg),
-            )
+            .create_response(ctx.http(), CreateInteractionResponse::UpdateMessage(response_msg))
             .await?;
     }
     // Once no further interactions are expected, remove the components from the message
@@ -123,7 +121,7 @@ async fn handle_pagination_interactions(
     Ok(())
 }
 
-fn make_paginate_row(ctx_id: u64, page_idx: usize, page_cnt: usize) -> CreateActionRow {
+fn make_paginate_row<'a>(ctx_id: u64, page_idx: usize, page_cnt: usize) -> CreateActionRow<'a> {
     CreateActionRow::Buttons(vec![
         CreateButton::new(format!("{ctx_id}{PAGINATION_LEFT}")).label("←").disabled(page_idx == 0),
         CreateButton::new(format!("{ctx_id}{PAGINATION_RIGHT}"))

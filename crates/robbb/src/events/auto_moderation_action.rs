@@ -1,7 +1,7 @@
 use robbb_util::extensions::ClientContextExt;
 use serenity::{all::ActionExecution, client};
 
-pub async fn execution(ctx: client::Context, execution: ActionExecution) -> anyhow::Result<()> {
+pub async fn execution(ctx: &client::Context, execution: &ActionExecution) -> anyhow::Result<()> {
     tracing::info!(
         execution.action = ?execution.action,
         execution = ?execution,
@@ -12,8 +12,8 @@ pub async fn execution(ctx: client::Context, execution: ActionExecution) -> anyh
         return Ok(());
     }
 
-    let Some(matched_keyword) = execution.matched_keyword else { return Ok(()) };
-    let Some(matched_content) = execution.matched_content else { return Ok(()) };
+    let Some(matched_keyword) = &execution.matched_keyword else { return Ok(()) };
+    let Some(matched_content) = &execution.matched_content else { return Ok(()) };
     let Some(message_id) = execution.message_id.or(execution.alert_system_message_id) else {
         return Ok(());
     };
@@ -27,7 +27,7 @@ pub async fn execution(ctx: client::Context, execution: ActionExecution) -> anyh
         "Automod alerted about message"
     );
 
-    let db = ctx.get_db().await;
+    let db = ctx.get_db();
 
     let bot_id = ctx.cache.current_user().id;
     let note_content = format!("Automod deleted message because of word `{matched_content}`");

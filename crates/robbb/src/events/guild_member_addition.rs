@@ -4,15 +4,15 @@ use poise::serenity_prelude::{Member, Mentionable};
 use robbb_commands::commands;
 use robbb_util::{
     embeds,
-    extensions::{ChannelIdExt, ClientContextExt, UserExt},
+    extensions::{ClientContextExt, UserExt},
     log_error, util,
 };
 use serenity::builder::CreateEmbedAuthor;
 use std::time::SystemTime;
 
 #[tracing::instrument(skip_all)]
-async fn handle_htm_evasion(ctx: &client::Context, new_member: &mut Member) -> Result<()> {
-    let (config, db) = ctx.get_config_and_db().await;
+async fn handle_htm_evasion(ctx: &client::Context, new_member: &Member) -> Result<()> {
+    let (config, db) = ctx.get_config_and_db();
     let is_htm = db.check_user_htm(new_member.user.id).await?;
     if is_htm {
         tracing::info!("Re-adding hard-to-moderate-role due to htm evasion");
@@ -29,7 +29,7 @@ async fn handle_htm_evasion(ctx: &client::Context, new_member: &mut Member) -> R
                 ))
             })
             .await?;
-        new_member.add_role(&ctx, config.role_htm).await?;
+        new_member.add_role(&ctx.http, config.role_htm).await?;
     }
     Ok(())
 }
@@ -38,13 +38,12 @@ async fn handle_htm_evasion(ctx: &client::Context, new_member: &mut Member) -> R
 /// if so, reapply the mute and log their mute-evasion attempt in modlog
 #[tracing::instrument(skip_all)]
 async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Result<()> {
-    let (config, db) = ctx.get_config_and_db().await;
+    let (config, db) = ctx.get_config_and_db();
     let active_mute = db.get_active_mute(new_member.user.id).await?;
     if let Some(mute) = active_mute {
         tracing::info!("Re-adding mute-role due to mute evasion");
         commands::mute::set_mute_role(&ctx, new_member.clone()).await?;
-        let embed = embeds::base_embed_ctx(ctx)
-            .await
+        let embed = embeds::base_embed(ctx.user_data())
             .author(CreateEmbedAuthor::new("Mute evasion caught").icon_url(new_member.user.face()))
             .title(new_member.user.name_with_disc_and_id())
             .description(format!(
@@ -59,14 +58,14 @@ async fn handle_mute_evasion(ctx: &client::Context, new_member: &Member) -> Resu
     Ok(())
 }
 
-pub async fn guild_member_addition(ctx: client::Context, mut new_member: Member) -> Result<()> {
+pub async fn guild_member_addition(ctx: &client::Context, new_member: &Member) -> Result<()> {
     tracing::info!(user.id = %new_member.user.id, user.name = %new_member.user.tag(), "Handling guild_member_addtion");
-    let config = ctx.get_config().await;
+    let config = ctx.get_config();
     if config.guild != new_member.guild_id {
         return Ok(());
     }
 
-    log_error!(handle_htm_evasion(&ctx, &mut new_member).await);
+    log_error!(handle_htm_evasion(&ctx, &new_member).await);
     log_error!(handle_mute_evasion(&ctx, &new_member).await);
 
     let account_created_at = new_member.user.created_at();

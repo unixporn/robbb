@@ -26,8 +26,8 @@ pub async fn tag(
     if util::validate_url(&content) {
         ctx.say(content).await?;
     } else {
-        ctx.reply_embed_builder(|e| {
-            e.title(&tag.name)
+        ctx.reply_embed_builder(move |e| {
+            e.title(tag.name)
                 .description(content)
                 .footer_str(format!("Written by {}", moderator.tag()))
                 .timestamp_opt(tag.create_date)

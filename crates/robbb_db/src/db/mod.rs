@@ -5,7 +5,6 @@ use anyhow::{bail, Context, Result};
 
 use serenity::model::id::UserId;
 use serenity::prelude::RwLock;
-use serenity::prelude::TypeMapKey;
 use sqlx::SqlitePool;
 use std::collections::HashMap;
 pub mod blocklist;
@@ -24,10 +23,6 @@ pub struct Db {
     blocklist_cache: Arc<RwLock<Option<Vec<String>>>>,
     highlight_cache: RwLock<Option<highlights::HighlightsData>>,
     tag_name_cache: RwLock<Option<HashSet<String>>>,
-}
-
-impl TypeMapKey for Db {
-    type Value = Arc<Db>;
 }
 
 impl Db {

@@ -81,7 +81,7 @@ pub async fn blocklist_list(ctx: Ctx<'_>) -> Res<()> {
     let entries = db.get_blocklist().await?;
 
     let is_in_mod_bot_stuff = ctx.channel_id() == config.channel_mod_bot_stuff;
-    let embed = embeds::base_embed(&ctx)
+    let embed = embeds::base_embed(&ctx.user_data())
         .title("Blocklist")
         .description(entries.iter().map(|x| format!("`{x}`")).join("\n"));
     if is_in_mod_bot_stuff {

@@ -104,24 +104,22 @@ async fn setup_discord_client() -> anyhow::Result<serenity::Client> {
 
     let gateway_intents = GatewayIntents::all();
 
-    let config = Arc::new(config);
-    let db = Arc::new(db);
+    let user_data = UserData {
+        config: Arc::new(config),
+        db: Arc::new(db),
+        up_emotes: Arc::new(parking_lot::RwLock::new(None)),
+    };
 
-    let event_handler = Arc::new(events::Handler::new(
-        framework_options,
-        UserData {
-            config: config.clone(),
-            db: db.clone(),
-            up_emotes: Arc::new(parking_lot::RwLock::new(None)),
-        },
-    ));
+    let event_handler = events::Handler::new(framework_options);
+    let shard_manager = event_handler.shard_manager.clone();
 
     tracing::info!("Initialized event handler");
 
-    let client = serenity::Client::builder(&config.discord_token, gateway_intents)
+    let client = serenity::Client::builder(&user_data.config.discord_token, gateway_intents)
         .activity(serenity::gateway::ActivityData::listening("/help"))
         .status(OnlineStatus::Online)
-        .event_handler_arc(event_handler.clone())
+        .event_handler(event_handler)
+        .data(Arc::new(user_data.clone()))
         .cache_settings({
             let mut settings = serenity::cache::Settings::default();
             settings.max_messages = 500;
@@ -130,13 +128,7 @@ async fn setup_discord_client() -> anyhow::Result<serenity::Client> {
         .await
         .expect("Error creating client");
 
-    {
-        let mut client_data = client.data.write().await;
-        client_data.insert::<Config>(config);
-        client_data.insert::<Db>(db);
-    }
-
-    event_handler.set_shard_manager(client.shard_manager.clone());
+    *shard_manager.write() = Some(client.shard_manager.clone());
     tracing::info!("Initialized client");
     Ok(client)
 }

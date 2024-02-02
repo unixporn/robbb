@@ -142,7 +142,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
 
     if !successful_bans.is_empty() {
         let embed = embeds::make_success_mod_action_embed(
-            ctx.serenity_context(),
+            &ctx.user_data(),
             &format!(
                 "successfully yote\n{}",
                 successful_bans
@@ -150,8 +150,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
                     .map(|x| format!("- {} ({}).\nReason: {}", x.tag(), x.id, reason))
                     .join("\n")
             ),
-        )
-        .await;
+        );
 
         main_response.edit(&ctx.serenity_context(), EditMessage::default().embed(embed)).await?;
 
@@ -207,7 +206,7 @@ async fn handle_single_ban(
 
     let db = ctx.get_db();
     guild
-        .ban_with_reason(&ctx.serenity_context(), &user, delete_days, reason)
+        .ban_with_reason(&ctx.serenity_context(), user.id, delete_days, reason)
         .await
         .context("Ban failed")?;
 

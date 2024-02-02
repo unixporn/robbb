@@ -19,7 +19,7 @@ const INVISIBLE_CHARS: &[char] = &['\u{200b}', '\u{200c}', '\u{200d}', '\u{200e}
 /// Returns true if the message had a blocked word, in which case handling the message_create event should be stopped early.
 #[tracing::instrument(skip_all, fields(blocklist.blocked_word, msg.author = %msg.author.tag(), %msg.id))]
 pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bool> {
-    let (config, db) = ctx.get_config_and_db().await;
+    let (config, db) = ctx.get_config_and_db();
 
     // remove invisible characters
     let normalized_msg = msg.content.replace(INVISIBLE_CHARS, "");
@@ -40,7 +40,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         tracing::Span::current().record("blocklist.blocked_word", word);
 
         let dm_embed = CreateEmbed::default()
-            .description(&msg.content)
+            .description(msg.content.as_str())
             .title(
                 format!("Your message has been deleted for containing a blocked word: `{word}`",),
             )
@@ -52,7 +52,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         let bot_log_future = config.log_automod_action(&ctx, |e| {
             e.author_user(&msg.author)
                 .title("Message Autodelete")
-                .field("Deleted because of", word, false)
+                .field("Deleted because of", word.to_string(), false)
                 .description(format!("{}\n{}", msg.content, msg.to_context_link()))
         });
 
@@ -72,7 +72,7 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
         };
 
         // well, msg.delete does not work for some reason,...
-        let delete_future = msg.channel_id.delete_message(ctx, msg.id);
+        let delete_future = msg.channel_id.delete_message(&ctx.http, msg.id);
 
         tokio::join!(
             dm_future.instrument(tracing::debug_span!("blocklist-dm")),
@@ -99,7 +99,7 @@ pub async fn handle_blocklist_in_command_interaction(
         return Ok(false);
     }
 
-    let db = ctx.get_db().await;
+    let db = ctx.get_db();
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     for value in &values.values {
         let normalized = value.replace(INVISIBLE_CHARS, "");
@@ -118,7 +118,7 @@ async fn handle_blocked_word_in_interaction(
     word: &str,
     values: InteractionValues<'_>,
 ) {
-    let db = ctx.get_db().await;
+    let db = ctx.get_db();
     tracing::info!(blocklist.word = %word, "Found blocked word in interaction '{word}'");
     tracing::Span::current().record("blocklist.blocked_word", word);
     tracing::Span::current().record("interaction.user", values.user.tag().as_str());
@@ -126,8 +126,8 @@ async fn handle_blocked_word_in_interaction(
     let bot_log_future = ctx.log_automod_action(|e| {
         e.author_user(&values.user)
             .title("Interaction aborted because of blocked word")
-            .field("Aborted because of", word, false)
-            .field("Interaction", values.title, false)
+            .field("Aborted because of", word.to_string(), false)
+            .field("Interaction", values.title.to_string(), false)
     });
 
     let note_future = async {
@@ -155,7 +155,7 @@ async fn handle_blocked_word_in_interaction(
         let interaction_response = CreateInteractionResponse::Message(
             CreateInteractionResponseMessage::default().content("Bruh"),
         );
-        log_error!(interaction.create_response(&ctx, interaction_response).await);
+        log_error!(interaction.create_response(&ctx.http, interaction_response).await);
     };
 
     tokio::join!(
