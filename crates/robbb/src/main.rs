@@ -46,8 +46,16 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut client = setup_discord_client().await?;
-    tracing::info!("Starting discord client");
+
+    let bot_version = robbb_util::util::BotVersion::get();
+    tracing::info!(
+        version.profile = %bot_version.profile,
+        version.commit_hash = %bot_version.commit_hash,
+        version.commit_msg = %bot_version.commit_msg,
+        "Starting discord client"
+    );
     client.start().await?;
+
     if let Some(pyroscope_running) = pyroscope_running {
         let pyroscope_ready = pyroscope_running.stop().context("Failed to stop pyroscope agent")?;
         pyroscope_ready.shutdown();
