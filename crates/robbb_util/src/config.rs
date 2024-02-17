@@ -23,6 +23,7 @@ pub struct Config {
     pub roles_color: Vec<RoleId>,
 
     pub category_mod_private: ChannelId,
+    pub category_modmail: ChannelId,
     pub channel_announcements: ChannelId,
     pub channel_rules: ChannelId,
     pub channel_showcase: ChannelId,
@@ -62,6 +63,7 @@ impl Config {
                 .map(|x| Ok(x.trim().parse()?))
                 .collect::<anyhow::Result<_>>()?,
             category_mod_private: ChannelId::new(parse_required_env_var("CATEGORY_MOD_PRIVATE")?),
+            category_modmail: ChannelId::new(parse_required_env_var("CATEGORY_MODMAIL")?),
             channel_announcements: ChannelId::new(parse_required_env_var("CHANNEL_ANNOUNCEMENTS")?),
             channel_rules: ChannelId::new(parse_required_env_var("CHANNEL_RULES")?),
             channel_showcase: ChannelId::new(parse_required_env_var("CHANNEL_SHOWCASE")?),

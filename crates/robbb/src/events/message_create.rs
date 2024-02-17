@@ -124,6 +124,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
         .context("Couldn't get a guild-channel from the channel")?;
     if channel.thread_metadata.is_some()
         || config.category_mod_private == channel.parent_id.context("Couldn't get category_id")?
+        || config.category_modmail == channel.parent_id.context("Couldn't get category_id")?
     {
         tracing::Span::current().record("highlights.notified_user_cnt", 0i32);
         return Ok(0);

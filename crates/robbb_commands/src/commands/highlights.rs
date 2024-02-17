@@ -20,7 +20,6 @@ pub async fn highlights_add(
     ctx: Ctx<'_>,
     #[description = "The word you want to be notified about"] trigger: String,
 ) -> Res<()> {
-    ctx.defer().await?;
     if trigger.len() < 3 {
         abort_with!("Highlight has to be longer than 2 characters");
     }
