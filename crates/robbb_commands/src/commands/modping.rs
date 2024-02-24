@@ -23,8 +23,12 @@ pub async fn modping(
         })
         .collect_vec();
 
-    let mods = if mods_and_helpers.len() < 2 {
-        // ping moderator role if no helpers nor mods are available
+    let contains_moderators = mods_and_helpers
+        .iter()
+        .any(|member| member.roles.contains(&config.role_mod));
+
+    let mods = if mods_and_helpers.len() < 2 || !contains_moderators {
+        // ping moderator role if no helpers and moderators, or no moderators at all are online
         config.role_mod.mention().to_string()
     } else {
         mods_and_helpers.iter().map(|m| m.mention()).join(", ")
