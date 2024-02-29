@@ -29,8 +29,7 @@ pub async fn modping(
     let staff_to_ping = if contains_moderators {
         online_staff.iter().map(|m| m.mention()).join(", ")
     } else {
-        config.role_mod.mention().to_string()
-            + &online_staff.iter().map(|m| m.mention()).join(", ")
+        config.role_mod.mention().to_string() + &online_staff.iter().map(|m| m.mention()).join(", ")
     };
 
     ctx.send(CreateReply::default().content(format!(
