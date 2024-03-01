@@ -14,7 +14,7 @@ pub async fn modping(
     let config = ctx.get_config();
     let guild = ctx.guild().user_error("not in a guild")?.to_owned();
 
-    let mods_and_helpers = guild
+    let online_staff = guild
         .members_with_status(Online)
         .chain(guild.members_with_status(Idle))
         .chain(guild.members_with_status(DoNotDisturb))
@@ -23,17 +23,19 @@ pub async fn modping(
         })
         .collect_vec();
 
-    let mods = if mods_and_helpers.len() < 2 {
-        // ping moderator role if no helpers nor mods are available
-        config.role_mod.mention().to_string()
+    let contains_moderators =
+        online_staff.iter().any(|member| member.roles.contains(&config.role_mod));
+
+    let staff_to_ping = if contains_moderators {
+        online_staff.iter().map(|m| m.mention()).join(", ")
     } else {
-        mods_and_helpers.iter().map(|m| m.mention()).join(", ")
+        config.role_mod.mention().to_string() + &online_staff.iter().map(|m| m.mention()).join(", ")
     };
 
-    ctx.send(
-        CreateReply::default()
-            .content(format!("{} pinged staff {mods} for reason {reason}", ctx.author().mention())),
-    )
+    ctx.send(CreateReply::default().content(format!(
+        "{} pinged staff {staff_to_ping} for reason {reason}",
+        ctx.author().mention()
+    )))
     .await?;
 
     Ok(())
