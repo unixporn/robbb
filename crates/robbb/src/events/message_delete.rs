@@ -115,7 +115,7 @@ pub async fn message_delete_bulk(
             .send_embed_builder(&ctx, |e| {
                 e.title("Message bulk-deletion")
                 .description(format!(
-                    "Messages where bulk-deleted in {}. Sadly, I don't remember any of these messages :(",
+                    "Messages were bulk-deleted in {}. Sadly, I don't remember any of these messages :(",
                     channel_id.mention()
                 ))
                 .footer_str(format!("#{channel_name}"))
