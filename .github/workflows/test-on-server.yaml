@@ -25,7 +25,7 @@ jobs:
       - name: Install rust stable
         uses: actions-rs/toolchain@v1
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
         with:
           key: test-on-server
 
