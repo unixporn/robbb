@@ -33,7 +33,7 @@ jobs:
         run: |
           VERSION="${{github.event.inputs.git_clone_arg}}#${{github.event.inputs.git_tag}} $(git log --format=oneline -n 1 HEAD)" cargo build --locked
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: executable
           path: target/debug/robbb
@@ -52,7 +52,7 @@ jobs:
         run: |
           echo -e "${{secrets.GUILD}}\n${{secrets.TOKEN}}\n" | ./gen-env.sh >.env
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: executable
 
