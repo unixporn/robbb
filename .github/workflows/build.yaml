@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "::set-output name=rust_version::$(rustc --version)"
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
