@@ -15,17 +15,17 @@ thiserror = "1.0"
 lazy_static = "1.4"
 chrono = "0.4"
 chrono-humanize = "0.2"
-itertools = "0.11.0"
+itertools = "0.12.1"
 tokio-util = { version = "0.7", features = ["compat"] }
-tokio = { version = "1.21", features = ["macros", "fs", "rt-multi-thread"]}
+tokio = { version = "1.37", features = ["macros", "fs", "rt-multi-thread"]}
 futures = "0.3"
-tracing = "0.1.37"
-reqwest = { version = "0.11" }
+tracing = "0.1.40"
+reqwest = { version = "0.12" }
 tracing-futures = "0.2.5"
 rand = "0.8"
 regex = "1"
 url = "2"
 parking_lot = "0.12"
-extend = "1.1"
+extend = "1.2"
 
 robbb_db = { path = "../robbb_db" }
