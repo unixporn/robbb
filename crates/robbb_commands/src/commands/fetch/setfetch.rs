@@ -1,15 +1,16 @@
 use chrono::Utc;
 use poise::serenity_prelude::Attachment;
 use robbb_util::cdn_hack;
+use std::str::FromStr;
 
 use super::*;
 use std::collections::HashMap;
 
 const SETFETCH_USAGE: &str = indoc::indoc!("
-    Run this: 
+    Run this:
     `curl -s https://raw.githubusercontent.com/unixporn/robbb/master/fetcher.sh | sh`
-    and follow the instructions. It's recommended that you download and read the script before running it, 
-    as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>) 
+    and follow the instructions. It's recommended that you download and read the script before running it,
+    as piping curl to sh isn't always the safest practice. (<https://blog.dijit.sh/don-t-pipe-curl-to-bash>)
 
     **NOTE**: use `/setfetch update` to manually update your fetch (including the image!).
     **NOTE**: /git, /dotfiles, and /description are different commands"
@@ -73,9 +74,9 @@ pub async fn set_fetch_update(
 
     let memory = match memory {
         Some(memory) => Some(
-            byte_unit::Byte::from_str(memory)
+            byte_unit::Byte::from_str(&memory)
                 .user_error("Malformed value provided for Memory")?
-                .get_bytes()
+                .as_u128()
                 .to_string(),
         ),
         _ => None,
