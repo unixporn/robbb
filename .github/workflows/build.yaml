@@ -29,7 +29,7 @@ jobs:
             cargo_env: "RUSTFLAGS='-C debuginfo=0'"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Rust version
         id: rust-version
