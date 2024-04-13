@@ -29,7 +29,10 @@ pub fn format_fetch_field_value(field_name: &FetchField, value: String) -> Optio
 fn format_bytes(s: &str) -> String {
     let as_num = s.parse::<u128>();
     match as_num {
-        Ok(n) => byte_unit::Byte::from_bytes(n).get_appropriate_unit(false).to_string(),
+        Ok(n) => byte_unit::Byte::from_u128(n)
+            .unwrap()
+            .get_appropriate_unit(byte_unit::UnitType::Decimal)
+            .to_string(),
         Err(_) => s.to_string(),
     }
 }
