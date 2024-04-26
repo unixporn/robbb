@@ -29,7 +29,7 @@ unicase = "2.7.0"
 
 tracing = "0.1.40"
 tracing-futures = "0.2.5"
-parking_lot = "0.12.1"
+parking_lot = "0.12.2"
 
 robbb_db = { path = "../robbb_db" }
 robbb_util = { path = "../robbb_util" }
