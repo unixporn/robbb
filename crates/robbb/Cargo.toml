@@ -8,29 +8,29 @@ edition = "2018"
 [dependencies]
 serenity.workspace = true
 poise.workspace = true
-anyhow = "1.0"
-chrono = "0.4"
-chrono-humanize = "0.2"
+anyhow = "1.0.82"
+chrono = "0.4.38"
+chrono-humanize = "0.2.3"
 itertools = "0.12.1"
 indoc = "2.0.5"
 lazy_static = "1.4"
-rand = "0.8"
-humantime = "2"
-thiserror = "1.0"
-serde_json = "1"
-serde = "1"
-maplit = "1"
-byte-unit = { version = "5.1", features = ["u128"] }
+rand = "0.8.5"
+humantime = "2.1.0"
+thiserror = "1.0.59"
+serde_json = "1.0.116"
+serde = "1.0.200"
+maplit = "1.0.2"
+byte-unit = { version = "5.1.4", features = ["u128"] }
 url = "2"
 regex = "1"
 reqwest = { version = "0.11" }
 tokio = { version = "1.21", features = ["macros", "fs", "rt-multi-thread"] }
-tokio-util = { version = "0.7", features = ["compat"] }
-futures = "0.3"
+tokio-util = { version = "0.7.10", features = ["compat"] }
+futures = "0.3.30"
 
 unicase = "2.6.0"
 
-parking_lot = "0.12"
+parking_lot = "0.12.2"
 
 tracing = "0.1.40"
 tracing-log = "0.2.0"
@@ -59,4 +59,4 @@ tracing-opentelemetry = "0.22.0"
 
 
 pyroscope = "0.5.7"
-pyroscope_pprofrs = "0.2"
+pyroscope_pprofrs = "0.2.7"
