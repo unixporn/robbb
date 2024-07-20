@@ -24,8 +24,14 @@ pub async fn guild_member_removal(
 
     if let Some(member) = member {
         let roles = member.roles(&ctx).unwrap_or_default();
-        if roles.iter().any(|x| x.id == config.role_htm) {
+        let is_htm = db.check_user_htm(member.user.id).await?; // check if already htm is added to DB
+
+        if roles.iter().any(|x| x.id == config.role_htm) && !is_htm {
+            // add htm if not in db already
             log_error!(db.add_htm(member.user.id).await);
+        } else {
+            // remove htm from db if user doesn't have htm anymore
+            log_error!(db.remove_htm(member.user.id).await);
         }
     }
 
