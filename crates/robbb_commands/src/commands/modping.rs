@@ -26,10 +26,11 @@ pub async fn modping(
     let contains_moderators =
         online_staff.iter().any(|member| member.roles.contains(&config.role_mod));
 
+    let online_mentions = online_staff.iter().map(|m| m.mention()).join(", ");
     let staff_to_ping = if contains_moderators {
-        online_staff.iter().map(|m| m.mention()).join(", ")
+        online_mentions
     } else {
-        config.role_mod.mention().to_string() + &online_staff.iter().map(|m| m.mention()).join(", ")
+        config.role_mod.mention().to_string() + ", " + &online_mentions
     };
 
     ctx.send(CreateReply::default().content(format!(

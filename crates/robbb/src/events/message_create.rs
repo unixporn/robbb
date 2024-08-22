@@ -48,7 +48,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
-    if !msg.is_private() && msg.channel_id != config.channel_bot_messages {
+    if !msg.guild_id.is_none() && msg.channel_id != config.channel_bot_messages {
         match handle_msg_emoji_logging(&ctx, &msg).await {
             Ok(emoji_used) => {
                 tracing::Span::current().record("message_create.emoji_used", emoji_used);
