@@ -1,5 +1,8 @@
+use anyhow::Context;
 use poise::CreateReply;
 use robbb_db::fetch_field::FetchField;
+use robbb_util::log_error;
+use serenity::all::RoleId;
 
 use super::*;
 
@@ -31,6 +34,49 @@ pub async fn say(
         ctx.send(CreateReply::default().content("Sure thing!").ephemeral(true)),
         ctx.channel_id().say(ctx.serenity_context(), message),
     )?;
+    Ok(())
+}
+
+/// Add a role to literally everyone on the server.
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Bot-Administration",
+    custom_data = "CmdMeta { perms: PermissionLevel::Mod }"
+)]
+pub async fn mass_role(ctx: Ctx<'_>, role: RoleId) -> Res<()> {
+    let guild = ctx.guild().context("Not in a guild")?.to_owned();
+    let member_count = guild.member_count;
+    let mut handled_members = 0;
+    let mut last_user = None;
+
+    let progress_msg = ctx.reply(format!("Progress: 0/{}", member_count)).await?;
+
+    loop {
+        let members = guild.members(ctx.http(), Some(1000), last_user).await?;
+
+        for member in members.iter() {
+            log_error!(
+                "Failed to add mass-role to member",
+                member.add_role(ctx.http(), role).await
+            );
+        }
+        handled_members += members.len();
+
+        progress_msg
+            .edit(
+                ctx,
+                CreateReply::default()
+                    .content(format!("Progress: {handled_members}/{member_count}")),
+            )
+            .await?;
+
+        if let Some(last) = members.last() {
+            last_user = Some(last.user.id);
+        } else {
+            break;
+        }
+    }
     Ok(())
 }
 
