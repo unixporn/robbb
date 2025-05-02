@@ -393,6 +393,8 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
     if msg.kind == MessageType::ThreadCreated {
         tracing::debug!(msg = ?msg, "Deleting ThreadCreated message");
         msg.delete(&ctx).await.context("Failed to delete showcase ThreadCreated message")?;
+    } else if msg.kind == MessageType::PinsAdd {
+        // Moderator pinned a message
     } else if msg.attachments.is_empty() && msg.embeds.is_empty() && !msg.content.contains("http") {
         tracing::debug!(msg = ?msg, "Deleting invalid showcase post");
         msg.delete(&ctx).await.context("Failed to delete invalid showcase submission")?;
