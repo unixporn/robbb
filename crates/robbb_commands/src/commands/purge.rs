@@ -1,5 +1,5 @@
-use anyhow::Context;
 use chrono::Utc;
+use eyre::ContextCompat as _;
 use robbb_util::embeds;
 use serenity::builder::{EditMessage, GetMessages};
 

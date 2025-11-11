@@ -6,9 +6,11 @@ edition = "2018"
 
 
 [dependencies]
+tracing-error.workspace = true
+eyre.workspace = true
+color-eyre.workspace = true
 serenity.workspace = true
 poise.workspace = true
-anyhow.workspace = true
 chrono.workspace = true
 chrono-humanize.workspace = true
 itertools.workspace = true
@@ -20,7 +22,7 @@ thiserror.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 maplit.workspace = true
-byte-unit = { version = "5.1.4", features = ["u128"] }
+byte-unit = { workspace = true, features = ["u128"] }
 url.workspace = true
 regex.workspace = true
 reqwest = { workspace = true }

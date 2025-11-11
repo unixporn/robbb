@@ -152,7 +152,7 @@ async fn handle_argument_parse_error(
     ctx: Ctx<'_>,
     error: Box<dyn std::error::Error + Send + Sync>,
     input: Option<String>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let msg = if error.downcast_ref::<humantime::DurationError>().is_some() {
         format!("'{}' is not a valid duration", input.unwrap_or_default())
     } else if error.downcast_ref::<UserParseError>().is_some() {

@@ -1,5 +1,5 @@
-use anyhow::Context;
 use chrono::Utc;
+use eyre::ContextCompat as _;
 use poise::serenity_prelude::User;
 use robbb_db::mod_action::ModActionKind;
 use serenity::client;
@@ -96,7 +96,7 @@ pub async fn apply_mute(
     duration: std::time::Duration,
     reason: Option<String>,
     context: String,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let db = ctx.get_db().await;
 
     let start_time = Utc::now();
@@ -133,7 +133,7 @@ pub async fn apply_mute(
 /// Adds the mute role to the user, but does _not_ add any database entry.
 /// This should only be used if we know that an active database entry for the mute already exists,
 /// or else we run the risk of accidentally muting someone forever.
-pub async fn set_mute_role(ctx: &client::Context, member: Member) -> anyhow::Result<()> {
+pub async fn set_mute_role(ctx: &client::Context, member: Member) -> eyre::Result<()> {
     let config = ctx.get_config().await;
     member.add_role(&ctx, config.role_mute).await?;
     Ok(())

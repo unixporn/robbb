@@ -1,6 +1,6 @@
 use crate::{config::Config, embeds, log_error, prelude::Ctx, UpEmotes};
 
-use anyhow::{Context, Result};
+use eyre::{Context, ContextCompat as _, Result};
 use itertools::Itertools;
 use poise::{CreateReply, ReplyHandle};
 use robbb_db::Db;
@@ -121,7 +121,7 @@ pub impl<'a> Ctx<'a> {
         .await
     }
 
-    async fn guild_channel(&self) -> anyhow::Result<GuildChannel> {
+    async fn guild_channel(&self) -> eyre::Result<GuildChannel> {
         Ok(self
             .channel_id()
             .to_channel(&self.serenity_context())
@@ -294,13 +294,13 @@ pub impl ChannelId {
         Ok(self.send_message(&ctx, msg).await.context("Failed to send embed message")?)
     }
 
-    fn name_cached(&self, cache: &Cache) -> Option<String> {
-        self.to_channel_cached(cache).map(|c| c.name().to_string())
-    }
+    // fn name_cached(&self, ctx: &Ctx<'_>) -> Option<String> {
+    //     self.to_channel_cached(cache).map(|c| c.name().to_string())
+    // }
 
-    fn name_cached_or_fallback(&self, cache: &Cache) -> String {
-        self.name_cached(cache).unwrap_or_else(|| "non-cached channel".to_string())
-    }
+    // fn name_cached_or_fallback(&self, cache: &Cache) -> String {
+    //     self.name_cached(cache).unwrap_or_else(|| "non-cached channel".to_string())
+    // }
 }
 
 #[extend::ext]

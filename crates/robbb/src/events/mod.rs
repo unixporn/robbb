@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use eyre::{Context, Result};
 
 use poise::async_trait;
 use poise::serenity_prelude::{

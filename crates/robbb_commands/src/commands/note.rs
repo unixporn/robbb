@@ -1,5 +1,5 @@
-use anyhow::Context;
 use chrono::Utc;
+use eyre::ContextCompat as _;
 use poise::{
     serenity_prelude::{Mentionable, User},
     Modal,

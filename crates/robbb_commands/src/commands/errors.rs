@@ -14,7 +14,7 @@ impl UserErr {
 pub trait OptionExt<T> {
     fn user_error(self, s: &str) -> Result<T, UserErr>;
 }
-impl<T, E: Into<anyhow::Error>> OptionExt<T> for Result<T, E> {
+impl<T, E: Into<eyre::Error>> OptionExt<T> for Result<T, E> {
     fn user_error(self, s: &str) -> Result<T, UserErr> {
         self.map_err(|_| UserErr(s.to_string()))
     }
@@ -31,7 +31,7 @@ pub trait ResultExt<T, E> {
     fn with_user_error(self, f: impl FnOnce(E) -> String) -> Result<T, UserErr>;
 }
 
-impl<T, E: Into<anyhow::Error>> ResultExt<T, E> for Result<T, E> {
+impl<T, E: Into<eyre::Error>> ResultExt<T, E> for Result<T, E> {
     fn with_user_error(self, f: impl FnOnce(E) -> String) -> Result<T, UserErr> {
         self.map_err(|e| UserErr(f(e)))
     }

@@ -1,5 +1,5 @@
-use anyhow::Context;
 use chrono::{Duration, Utc};
+use eyre::{Context, ContextCompat as _};
 use poise::serenity_prelude::{Message, User};
 use robbb_util::embeds;
 use serenity::builder::{CreateEmbed, EditMessage};
@@ -84,6 +84,7 @@ pub async fn ban_many(
     Ok(())
 }
 
+#[tracing::instrument]
 async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8) -> Res<()> {
     let guild = ctx.guild().context("Failed to load guild")?.to_owned();
 
@@ -165,14 +166,15 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
 
 enum BanFailedReason {
     HelperRestriction(User),
-    Other(anyhow::Error),
+    Other(eyre::Error),
 }
-impl From<anyhow::Error> for BanFailedReason {
-    fn from(e: anyhow::Error) -> Self {
+impl From<eyre::Error> for BanFailedReason {
+    fn from(e: eyre::Error) -> Self {
         Self::Other(e)
     }
 }
 
+#[tracing::instrument]
 async fn handle_single_ban(
     ctx: Ctx<'_>,
     guild: &Guild,

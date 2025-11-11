@@ -1,4 +1,4 @@
-use anyhow::Context;
+use eyre::ContextCompat as _;
 use poise::serenity_prelude::{CreateEmbed, Mentionable, User};
 use robbb_util::embeds;
 

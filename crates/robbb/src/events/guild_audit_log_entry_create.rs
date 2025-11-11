@@ -8,7 +8,7 @@ use serenity::{
 pub async fn guild_audit_log_entry_create(
     ctx: client::Context,
     entry: AuditLogEntry,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     tracing::info!(
         auditlog.entry.id = %entry.id,
         auditlog.entry.action = ?entry.action,

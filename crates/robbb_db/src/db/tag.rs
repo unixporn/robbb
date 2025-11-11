@@ -1,5 +1,5 @@
-use anyhow::Result;
 use chrono::{DateTime, Utc};
+use eyre::Result;
 use serenity::model::id::UserId;
 
 use super::Db;

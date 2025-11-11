@@ -389,6 +389,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "color-eyre"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5920befb47832a6d61ee3a3a846565cfa39b331331e68a3b1d1116630f2f26d"
+dependencies = [
+ "backtrace",
+ "color-spantrace",
+ "eyre",
+ "indenter",
+ "once_cell",
+ "owo-colors",
+ "tracing-error",
+]
+
+[[package]]
+name = "color-spantrace"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8b88ea9df13354b55bc7234ebcce36e6ef896aca2e42a15de9e10edce01b427"
+dependencies = [
+ "once_cell",
+ "owo-colors",
+ "tracing-core",
+ "tracing-error",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -680,6 +707,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.110",
+]
+
+[[package]]
+name = "eyre"
+version = "0.6.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cd915d99f24784cdc19fd37ef22b97e3ff0ae756c7e492e9fbfe897d61e2aec"
+dependencies = [
+ "indenter",
+ "once_cell",
 ]
 
 [[package]]
@@ -1348,6 +1385,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "indenter"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "964de6e86d545b246d84badc0fef527924ace5134f30641c203ef52ba83f58d5"
+
+[[package]]
 name = "indexmap"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1941,6 +1984,12 @@ checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
 dependencies = [
  "num-traits",
 ]
+
+[[package]]
+name = "owo-colors"
+version = "4.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c6901729fa79e91a0913333229e9ca5dc725089d1c363b2f4b4760709dc4a52"
 
 [[package]]
 name = "parking_lot"
@@ -2541,10 +2590,11 @@ checksum = "3582f63211428f83597b51b2ddb88e2a91a9d52d12831f9d08f5e624e8977422"
 name = "robbb"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "byte-unit",
  "chrono",
  "chrono-humanize",
+ "color-eyre",
+ "eyre",
  "futures",
  "humantime",
  "indoc",
@@ -2571,6 +2621,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "tracing-error",
  "tracing-futures",
  "tracing-log",
  "tracing-logfmt-otel",
@@ -2584,10 +2635,11 @@ dependencies = [
 name = "robbb_commands"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "byte-unit",
  "chrono",
  "chrono-humanize",
+ "color-eyre",
+ "eyre",
  "futures",
  "humantime",
  "indoc",
@@ -2615,8 +2667,9 @@ dependencies = [
 name = "robbb_db"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "chrono",
+ "color-eyre",
+ "eyre",
  "itertools 0.14.0",
  "lazy_static",
  "poise",
@@ -2634,10 +2687,11 @@ dependencies = [
 name = "robbb_util"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "chrono",
  "chrono-humanize",
+ "color-eyre",
  "extend",
+ "eyre",
  "futures",
  "itertools 0.14.0",
  "lazy_static",
@@ -3863,6 +3917,16 @@ checksum = "b9d12581f227e93f094d3af2ae690a574abb8a2b9b7a96e7cfe9647b2b617678"
 dependencies = [
  "once_cell",
  "valuable",
+]
+
+[[package]]
+name = "tracing-error"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b1581020d7a273442f5b45074a6a57d5757ad0a47dac0e9f0bd57b81936f3db"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

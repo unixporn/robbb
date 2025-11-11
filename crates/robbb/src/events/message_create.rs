@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use chrono::Utc;
+use eyre::ContextCompat as _;
 use itertools::Itertools;
 use maplit::hashmap;
 use poise::serenity_prelude::{MessageType, ReactionType};
@@ -28,12 +29,14 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         return Ok(true);
     }
 
+    let channel_name = msg.channel_id.name(&ctx).await?;
+
     tracing::debug!(
         msg.content = %msg.content,
         msg.author = %msg.author.tag(),
         msg.author_id = %msg.author.id,
         msg.id = %msg.id,
-        msg.channel = %msg.channel_id.name_cached_or_fallback(&ctx.cache),
+        msg.channel = %channel_name,
         msg.channel_id = %msg.channel_id,
         "new message from {}: {}",
         msg.author.tag(),

@@ -2,7 +2,7 @@ use super::*;
 
 use std::collections::hash_map::HashMap;
 
-use anyhow::Context;
+use eyre::ContextCompat as _;
 use poise::serenity_prelude::{Emoji, EmojiId};
 
 use robbb_db::emoji_logging::{EmojiStats, Ordering};

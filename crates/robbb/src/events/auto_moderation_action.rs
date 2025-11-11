@@ -1,7 +1,7 @@
 use robbb_util::extensions::ClientContextExt;
 use serenity::{all::ActionExecution, client};
 
-pub async fn execution(ctx: client::Context, execution: ActionExecution) -> anyhow::Result<()> {
+pub async fn execution(ctx: client::Context, execution: ActionExecution) -> eyre::Result<()> {
     tracing::info!(
         execution.action = ?execution.action,
         execution = ?execution,

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, str::FromStr};
 
-use anyhow::Context;
+use eyre::{Context, ContextCompat as _};
 use regex::Regex;
 use serenity::{
     all::{ChannelId, GuildId, Message, MessageId},
@@ -63,10 +63,10 @@ impl FakeCdnId {
 
     /// Resolve a [`FakeCdnId`] to a valid attachment url by fetching the mentioned message and getting the first attachment.
     #[tracing::instrument(skip_all, fields(fake_cdn_id = %self))]
-    pub async fn resolve(&self, ctx: impl CacheHttp) -> anyhow::Result<String> {
+    pub async fn resolve(&self, ctx: impl CacheHttp) -> eyre::Result<String> {
         let message = self.channel_id.message(&ctx, self.message_id).await?;
         message.attachments.get(self.nth_attachment).map(|x| x.url.clone()).ok_or_else(|| {
-            anyhow::anyhow!(
+            eyre::eyre!(
                 "No {}th attachments found in message {}",
                 self.nth_attachment,
                 self.message_id
@@ -82,7 +82,7 @@ impl std::fmt::Display for FakeCdnId {
 }
 
 impl FromStr for FakeCdnId {
-    type Err = anyhow::Error;
+    type Err = eyre::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let captures =
@@ -105,7 +105,7 @@ pub async fn persist_attachment(
     ctx: &serenity::client::Context,
     attachment_url: &str,
     mut metadata: serde_json::Value,
-) -> anyhow::Result<FakeCdnId> {
+) -> eyre::Result<FakeCdnId> {
     let config = ctx.get_config().await;
 
     tracing::info!(%attachment_url, "Persisting attachment in fake cdn: {attachment_url}");
@@ -153,7 +153,7 @@ pub async fn persist_cdn_links_in_string(
     ctx: &serenity::client::Context,
     string: &str,
     metadata: serde_json::Value,
-) -> anyhow::Result<String> {
+) -> eyre::Result<String> {
     let mut new_string = string.to_string();
 
     let captures = CDN_LINK_PATTERN.captures_iter(string);
@@ -177,10 +177,7 @@ pub async fn persist_cdn_links_in_string(
 /// Replace all [`FakeCdnId`]s in a string with the corresponding attachment url,
 /// fetching a new CDN URL if necessary.
 #[tracing::instrument(skip_all, fields(string = %value))]
-pub async fn resolve_cdn_links_in_string(
-    ctx: impl CacheHttp,
-    value: &str,
-) -> anyhow::Result<String> {
+pub async fn resolve_cdn_links_in_string(ctx: impl CacheHttp, value: &str) -> eyre::Result<String> {
     let mut new_value = value.to_string();
     for mat in FakeCdnId::pattern().find_iter(value) {
         let mat = mat.as_str();

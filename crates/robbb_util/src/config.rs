@@ -45,13 +45,13 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_environment() -> anyhow::Result<Self> {
+    pub fn from_environment() -> eyre::Result<Self> {
         Ok(Config {
             discord_token: required_env_var("TOKEN")?,
             owners: required_env_var("OWNERS")?
                 .split(',')
                 .map(|x| Ok(x.trim().parse()?))
-                .collect::<anyhow::Result<_>>()?,
+                .collect::<eyre::Result<_>>()?,
 
             guild: GuildId::new(parse_required_env_var("GUILD")?),
             role_mod: RoleId::new(parse_required_env_var("ROLE_MOD")?),
@@ -61,7 +61,7 @@ impl Config {
             roles_color: required_env_var("ROLES_COLOR")?
                 .split(',')
                 .map(|x| Ok(x.trim().parse()?))
-                .collect::<anyhow::Result<_>>()?,
+                .collect::<eyre::Result<_>>()?,
             category_mod_private: ChannelId::new(parse_required_env_var("CATEGORY_MOD_PRIVATE")?),
             category_modmail: ChannelId::new(parse_required_env_var("CATEGORY_MODMAIL")?),
             channel_announcements: ChannelId::new(parse_required_env_var("CHANNEL_ANNOUNCEMENTS")?),

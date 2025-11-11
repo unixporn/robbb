@@ -1,5 +1,6 @@
 use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
 use robbb_util::log_error;
+use tracing_error::ErrorLayer;
 use tracing_subscriber::{
     filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
     EnvFilter, Layer,
@@ -65,6 +66,7 @@ pub fn init_tracing() {
         .with_module(true);
 
     let sub = tracing_subscriber::registry()
+        .with(ErrorLayer::default())
         .with(log_filter)
         .with(remove_presence_update_filter)
         .with(remove_recv_event_filter);

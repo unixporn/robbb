@@ -1,4 +1,4 @@
-use anyhow::Context;
+use eyre::{Context, ContextCompat as _};
 use poise::serenity_prelude::ComponentInteractionDataKind;
 use poise::CreateReply;
 use robbb_util::embeds;
@@ -72,7 +72,7 @@ pub async fn role(ctx: Ctx<'_>) -> Res<()> {
             ComponentInteractionDataKind::StringSelect { values } => {
                 values.first().context("Nothing selected")?.to_string()
             }
-            _ => anyhow::bail!("Wrong interaction kind returned"),
+            _ => eyre::bail!("Wrong interaction kind returned"),
         };
         tracing::debug!("Got /role interaction response, selected {selected}");
 

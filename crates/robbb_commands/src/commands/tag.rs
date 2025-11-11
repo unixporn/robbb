@@ -1,5 +1,5 @@
-use anyhow::Context;
 use chrono::Utc;
+use eyre::ContextCompat;
 use poise::Modal;
 use robbb_util::cdn_hack;
 use tracing_futures::Instrument;

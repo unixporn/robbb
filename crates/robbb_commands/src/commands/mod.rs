@@ -92,7 +92,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
     all_commands
 }
 
-pub fn preprocess_command(command: &mut Command<UserData, anyhow::Error>) {
+pub fn preprocess_command(command: &mut Command<UserData, eyre::Error>) {
     let meta = command.custom_data.downcast_ref::<CmdMeta>();
     let perms = meta.map(|m| m.perms).unwrap_or(PermissionLevel::User);
     match perms {

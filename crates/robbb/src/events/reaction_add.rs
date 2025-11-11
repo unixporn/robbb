@@ -1,5 +1,6 @@
 use super::*;
 
+use eyre::ContextCompat as _;
 use robbb_db::emoji_logging::EmojiIdentifier;
 use serenity::model::channel::ReactionType::Custom;
 

@@ -1,3 +1,4 @@
+use eyre::ContextCompat as _;
 use futures::StreamExt;
 use itertools::Itertools;
 use poise::serenity_prelude::{AuditLogEntry, MessageAction};

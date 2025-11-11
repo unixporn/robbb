@@ -1,4 +1,4 @@
-use anyhow::Context;
+use eyre::ContextCompat as _;
 use serenity::all::User;
 
 use crate::modlog;

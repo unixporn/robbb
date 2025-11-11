@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use eyre::{eyre, Context, ContextCompat as _, Result};
 use poise::serenity_prelude::GuildId;
 use serenity::{
     client::{self},
@@ -46,7 +46,7 @@ macro_rules! abort_with {
 macro_rules! log_error {
     ($e:expr) => {
         if let Err(e) = $e {
-            let e = anyhow::anyhow!(e);
+            let e = eyre::eyre!(e);
             tracing::error!(
                 error.message = %&e,
                 error.root_cause = %e.root_cause(),
@@ -57,11 +57,12 @@ macro_rules! log_error {
     };
     ($context:expr, $e:expr $(,)?) => {
         if let Err(e) = $e {
-            let e = ::anyhow::anyhow!(e).context($context);
+            let e = e.wrap_err($context);
             tracing::error!(
                 error.message = %&e,
+                error.details = format!("{:#}", e),
                 error.root_cause = %e.root_cause(),
-                "{:?}",
+                "{:#?}",
                 e
             );
         }
@@ -93,12 +94,12 @@ pub fn required_env_var(key: &str) -> Result<String> {
 }
 
 /// like [required_env_var], but also uses FromStr to parse the value.
-pub fn parse_required_env_var<E: Into<anyhow::Error>, T: std::str::FromStr<Err = E>>(
+pub fn parse_required_env_var<E: Into<eyre::Error>, T: std::str::FromStr<Err = E>>(
     key: &str,
 ) -> Result<T> {
     required_env_var(key)?
         .parse()
-        .map_err(|e: E| anyhow!(e))
+        .map_err(|e: E| eyre!(e))
         .with_context(|| format!("Failed to parse env-var {}", key))
 }
 

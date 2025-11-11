@@ -1,6 +1,6 @@
 use crate::{extensions::PoiseContextExt, prelude::Ctx, util::ellipsis_text};
 
-use anyhow::Result;
+use eyre::Result;
 use itertools::Itertools;
 use poise::{serenity_prelude::CreateActionRow, CreateReply, ReplyHandle};
 use serenity::{

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
+use eyre::{ContextCompat, Result};
 use serenity::model::id::UserId;
 
 use super::Db;
@@ -77,7 +77,7 @@ impl ModActionType {
             3 => Ok(ModActionType::Mute),
             4 => Ok(ModActionType::Ban),
             5 => Ok(ModActionType::Kick),
-            _ => anyhow::bail!("Invalid mod action type: {}", n),
+            _ => eyre::bail!("Invalid mod action type: {}", n),
         }
     }
 

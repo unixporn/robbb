@@ -1,6 +1,6 @@
 #![allow(clippy::needless_borrow)]
 
-use anyhow::Context;
+use eyre::Context;
 use poise::{serenity_prelude::GatewayIntents, CommandInteractionType};
 use pyroscope::PyroscopeAgent;
 use pyroscope_pprofrs::{pprof_backend, PprofConfig};
@@ -19,7 +19,8 @@ mod logging;
 use crate::logging::*;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> eyre::Result<()> {
+    color_eyre::install()?;
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
 
     let pyroscope_url = std::env::var("PYROSCOPE_URL").ok();
@@ -65,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 #[tracing::instrument]
-async fn setup_discord_client() -> anyhow::Result<serenity::Client> {
+async fn setup_discord_client() -> eyre::Result<serenity::Client> {
     tracing::info!("Starting setup");
     let config = Config::from_environment().expect("Failed to load experiment");
     tracing::info!(config = ?config, "Loaded configuration");

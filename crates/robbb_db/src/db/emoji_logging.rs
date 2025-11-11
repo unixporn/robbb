@@ -1,4 +1,5 @@
-use anyhow::{Context, Result};
+use eyre::ContextCompat as _;
+use eyre::Result;
 
 use super::Db;
 

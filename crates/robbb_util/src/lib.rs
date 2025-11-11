@@ -8,7 +8,7 @@ pub mod util;
 
 use std::{collections::HashMap, sync::Arc};
 
-use anyhow::Context;
+use eyre::ContextCompat as _;
 use poise::serenity_prelude::{Emoji, GuildId};
 use rand::prelude::IteratorRandom;
 use robbb_db::Db;
@@ -28,7 +28,7 @@ impl UpEmotes {
         self.stares.iter().choose(&mut rng).cloned()
     }
 
-    pub fn from_emojis(all_emoji: Vec<Emoji>) -> anyhow::Result<Self> {
+    pub fn from_emojis(all_emoji: Vec<Emoji>) -> eyre::Result<Self> {
         Ok(UpEmotes {
             pensibe: all_emoji
                 .iter()
@@ -52,7 +52,7 @@ impl UpEmotes {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> anyhow::Result<UpEmotes> {
+pub async fn load_up_emotes(ctx: &client::Context, guild: GuildId) -> eyre::Result<UpEmotes> {
     let all_emoji = guild.emojis(&ctx).await?;
     UpEmotes::from_emojis(all_emoji)
 }

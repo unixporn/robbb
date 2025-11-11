@@ -1,5 +1,5 @@
 use super::*;
-use anyhow::Context;
+use eyre::ContextCompat as _;
 use poise::{serenity_prelude::ReactionType, CreateReply, Modal};
 use regex::Regex;
 use serenity::builder::{CreateEmbed, CreateEmbedFooter};

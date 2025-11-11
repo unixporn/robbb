@@ -1,5 +1,5 @@
-use anyhow::Context;
 use chrono::Utc;
+use eyre::ContextCompat as _;
 use poise::serenity_prelude::User;
 use serenity::{all::GuildId, builder::CreateEmbed, client};
 

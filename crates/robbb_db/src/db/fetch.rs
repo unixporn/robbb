@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{Context, Result};
+use eyre::{Context as _, Result};
 
 use chrono::{DateTime, Utc};
 use serenity::model::id::UserId;

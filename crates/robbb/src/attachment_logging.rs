@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use eyre::{Context, Result};
 use robbb_util::config::Config;
 use std::{
     os::unix::prelude::MetadataExt,

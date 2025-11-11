@@ -1,5 +1,6 @@
-use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
+use eyre::ContextCompat as _;
+use eyre::Result;
 use serenity::model::id::UserId;
 
 use super::Db;

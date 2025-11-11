@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use anyhow::Context;
+use eyre::ContextCompat as _;
 use robbb_db::{fetch::Fetch, fetch_field::FetchField};
 use robbb_util::{cdn_hack::FakeCdnId, embeds};
 use serenity::{all::User, builder::CreateEmbedAuthor};
