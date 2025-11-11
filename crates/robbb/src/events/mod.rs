@@ -119,10 +119,14 @@ impl client::EventHandler for Handler {
         fields(
             command_name, invocation, message_create.notified_user_cnt, message_create.emoji_used,
             %msg.content, msg.author = %msg.author.tag(), %msg.channel_id, %msg.id,
-            msg.channel = %msg.channel_id.name_cached_or_fallback(&ctx.cache),
+            msg.channel
         )
     )]
     async fn message(&self, ctx: client::Context, msg: Message) {
+        let channel_name =
+            msg.channel_id.name(&ctx).await.unwrap_or_else(|_| "unknown-name".to_string());
+        tracing::Span::current().record("msg.channel", channel_name);
+
         match message_create::message_create(ctx.clone(), msg.clone()).await {
             Ok(stop_event_handler) if stop_event_handler => return,
             err => log_error!("Error handling message_create event", err),

@@ -10,7 +10,7 @@ use serenity::{
         CreateAllowedMentions, CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter, CreateMessage,
         CreateThread,
     },
-    client::{self, Cache},
+    client::{self},
     model::{
         channel::{GuildChannel, Message},
         guild::Emoji,

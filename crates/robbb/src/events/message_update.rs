@@ -23,11 +23,13 @@ pub async fn message_update(
         .unwrap_or_else(|| "<Unavailable>".to_string());
 
     if let Some(new) = new {
+        let channel_name =
+            new.channel_id.name(ctx).await.unwrap_or_else(|_| "unknown-name".to_string());
         tracing::info!(
             msg.id = %event.id,
             msg.author = %new.author.tag(),
             msg.author_id = %new.author.id,
-            msg.channel = %new.channel_id.name_cached_or_fallback(&ctx.cache),
+            msg.channel = %channel_name,
             msg.channel_id = %new.channel_id,
             msg.content = %new.content,
             msg.old_content = %old_content,
