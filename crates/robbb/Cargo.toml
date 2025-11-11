@@ -8,55 +8,55 @@ edition = "2018"
 [dependencies]
 serenity.workspace = true
 poise.workspace = true
-anyhow = "1.0.82"
-chrono = "0.4.38"
-chrono-humanize = "0.2.3"
-itertools = "0.12.1"
-indoc = "2.0.5"
-lazy_static = "1.4"
-rand = "0.8.5"
-humantime = "2.1.0"
-thiserror = "1.0.59"
-serde_json = "1.0.116"
-serde = "1.0.200"
-maplit = "1.0.2"
+anyhow.workspace = true
+chrono.workspace = true
+chrono-humanize.workspace = true
+itertools.workspace = true
+indoc.workspace = true
+lazy_static.workspace = true
+rand.workspace = true
+humantime.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+maplit.workspace = true
 byte-unit = { version = "5.1.4", features = ["u128"] }
-url = "2"
-regex = "1"
-reqwest = { version = "0.11" }
-tokio = { version = "1.21", features = ["macros", "fs", "rt-multi-thread"] }
-tokio-util = { version = "0.7.10", features = ["compat"] }
-futures = "0.3.30"
+url.workspace = true
+regex.workspace = true
+reqwest = { workspace = true }
+tokio = { workspace=  true, features = ["macros", "fs", "rt-multi-thread"] }
+tokio-util = { workspace = true, features = ["compat"] }
+futures.workspace = true
 
-unicase = "2.6.0"
+unicase.workspace = true
 
-parking_lot = "0.12.2"
+parking_lot.workspace = true
 
-tracing = "0.1.40"
-tracing-log = "0.2.0"
-tracing-futures = "0.2.5"
-tracing-subscriber = { version = "0.3.18", features = [
+tracing.workspace = true
+tracing-log.workspace = true
+tracing-futures.workspace = true
+tracing-subscriber = { workspace = true, features = [
     "std",
     "env-filter",
     "tracing-log",
 ] }
 
 
-robbb_db = { path = "../robbb_db" }
-robbb_util = { path = "../robbb_util" }
-robbb_commands = { path = "../robbb_commands" }
+robbb_db.workspace = true
+robbb_util.workspace = true
+robbb_commands.workspace = true
 # tracing-logfmt = "0.3.3"
-tracing-logfmt-otel = { version = "0.2.0" }
+tracing-logfmt-otel.workspace = true
 
-opentelemetry = { version = "0.21.0", features = ["trace", "logs"] }
-opentelemetry-otlp = { version = "0.14.0", features = [
+opentelemetry = { workspace = true, features = ["trace", "logs"] }
+opentelemetry-otlp = { workspace = true, features = [
     "http-proto",
     "reqwest-client",
     "grpc-tonic",
 ] }
-opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
-tracing-opentelemetry = "0.22.0"
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
+tracing-opentelemetry.workspace = true
 
 
-pyroscope = "0.5.7"
-pyroscope_pprofrs = "0.2.7"
+pyroscope.workspace = true
+pyroscope_pprofrs.workspace = true

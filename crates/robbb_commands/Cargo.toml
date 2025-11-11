@@ -7,29 +7,29 @@ edition = "2021"
 [dependencies]
 serenity.workspace = true
 poise.workspace = true
-anyhow = "1.0.82"
-chrono = "0.4.38"
-chrono-humanize = "0.2.3"
-itertools = "0.11.0"
-indoc = "2.0.5"
-lazy_static = "1.4"
-humantime = "2.1.0"
-thiserror = "1.0.59"
-serde_json = "1.0.116"
-serde = "1.0.200"
-maplit = "1.0.2"
-byte-unit = { version = "5.1.4", features = ["u128"] }
-regex = "1.10.4"
-reqwest = { version = "0.11" }
-tokio = { version = "1.21", features = ["macros", "fs", "rt-multi-thread"] }
-tokio-util = { version = "0.7.10", features = ["compat"] }
-futures = "0.3.30"
+anyhow.workspace = true
+chrono.workspace = true
+chrono-humanize.workspace = true
+itertools.workspace = true
+indoc.workspace = true
+lazy_static.workspace = true
+humantime.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+maplit.workspace = true
+byte-unit = { workspace = true, features = ["u128"] }
+regex.workspace = true
+reqwest.workspace = true
+tokio = { workspace = true, features = ["macros", "fs", "rt-multi-thread"] }
+tokio-util = { workspace = true, features = ["compat"] }
+futures.workspace = true
 
-unicase = "2.7.0"
+unicase.workspace = true
 
-tracing = "0.1.40"
-tracing-futures = "0.2.5"
-parking_lot = "0.12.2"
+tracing.workspace = true
+tracing-futures.workspace = true
+parking_lot.workspace = true
 
-robbb_db = { path = "../robbb_db" }
-robbb_util = { path = "../robbb_util" }
+robbb_db.workspace = true
+robbb_util.workspace = true

@@ -9,7 +9,7 @@ resolver = "2"
 
 
 [workspace.dependencies]
-serenity = { version = "0.12.1", default-features = false, features = [
+serenity = { version = "0.12.4", default-features = false, features = [
     "collector",
     "builder",
     "cache",
@@ -26,9 +26,66 @@ serenity = { version = "0.12.1", default-features = false, features = [
 poise = "0.6.1"
 
 
+anyhow = "1.0.82"
+chrono = "0.4.38"
+chrono-humanize = "0.2.3"
+itertools = "0.14.0"
+indoc = "2.0.5"
+lazy_static = "1.4"
+rand = "0.8.5"
+humantime = "2.1.0"
+thiserror = "1.0.59"
+serde_json = "1.0.116"
+serde = "1.0.200"
+maplit = "1.0.2"
+byte-unit = { version = "5.1.4", features = ["u128"] }
+url = "2"
+regex = "1"
+reqwest = { version = "0.11" }
+tokio = { version = "1.21", features = ["macros", "fs", "rt-multi-thread"] }
+tokio-util = { version = "0.7.10", features = ["compat"] }
+futures = "0.3.30"
+
+unicase = "2.6.0"
+
+parking_lot = "0.12.2"
+
+tracing = "0.1.40"
+tracing-log = "0.2.0"
+tracing-futures = "0.2.5"
+tracing-subscriber = { version = "0.3.18", features = [
+    "std",
+    "env-filter",
+    "tracing-log",
+] }
+
+
+sqlx = "0.7.4"
+extend = "1.2"
+
+robbb_db = { path = "crates/robbb_db" }
+robbb_util = { path = "crates/robbb_util" }
+robbb_commands = { path = "crates/robbb_commands" }
+# tracing-logfmt = "0.3.3"
+tracing-logfmt-otel = { version = "0.4.0" }
+
+opentelemetry = { version = "0.21.0", features = ["trace", "logs"] }
+opentelemetry-otlp = { version = "0.14.0", features = [
+    "http-proto",
+    "reqwest-client",
+    "grpc-tonic",
+] }
+opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
+tracing-opentelemetry = "0.22.0"
+
+
+pyroscope = "0.5.7"
+pyroscope_pprofrs = "0.2.7"
+
+
+
 [profile.dev]
 split-debuginfo = "unpacked"
-
 [profile.release]
 debug = true
 
