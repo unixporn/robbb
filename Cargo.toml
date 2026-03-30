@@ -62,7 +62,7 @@ tracing-subscriber = { version = "0.3.18", features = [
 ] }
 
 
-sqlx = "0.7.4"
+sqlx = "0.8.0"
 extend = "1.2"
 
 robbb_db = { path = "crates/robbb_db" }
