@@ -37,6 +37,7 @@ pub struct Config {
     pub channel_mod_polls: ChannelId,
     pub channel_attachment_dump: Option<ChannelId>,
     pub channel_fake_cdn: ChannelId,
+    pub channel_honeypot: ChannelId,
 
     pub attachment_cache_path: PathBuf,
     pub attachment_cache_max_size: usize,
@@ -79,6 +80,7 @@ impl Config {
                 .map(ChannelId::new)
                 .ok(),
             channel_fake_cdn: ChannelId::new(parse_required_env_var("CHANNEL_FAKE_CDN")?),
+            channel_honeypot: ChannelId::new(parse_required_env_var("CHANNEL_HONEYPOT")?),
             attachment_cache_path: parse_required_env_var("ATTACHMENT_CACHE_PATH")?,
             attachment_cache_max_size: parse_required_env_var("ATTACHMENT_CACHE_MAX_SIZE")?,
             time_started: chrono::Utc::now(),

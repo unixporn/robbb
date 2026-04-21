@@ -6,6 +6,9 @@ members = [
     "crates/robbb_util",
 ]
 resolver = "2"
+[workspace.package]
+edition = "2024"
+authors = ["ElKowar <robbb@elkowar.dev>"]
 
 
 [workspace.dependencies]

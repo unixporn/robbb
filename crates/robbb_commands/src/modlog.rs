@@ -79,6 +79,16 @@ pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[Use
         .await;
 }
 
+pub async fn log_ban_for_honeypot(ctx: &client::Context, author: &User) {
+    ctx.log_bot_action(|e| {
+        e.title("Honeypot victim found").author_user(author).description(format!(
+            "User {} was automatically removed for sending a message in the honeypot.",
+            author.mention_and_tag(),
+        ))
+    })
+    .await;
+}
+
 pub async fn log_unban(ctx: Ctx<'_>, user: User) {
     ctx.serenity_context()
         .log_bot_action(|e| {

@@ -45,7 +45,9 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
 
     handle_attachment_logging(&ctx, &msg).await;
 
-    if msg.channel_id == config.channel_showcase {
+    if msg.channel_id == config.channel_honeypot {
+        log_error!(handle_honeypot_post(&ctx, &msg).await);
+    } else if msg.channel_id == config.channel_showcase {
         log_error!(handle_showcase_post(&ctx, &msg).await);
     } else if msg.channel_id == config.channel_feedback {
         log_error!(handle_feedback_post(&ctx, &msg).await);
@@ -392,6 +394,39 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     } else {
         Ok(false)
     }
+}
+
+#[tracing::instrument(skip_all)]
+async fn handle_honeypot_post(ctx: &client::Context, msg: &Message) -> Result<()> {
+    log_error!(msg.delete(&ctx).await.context("Failed to remove honeypot message"));
+    let guild = msg.guild(&ctx.cache).context("Failed to load guild")?.to_owned();
+    let member = guild.member(&ctx, msg.author.id).await?;
+    let newly_joined = if let Some(joined_at) = member.joined_at {
+        let account_age = joined_at.signed_duration_since(Utc::now());
+        account_age.abs().num_days() < 3
+    } else {
+        true
+    };
+    if !newly_joined {
+        log_error!(
+            msg.author.dm(
+            &ctx,
+            CreateMessage::default()
+                .content(indoc::indoc!("
+                    You fell into the honeypot!
+                    But you're lucky: You've been around for long enough that we assume this was an accident. You'll be unbanned shortly!"
+                ))
+            ).await.context("Failed to send honeypot victim DM")
+        );
+    }
+    member.ban_with_reason(&ctx, 1, "You fucked around and found out: Posting in that channel does, in fact, get you banned :)")
+        .await
+        .context("Failed to ban user after honeypot post")?;
+    if !newly_joined {
+        member.unban(&ctx).await.context("Failed to unban older honeypot victim")?;
+    }
+    modlog::log_ban_for_honeypot(&ctx, &msg.author).await;
+    Ok(())
 }
 
 #[tracing::instrument(skip_all)]

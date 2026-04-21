@@ -1,7 +1,8 @@
 [package]
 name = "robbb_db"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+authors.workspace = true
 
 [dependencies]
 serenity.workspace = true

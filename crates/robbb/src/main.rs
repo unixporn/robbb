@@ -33,7 +33,7 @@ async fn main() -> eyre::Result<()> {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
 
-    let pyroscope_running = if let Some((url, project)) = pyroscope_url.zip(pyroscope_project) {
+    let pyroscope_running = if let Some((url, project)) = pyroscope_url.zip(pyroscope_project) && !url.is_empty() && !project.is_empty() {
         tracing::info!("Enabling pyroscope profiling");
         let mut agent_builder = PyroscopeAgent::builder(url, project);
         if let Some((username, password)) = pyroscope_user.zip(pyroscope_password) {
