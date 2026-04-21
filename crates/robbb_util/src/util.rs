@@ -1,4 +1,4 @@
-use eyre::{eyre, Context, ContextCompat as _, Result};
+use eyre::{Context, ContextCompat as _, Result, eyre};
 use poise::serenity_prelude::GuildId;
 use serenity::{
     client::{self},
@@ -123,11 +123,7 @@ pub fn format_date_before_plaintext(
     let formatted = chrono_humanize::HumanTime::from(actual_date)
         .to_text_en(chrono_humanize::Accuracy::Rough, chrono_humanize::Tense::Past);
     // lmao
-    if formatted == "now ago" {
-        "now".to_string()
-    } else {
-        formatted
-    }
+    if formatted == "now ago" { "now".to_string() } else { formatted }
 }
 
 /// Format a date into a discord absolute-time timestamp.
@@ -176,11 +172,7 @@ pub fn validate_url(value: &str) -> bool {
 }
 
 pub fn pluralize(s: &str) -> String {
-    if let Some(word) = s.strip_suffix("ys") {
-        format!("{}ies", word)
-    } else {
-        s.to_string()
-    }
+    if let Some(word) = s.strip_suffix("ys") { format!("{}ies", word) } else { s.to_string() }
 }
 
 /// Parse a string that is surrounded by backticks, removing said backticks.
@@ -191,7 +183,7 @@ pub fn parse_backticked_string(s: &str) -> Option<&str> {
 
 /// Determine if a file is an image based on the file extension
 pub fn is_image_file(s: &str) -> bool {
-    match s.split('.').last() {
+    match s.split('.').next_back() {
         Some(ext) => matches!(ext, "png" | "jpg" | "jpeg" | "gif" | "webp"),
         None => false,
     }

@@ -49,7 +49,7 @@ pub async fn warn(
 
 async fn do_warn(ctx: Ctx<'_>, user: User, reason: String) -> Res<()> {
     let db = ctx.get_db();
-    let warn_count = db.count_mod_actions(user.id, ModActionType::Warn).await?;
+    let warn_count = db.count_mod_actions(user.id, ModActionType::Warn).await? as i32;
 
     let police = ctx.get_up_emotes().map(|x| x.police.to_string()).unwrap_or_default();
 

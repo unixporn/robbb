@@ -5,8 +5,8 @@ use eyre::{Context as _, Result};
 use chrono::{DateTime, Utc};
 use serenity::model::id::UserId;
 
-use super::fetch_field::{FetchField, FETCH_KEY_ORDER};
 use super::Db;
+use super::fetch_field::{FETCH_KEY_ORDER, FetchField};
 
 #[derive(Debug)]
 pub struct Fetch {

@@ -1,7 +1,7 @@
 use crate::{
+    UpEmotes,
     extensions::{ClientContextExt, PoiseContextExt},
     prelude::Ctx,
-    UpEmotes,
 };
 
 use chrono::Utc;

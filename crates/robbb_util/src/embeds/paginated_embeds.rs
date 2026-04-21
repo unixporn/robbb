@@ -2,7 +2,7 @@ use crate::{extensions::PoiseContextExt, prelude::Ctx, util::ellipsis_text};
 
 use eyre::Result;
 use itertools::Itertools;
-use poise::{serenity_prelude::CreateActionRow, CreateReply, ReplyHandle};
+use poise::{CreateReply, ReplyHandle, serenity_prelude::CreateActionRow};
 use serenity::{
     builder::{
         CreateButton, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,

@@ -1,4 +1,4 @@
-use crate::{config::Config, embeds, log_error, prelude::Ctx, UpEmotes};
+use crate::{UpEmotes, config::Config, embeds, log_error, prelude::Ctx};
 
 use eyre::{Context, ContextCompat as _, Result};
 use itertools::Itertools;
@@ -12,11 +12,11 @@ use serenity::{
     },
     client::{self},
     model::{
+        Colour, Timestamp,
         channel::{GuildChannel, Message},
         guild::Emoji,
         id::{ChannelId, EmojiId, GuildId},
         prelude::User,
-        Colour, Timestamp,
     },
     prelude::Mentionable,
 };

@@ -45,13 +45,15 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
 
     handle_attachment_logging(&ctx, &msg).await;
 
-    if msg.channel_id == config.channel_showcase {
+    if msg.channel_id == config.channel_honeypot {
+        log_error!(handle_honeypot_post(&ctx, &msg).await);
+    } else if msg.channel_id == config.channel_showcase {
         log_error!(handle_showcase_post(&ctx, &msg).await);
     } else if msg.channel_id == config.channel_feedback {
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
-    if !msg.guild_id.is_none() && msg.channel_id != config.channel_bot_messages {
+    if msg.guild_id.is_some() && msg.channel_id != config.channel_bot_messages {
         match handle_msg_emoji_logging(&ctx, &msg).await {
             Ok(emoji_used) => {
                 tracing::Span::current().record("message_create.emoji_used", emoji_used);
@@ -159,11 +161,12 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
 
         let create_message = embed.into_create_message();
         for user_id in users {
+            let member = channel.guild_id.member(&ctx, msg.author.id).await?;
             let user_can_see_channel = channel
                 .guild_id
-                .member(&ctx, msg.author.id)
+                .to_partial_guild(&ctx)
                 .await?
-                .permissions(ctx)?
+                .user_permissions_in(&channel, &member)
                 .read_message_history();
 
             if user_id == msg.author.id
@@ -282,11 +285,13 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
 
     let channel =
         channel_id.to_channel(&ctx).await?.guild().context("Message not in a guild-channel")?;
+
+    let member = channel.guild_id.member(&ctx, msg.author.id).await?;
     let user_can_see_channel = channel
         .guild_id
-        .member(&ctx, msg.author.id)
+        .to_partial_guild(&ctx)
         .await?
-        .permissions(ctx)?
+        .user_permissions_in(&channel, &member)
         .read_message_history();
 
     debug!(quote.user_can_see_channel = ?user_can_see_channel, "checked if user can see the channel");
@@ -391,6 +396,44 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     }
 }
 
+/// Honeypot channel handling:
+///
+/// A simple channel that gets you banned if you send anything into it. This is designed to catch automated spam bots.
+#[tracing::instrument(skip_all)]
+async fn handle_honeypot_post(ctx: &client::Context, msg: &Message) -> Result<()> {
+    log_error!(msg.delete(&ctx).await.context("Failed to remove honeypot message"));
+    let guild = msg.guild(&ctx.cache).context("Failed to load guild")?.to_owned();
+    let member = guild.member(&ctx, msg.author.id).await?;
+
+    // Accounts that joined more than a few days ago might just be stolen accounts (or accidents), so we ban and then unban again.
+    let newly_joined = if let Some(joined_at) = member.joined_at {
+        let account_age = joined_at.signed_duration_since(Utc::now());
+        account_age.abs().num_days() < 3
+    } else {
+        true
+    };
+    if !newly_joined {
+        log_error!(
+            msg.author.dm(
+            &ctx,
+            CreateMessage::default()
+                .content(indoc::indoc!("
+                    You fell into the honeypot!
+                    But you're lucky: You've been around for long enough that we assume this was an accident. You'll be unbanned shortly!"
+                ))
+            ).await.context("Failed to send honeypot victim DM")
+        );
+    }
+    member.ban_with_reason(&ctx, 1, "You fucked around and found out: Posting in that channel does, in fact, get you banned :)")
+        .await
+        .context("Failed to ban user after honeypot post")?;
+    if !newly_joined {
+        member.unban(&ctx).await.context("Failed to unban older honeypot victim")?;
+    }
+    modlog::log_ban_for_honeypot(&ctx, &msg.author).await;
+    Ok(())
+}
+
 #[tracing::instrument(skip_all)]
 async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     if msg.kind == MessageType::ThreadCreated {
@@ -412,16 +455,13 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
             .await
             .context("Error reacting to showcase submission with ❤️")?;
 
-        if let Some(attachment) = msg.attachments.first() {
-            if util::is_image_file(&attachment.filename) {
-                let db = ctx.get_db().await;
-                let fake_cdn_id = cdn_hack::FakeCdnId::from_message(msg, 0);
-                db.update_fetch(
-                    msg.author.id,
-                    hashmap! { FetchField::Image => fake_cdn_id.encode() },
-                )
+        if let Some(attachment) = msg.attachments.first()
+            && util::is_image_file(&attachment.filename)
+        {
+            let db = ctx.get_db().await;
+            let fake_cdn_id = cdn_hack::FakeCdnId::from_message(msg, 0);
+            db.update_fetch(msg.author.id, hashmap! { FetchField::Image => fake_cdn_id.encode() })
                 .await?;
-            }
         }
     }
     Ok(())

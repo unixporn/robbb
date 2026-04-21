@@ -159,10 +159,7 @@ async fn find_deletor(
         None,
         |entry| {
             entry.target_id.map(|x| x.get()) == Some(msg.id.get())
-                && entry
-                    .options
-                    .as_ref()
-                    .map_or(false, |opt| opt.channel_id == Some(msg.channel_id))
+                && entry.options.as_ref().is_some_and(|opt| opt.channel_id == Some(msg.channel_id))
         },
     )
     .await?;

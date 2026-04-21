@@ -1,6 +1,6 @@
 use super::*;
 use eyre::ContextCompat as _;
-use poise::{serenity_prelude::ReactionType, CreateReply, Modal};
+use poise::{CreateReply, Modal, serenity_prelude::ReactionType};
 use regex::Regex;
 use serenity::builder::{CreateEmbed, CreateEmbedFooter};
 

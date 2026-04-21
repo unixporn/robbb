@@ -8,7 +8,7 @@ use tokio_util::compat::FuturesAsyncReadCompatExt;
 use tracing_futures::Instrument;
 
 use serenity::{
-    futures::{self, future::try_join_all, TryStreamExt},
+    futures::{self, TryStreamExt, future::try_join_all},
     model::{
         channel::Attachment,
         id::{ChannelId, MessageId},
@@ -43,11 +43,8 @@ async fn store_single_attachment(dir_path: impl AsRef<Path>, attachment: Attachm
     tracing::debug!(file_path = %file_path.display(), "Storing file {}", &file_path.display());
 
     let resp = reqwest::get(&attachment.url).await.context("Failed to load attachment")?;
-    let mut body = resp
-        .bytes_stream()
-        .map_err(|e| futures::io::Error::new(futures::io::ErrorKind::Other, e))
-        .into_async_read()
-        .compat();
+    let mut body =
+        resp.bytes_stream().map_err(futures::io::Error::other).into_async_read().compat();
 
     let mut attachment_file =
         tokio::fs::File::create(file_path).await.context("Failed to create attachment log file")?;

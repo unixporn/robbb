@@ -1,7 +1,7 @@
 use chrono::Utc;
 use robbb_util::extensions::{ClientContextExt, CreateEmbedExt, UserExt};
 use serenity::{
-    all::{audit_log, AuditLogEntry, UserId},
+    all::{AuditLogEntry, UserId, audit_log},
     client,
 };
 

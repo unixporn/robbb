@@ -36,7 +36,9 @@ pub async fn blocklist_add(
     let regex = Regex::new(&pattern).user_error("Illegal regex pattern")?;
 
     if SHOULD_NEVER_TRIGGER_BLOCKLIST.iter().any(|x| regex.is_match(x)) {
-        abort_with!("Pattern matches one of the test strings it should never match. Make sure you're not matching the empty string or anything else you don't want to.")
+        abort_with!(
+            "Pattern matches one of the test strings it should never match. Make sure you're not matching the empty string or anything else you don't want to."
+        )
     }
 
     db.add_blocklist_entry(ctx.author().id, &pattern).await?;

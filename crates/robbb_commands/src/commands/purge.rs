@@ -47,7 +47,7 @@ pub async fn purge(
         .take_while(|msg| {
             let msg_timestamp = msg.timestamp.timestamp();
             msg_timestamp > too_old_timestamp
-                && duration.map_or(true, |d| msg_timestamp > now_timestamp - (d.as_secs() as i64))
+                && duration.is_none_or(|d| msg_timestamp > now_timestamp - (d.as_secs() as i64))
         })
         .take(count)
         .collect_vec();

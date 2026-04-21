@@ -34,7 +34,7 @@ pub async fn help(
                 command
                     .custom_data
                     .downcast_ref::<CmdMeta>()
-                    .map_or(true, |meta| permission_level >= meta.perms)
+                    .is_none_or(|meta| permission_level >= meta.perms)
             })
             .collect();
 

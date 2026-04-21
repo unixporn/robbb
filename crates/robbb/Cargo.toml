@@ -1,8 +1,8 @@
 [package]
 name = "robbb"
 version = "0.1.0"
-authors = ["elkowar <5300871+elkowar@users.noreply.github.com>"]
-edition = "2018"
+edition.workspace = true
+authors.workspace = true
 
 
 [dependencies]
@@ -61,4 +61,3 @@ tracing-opentelemetry.workspace = true
 
 
 pyroscope.workspace = true
-pyroscope_pprofrs.workspace = true

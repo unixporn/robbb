@@ -1,13 +1,13 @@
 #![allow(clippy::needless_borrow)]
 
 use eyre::Context;
-use poise::{serenity_prelude::GatewayIntents, CommandInteractionType};
-use pyroscope::PyroscopeAgent;
-use pyroscope_pprofrs::{pprof_backend, PprofConfig};
+use poise::{CommandInteractionType, serenity_prelude::GatewayIntents};
+use pyroscope::backend::{BackendConfig, PprofConfig, pprof_backend};
+use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use robbb_commands::{checks, commands};
 use robbb_db::Db;
 
-use robbb_util::{config::Config, prelude::Ctx, UserData};
+use robbb_util::{UserData, config::Config, prelude::Ctx};
 use serenity::all::OnlineStatus;
 use std::sync::Arc;
 
@@ -33,14 +33,23 @@ async fn main() -> eyre::Result<()> {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
 
-    let pyroscope_running = if let Some((url, project)) = pyroscope_url.zip(pyroscope_project) {
+    let pyroscope_running = if let Some((url, project)) = pyroscope_url.zip(pyroscope_project)
+        && !url.is_empty()
+        && !project.is_empty()
+    {
         tracing::info!("Enabling pyroscope profiling");
-        let mut agent_builder = PyroscopeAgent::builder(url, project);
+        let mut agent_builder = PyroscopeAgentBuilder::new(
+            url,
+            project,
+            100,
+            "pyroscope-rs",
+            env!("CARGO_PKG_VERSION"),
+            pprof_backend(PprofConfig::default(), BackendConfig::default()),
+        );
         if let Some((username, password)) = pyroscope_user.zip(pyroscope_password) {
             agent_builder = agent_builder.basic_auth(username, password);
         }
-        let agent =
-            agent_builder.backend(pprof_backend(PprofConfig::new().sample_rate(100))).build()?;
+        let agent = agent_builder.build()?;
         Some(agent.start()?)
     } else {
         None

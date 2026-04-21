@@ -246,7 +246,7 @@ impl Db {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn count_mod_actions(&self, user: UserId, action_type: ModActionType) -> Result<i32> {
+    pub async fn count_mod_actions(&self, user: UserId, action_type: ModActionType) -> Result<i64> {
         let id: i64 = user.into();
         let action_type = action_type.as_i32();
         Ok(sqlx::query_scalar!(

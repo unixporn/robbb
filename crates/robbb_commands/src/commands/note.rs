@@ -1,8 +1,8 @@
 use chrono::Utc;
 use eyre::ContextCompat as _;
 use poise::{
-    serenity_prelude::{Mentionable, User},
     Modal,
+    serenity_prelude::{Mentionable, User},
 };
 use robbb_db::mod_action::ModActionType;
 use robbb_util::embeds;

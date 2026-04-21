@@ -1,9 +1,10 @@
-use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
+use opentelemetry::trace::TracerProvider as _;
+use opentelemetry_sdk::trace::{RandomIdGenerator, Sampler, SdkTracerProvider};
 use robbb_util::log_error;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
-    filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
-    EnvFilter, Layer,
+    EnvFilter, Layer, filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt,
+    util::SubscriberInitExt,
 };
 
 fn make_pretty_formatter<T>() -> impl Layer<T>
@@ -38,7 +39,7 @@ pub fn init_tracing() {
             && m.name() == "handle_gateway_dispatch"
             && m.fields()
                 .field("event")
-                .map_or(false, |event| event.as_ref().starts_with("PresenceUpdate")))
+                .is_some_and(|event| event.as_ref().starts_with("PresenceUpdate")))
     });
 
     let remove_recv_event_filter = FilterFn::new(|m| {
@@ -78,15 +79,16 @@ pub fn init_tracing() {
         println!("Initializing opentelemetry");
         // TODO: check if we can decide sampling based on span name,
         // to have _some_ samples from regular stuff, but keep all commands etc
-        let trace_config = opentelemetry_sdk::trace::config()
-            .with_id_generator(RandomIdGenerator::default())
-            .with_sampler(Sampler::AlwaysOn);
-        let tracer = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_trace_config(trace_config)
-            .with_exporter(opentelemetry_otlp::new_exporter().http())
-            .with_batch_config(BatchConfig::default())
-            .install_batch(opentelemetry_sdk::runtime::Tokio);
+        let tracer =
+            opentelemetry_otlp::SpanExporter::builder().with_http().build().map(|exporter| {
+                let tracer_provider = SdkTracerProvider::builder()
+                    .with_batch_exporter(exporter)
+                    .with_sampler(Sampler::AlwaysOn)
+                    .with_id_generator(RandomIdGenerator::default())
+                    .build();
+                opentelemetry::global::set_tracer_provider(tracer_provider.clone());
+                tracer_provider.tracer("robbb")
+            });
 
         let tracer = match tracer {
             Ok(tracer) => tracer,

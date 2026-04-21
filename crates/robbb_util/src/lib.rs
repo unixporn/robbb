@@ -10,7 +10,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use eyre::ContextCompat as _;
 use poise::serenity_prelude::{Emoji, GuildId};
-use rand::prelude::IteratorRandom;
+use rand::{prelude::IteratorRandom, rngs::ThreadRng};
 use robbb_db::Db;
 use serenity::{all::EmojiId, client, prelude::TypeMapKey};
 
@@ -24,7 +24,7 @@ pub struct UpEmotes {
 }
 impl UpEmotes {
     pub fn random_stare(&self) -> Option<Emoji> {
-        let mut rng = rand::thread_rng();
+        let mut rng = ThreadRng::default();
         self.stares.iter().choose(&mut rng).cloned()
     }
 

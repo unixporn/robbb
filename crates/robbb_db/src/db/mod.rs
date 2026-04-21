@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use eyre::Context as _;
-use eyre::{bail, ContextCompat, Result};
+use eyre::{ContextCompat, Result, bail};
 
 use serenity::model::id::UserId;
 use serenity::prelude::RwLock;
