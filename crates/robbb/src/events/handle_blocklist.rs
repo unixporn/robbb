@@ -174,7 +174,7 @@ struct InteractionValues<'a> {
     title: &'a str,
 }
 
-fn collect_interaction_values(interaction: &CommandInteraction) -> InteractionValues {
+fn collect_interaction_values(interaction: &'_ CommandInteraction) -> InteractionValues<'_> {
     fn values_from_resolved_value<'a>(value: &ResolvedValue<'a>) -> Vec<&'a str> {
         match value {
             ResolvedValue::String(s) => vec![s],

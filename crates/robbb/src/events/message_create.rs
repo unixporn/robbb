@@ -159,11 +159,12 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
 
         let create_message = embed.into_create_message();
         for user_id in users {
+            let member = channel.guild_id.member(&ctx, msg.author.id).await?;
             let user_can_see_channel = channel
                 .guild_id
-                .member(&ctx, msg.author.id)
+                .to_partial_guild(&ctx)
                 .await?
-                .permissions(ctx)?
+                .user_permissions_in(&channel, &member)
                 .read_message_history();
 
             if user_id == msg.author.id
@@ -282,11 +283,13 @@ async fn handle_quote(ctx: &client::Context, msg: &Message) -> Result<()> {
 
     let channel =
         channel_id.to_channel(&ctx).await?.guild().context("Message not in a guild-channel")?;
+
+    let member = channel.guild_id.member(&ctx, msg.author.id).await?;
     let user_can_see_channel = channel
         .guild_id
-        .member(&ctx, msg.author.id)
+        .to_partial_guild(&ctx)
         .await?
-        .permissions(ctx)?
+        .user_permissions_in(&channel, &member)
         .read_message_history();
 
     debug!(quote.user_can_see_channel = ?user_can_see_channel, "checked if user can see the channel");
