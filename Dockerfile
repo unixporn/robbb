@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get -y update && apt-get -y install ca-certificates wget \
   gdb heaptrack \
