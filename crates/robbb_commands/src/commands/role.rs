@@ -1,6 +1,6 @@
 use eyre::{Context, ContextCompat as _};
-use poise::serenity_prelude::ComponentInteractionDataKind;
 use poise::CreateReply;
+use poise::serenity_prelude::ComponentInteractionDataKind;
 use robbb_util::embeds;
 use serenity::{
     all::RoleId,

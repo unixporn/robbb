@@ -8,8 +8,8 @@ use poise::serenity_prelude::{
     ChannelId, GuildId, Member, Mentionable, Message, MessageId, ShardManager, User, UserId,
 };
 use poise::serenity_prelude::{MessageUpdateEvent, Reaction, Ready};
-use robbb_util::{config::Config, log_error, prelude::Error, util, UserData};
-use robbb_util::{extensions::*, UpEmotes};
+use robbb_util::{UpEmotes, extensions::*};
+use robbb_util::{UserData, config::Config, log_error, prelude::Error, util};
 
 use serenity::all::{
     ActionExecution, Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction, ResumedEvent,

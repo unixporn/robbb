@@ -2,7 +2,7 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use robbb_db::{
     fetch::Fetch,
-    fetch_field::{FetchField, FETCH_KEY_ORDER},
+    fetch_field::{FETCH_KEY_ORDER, FetchField},
 };
 
 use super::{fetch::format_fetch_field_value, *};

@@ -48,10 +48,10 @@ impl Db {
         sqlx::query!("delete from blocked_regexes where pattern=?", s).execute(&self.pool).await?;
 
         let mut cache = self.blocklist_cache.write().await;
-        if let Some(ref mut cache) = cache.as_mut() {
-            if let Some((pos, _)) = cache.iter().find_position(|x| x.as_str() == s) {
-                cache.remove(pos);
-            }
+        if let Some(ref mut cache) = cache.as_mut()
+            && let Some((pos, _)) = cache.iter().find_position(|x| x.as_str() == s)
+        {
+            cache.remove(pos);
         }
 
         Ok(())

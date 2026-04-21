@@ -69,10 +69,10 @@ pub async fn fetch(
                     let new_link = FakeCdnId::from_str(&value)?.resolve(&ctx).await?;
                     embed = embed.image(new_link);
                 } else {
-                    if key == FetchField::Distro {
-                        if let Some(url) = find_distro_image(&value) {
-                            embed = embed.thumbnail(url);
-                        }
+                    if key == FetchField::Distro
+                        && let Some(url) = find_distro_image(&value)
+                    {
+                        embed = embed.thumbnail(url);
                     }
                     embed = embed.field_opt(
                         key.to_string(),

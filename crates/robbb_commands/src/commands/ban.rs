@@ -164,6 +164,7 @@ async fn do_ban(ctx: Ctx<'_>, users: Vec<User>, reason: String, delete_days: u8)
     Ok(())
 }
 
+#[allow(clippy::large_enum_variant)]
 enum BanFailedReason {
     HelperRestriction(User),
     Other(eyre::Error),

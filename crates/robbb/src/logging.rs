@@ -2,8 +2,8 @@ use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
 use robbb_util::log_error;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
-    filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
-    EnvFilter, Layer,
+    EnvFilter, Layer, filter::FilterFn, prelude::__tracing_subscriber_SubscriberExt,
+    util::SubscriberInitExt,
 };
 
 fn make_pretty_formatter<T>() -> impl Layer<T>
@@ -38,7 +38,7 @@ pub fn init_tracing() {
             && m.name() == "handle_gateway_dispatch"
             && m.fields()
                 .field("event")
-                .map_or(false, |event| event.as_ref().starts_with("PresenceUpdate")))
+                .is_some_and(|event| event.as_ref().starts_with("PresenceUpdate")))
     });
 
     let remove_recv_event_filter = FilterFn::new(|m| {

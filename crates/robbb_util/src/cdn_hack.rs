@@ -116,7 +116,7 @@ pub async fn persist_attachment(
     let attachment_name = attachment_url
         .path_segments()
         .context("Couldn't get path segments from URL")?
-        .last()
+        .next_back()
         .context("no filename in attachment url")?;
 
     let create_attachment =

@@ -53,7 +53,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
 
-    if !msg.guild_id.is_none() && msg.channel_id != config.channel_bot_messages {
+    if msg.guild_id.is_some() && msg.channel_id != config.channel_bot_messages {
         match handle_msg_emoji_logging(&ctx, &msg).await {
             Ok(emoji_used) => {
                 tracing::Span::current().record("message_create.emoji_used", emoji_used);
@@ -396,11 +396,16 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
     }
 }
 
+/// Honeypot channel handling:
+///
+/// A simple channel that gets you banned if you send anything into it. This is designed to catch automated spam bots.
 #[tracing::instrument(skip_all)]
 async fn handle_honeypot_post(ctx: &client::Context, msg: &Message) -> Result<()> {
     log_error!(msg.delete(&ctx).await.context("Failed to remove honeypot message"));
     let guild = msg.guild(&ctx.cache).context("Failed to load guild")?.to_owned();
     let member = guild.member(&ctx, msg.author.id).await?;
+
+    // Accounts that joined more than a few days ago might just be stolen accounts (or accidents), so we ban and then unban again.
     let newly_joined = if let Some(joined_at) = member.joined_at {
         let account_age = joined_at.signed_duration_since(Utc::now());
         account_age.abs().num_days() < 3
@@ -450,16 +455,13 @@ async fn handle_showcase_post(ctx: &client::Context, msg: &Message) -> Result<()
             .await
             .context("Error reacting to showcase submission with ❤️")?;
 
-        if let Some(attachment) = msg.attachments.first() {
-            if util::is_image_file(&attachment.filename) {
-                let db = ctx.get_db().await;
-                let fake_cdn_id = cdn_hack::FakeCdnId::from_message(msg, 0);
-                db.update_fetch(
-                    msg.author.id,
-                    hashmap! { FetchField::Image => fake_cdn_id.encode() },
-                )
+        if let Some(attachment) = msg.attachments.first()
+            && util::is_image_file(&attachment.filename)
+        {
+            let db = ctx.get_db().await;
+            let fake_cdn_id = cdn_hack::FakeCdnId::from_message(msg, 0);
+            db.update_fetch(msg.author.id, hashmap! { FetchField::Image => fake_cdn_id.encode() })
                 .await?;
-            }
         }
     }
     Ok(())

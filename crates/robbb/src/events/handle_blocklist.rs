@@ -25,7 +25,9 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
     let normalized_msg = msg.content.replace(INVISIBLE_CHARS, "");
     let blocklist_regex = db.get_combined_blocklist_regex().await?;
     if SHOULD_NEVER_TRIGGER_BLOCKLIST.iter().any(|x| blocklist_regex.is_match(x)) {
-        tracing::error!("Blocklist regex matches one of the sanity check patterns. Make sure none of the blocklist entries match the empty string.");
+        tracing::error!(
+            "Blocklist regex matches one of the sanity check patterns. Make sure none of the blocklist entries match the empty string."
+        );
         return Ok(false);
     }
 
