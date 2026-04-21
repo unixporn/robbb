@@ -430,7 +430,19 @@ async fn handle_honeypot_post(ctx: &client::Context, msg: &Message) -> Result<()
     if !newly_joined {
         member.unban(&ctx).await.context("Failed to unban older honeypot victim")?;
     }
-    modlog::log_ban_for_honeypot(&ctx, &msg.author).await;
+    modlog::log_ban_for_honeypot(&ctx, &msg).await;
+
+    let db = ctx.get_db().await;
+    db.add_mod_action(
+        msg.author.id,
+        msg.author.id,
+        format!("Sent into the honeypot channel: {}", &msg.content),
+        Utc::now(),
+        "".to_string(),
+        robbb_db::mod_action::ModActionKind::Ban,
+    )
+    .await?;
+
     Ok(())
 }
 
