@@ -1,4 +1,5 @@
-use opentelemetry_sdk::trace::{BatchConfig, RandomIdGenerator, Sampler};
+use opentelemetry::trace::TracerProvider as _;
+use opentelemetry_sdk::trace::{RandomIdGenerator, Sampler, SdkTracerProvider};
 use robbb_util::log_error;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
@@ -78,15 +79,16 @@ pub fn init_tracing() {
         println!("Initializing opentelemetry");
         // TODO: check if we can decide sampling based on span name,
         // to have _some_ samples from regular stuff, but keep all commands etc
-        let trace_config = opentelemetry_sdk::trace::config()
-            .with_id_generator(RandomIdGenerator::default())
-            .with_sampler(Sampler::AlwaysOn);
-        let tracer = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_trace_config(trace_config)
-            .with_exporter(opentelemetry_otlp::new_exporter().http())
-            .with_batch_config(BatchConfig::default())
-            .install_batch(opentelemetry_sdk::runtime::Tokio);
+        let tracer =
+            opentelemetry_otlp::SpanExporter::builder().with_http().build().map(|exporter| {
+                let tracer_provider = SdkTracerProvider::builder()
+                    .with_batch_exporter(exporter)
+                    .with_sampler(Sampler::AlwaysOn)
+                    .with_id_generator(RandomIdGenerator::default())
+                    .build();
+                opentelemetry::global::set_tracer_provider(tracer_provider.clone());
+                tracer_provider.tracer("robbb")
+            });
 
         let tracer = match tracer {
             Ok(tracer) => tracer,

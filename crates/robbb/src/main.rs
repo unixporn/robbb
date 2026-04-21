@@ -2,8 +2,8 @@
 
 use eyre::Context;
 use poise::{CommandInteractionType, serenity_prelude::GatewayIntents};
-use pyroscope::PyroscopeAgent;
-use pyroscope_pprofrs::{PprofConfig, pprof_backend};
+use pyroscope::backend::{BackendConfig, PprofConfig, pprof_backend};
+use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use robbb_commands::{checks, commands};
 use robbb_db::Db;
 
@@ -38,12 +38,18 @@ async fn main() -> eyre::Result<()> {
         && !project.is_empty()
     {
         tracing::info!("Enabling pyroscope profiling");
-        let mut agent_builder = PyroscopeAgent::builder(url, project);
+        let mut agent_builder = PyroscopeAgentBuilder::new(
+            url,
+            project,
+            100,
+            "pyroscope-rs",
+            env!("CARGO_PKG_VERSION"),
+            pprof_backend(PprofConfig::default(), BackendConfig::default()),
+        );
         if let Some((username, password)) = pyroscope_user.zip(pyroscope_password) {
             agent_builder = agent_builder.basic_auth(username, password);
         }
-        let agent =
-            agent_builder.backend(pprof_backend(PprofConfig::new().sample_rate(100))).build()?;
+        let agent = agent_builder.build()?;
         Some(agent.start()?)
     } else {
         None
