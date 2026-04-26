@@ -6,7 +6,7 @@ use robbb_util::{
     prelude::Ctx,
     util,
 };
-use serenity::{client, model::prelude::User, prelude::Mentionable};
+use serenity::{all::CreateAttachment, client, model::prelude::User, prelude::Mentionable};
 
 pub async fn log_note(ctx: Ctx<'_>, user: &User, note_content: &str) {
     ctx.serenity_context()
@@ -79,13 +79,25 @@ pub async fn log_ban(ctx: Ctx<'_>, context_msg: &Message, successful_bans: &[Use
         .await;
 }
 
-pub async fn log_ban_for_honeypot(ctx: &client::Context, msg: &Message) {
-    ctx.log_bot_action(|e| {
-        e.title("Honeypot victim found")
-            .author_user(&msg.author)
-            .description(format!("User {} fell into the honeypot", msg.author.mention_and_tag(),))
-            .field("content", &msg.content, false)
-    })
+pub async fn log_honeypot_victim(ctx: &client::Context, msg: &Message) {
+    let attachments = futures::future::join_all(
+        msg.attachments.iter().map(|x| CreateAttachment::url(&ctx.http, &x.url)),
+    )
+    .await;
+    let attachments = attachments.into_iter().flatten().collect_vec();
+    dbg!(&attachments);
+    ctx.log_bot_action_with_msg(
+        |e| {
+            e.title("Honeypot victim found")
+                .author_user(&msg.author)
+                .description(format!(
+                    "User {} fell into the honeypot",
+                    msg.author.mention_and_tag(),
+                ))
+                .field("content", &msg.content, false)
+        },
+        |m| m.files(attachments),
+    )
     .await;
 }
 

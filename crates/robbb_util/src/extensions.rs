@@ -175,6 +175,21 @@ pub impl client::Context {
         log_error!(config.guild.send_embed(self, config.channel_modlog, build_embed).await);
     }
 
+    /// Like [`Self::log_bot_action` but allows customizing the message content (i.e. to attach images)
+    async fn log_bot_action_with_msg(
+        &self,
+        build_embed: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+        build_message: impl FnOnce(CreateMessage) -> CreateMessage + Send + Sync,
+    ) {
+        let config = self.get_config().await;
+        log_error!(
+            config
+                .guild
+                .send_message_with_embed(self, config.channel_modlog, build_embed, build_message)
+                .await
+        );
+    }
+
     async fn log_automod_action(
         &self,
         build_embed: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
@@ -200,6 +215,7 @@ pub impl User {
 #[extend::ext]
 #[async_trait]
 pub impl GuildId {
+    /// Send a message with an embed in the standard embed format (see [`embeds::base_embed_ctx`]).
     async fn send_embed(
         &self,
         ctx: &client::Context,
@@ -209,6 +225,21 @@ pub impl GuildId {
         let embed = build(embeds::base_embed_ctx(ctx).await);
         Ok(channel_id
             .send_message(&ctx, CreateMessage::default().embed(embed))
+            .await
+            .context("Failed to send embed message")?)
+    }
+
+    /// Like [`GuildId::send_embed`] but also allows customizing the message content and other fields.
+    async fn send_message_with_embed(
+        &self,
+        ctx: &client::Context,
+        channel_id: ChannelId,
+        build_embed: impl FnOnce(CreateEmbed) -> CreateEmbed + Send + Sync,
+        build_message: impl FnOnce(CreateMessage) -> CreateMessage + Send + Sync,
+    ) -> Result<Message> {
+        let embed = build_embed(embeds::base_embed_ctx(ctx).await);
+        Ok(channel_id
+            .send_message(&ctx, build_message(CreateMessage::default().embed(embed)))
             .await
             .context("Failed to send embed message")?)
     }

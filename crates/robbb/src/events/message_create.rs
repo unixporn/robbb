@@ -401,6 +401,9 @@ async fn handle_spam_protect(ctx: &client::Context, msg: &Message) -> Result<boo
 /// A simple channel that gets you banned if you send anything into it. This is designed to catch automated spam bots.
 #[tracing::instrument(skip_all)]
 async fn handle_honeypot_post(ctx: &client::Context, msg: &Message) -> Result<()> {
+    // We log the message first, before deleting anything, to ensure that we have access to the message data.
+    modlog::log_honeypot_victim(&ctx, &msg).await;
+
     log_error!(msg.delete(&ctx).await.context("Failed to remove honeypot message"));
     let guild = msg.guild(&ctx.cache).context("Failed to load guild")?.to_owned();
     let member = guild.member(&ctx, msg.author.id).await?;
@@ -430,7 +433,6 @@ async fn handle_honeypot_post(ctx: &client::Context, msg: &Message) -> Result<()
     if !newly_joined {
         member.unban(&ctx).await.context("Failed to unban older honeypot victim")?;
     }
-    modlog::log_ban_for_honeypot(&ctx, &msg).await;
 
     let db = ctx.get_db().await;
     db.add_mod_action(
