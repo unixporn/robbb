@@ -2312,9 +2312,9 @@ dependencies = [
 
 [[package]]
 name = "pyroscope"
-version = "2.0.1"
+version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "480661d88db8b4dfb7cb34b1626a0c77e01572cc34de2b08f88200beaa52adbb"
+checksum = "fc050356140f6c47dcaab95b6554ce12d461e4902c0a5baf4e888fcc86dcfaf4"
 dependencies = [
  "lazy_static",
  "libc",
@@ -2323,7 +2323,7 @@ dependencies = [
  "names",
  "pprof-pyroscope-fork",
  "prost",
- "reqwest 0.13.2",
+ "reqwest 0.13.3",
  "serde_json",
  "thiserror 2.0.18",
  "url",
@@ -2610,9 +2610,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.13.2"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab3f43e3283ab1488b624b44b0e988d0acea0b3214e694730a055cb6b2efa801"
+checksum = "62e0021ea2c22aed41653bc7e1419abb2c97e038ff2c33d0e1309e49a97deec0"
 dependencies = [
  "base64",
  "bytes",
@@ -2724,7 +2724,7 @@ dependencies = [
  "pyroscope",
  "rand 0.10.1",
  "regex",
- "reqwest 0.13.2",
+ "reqwest 0.13.3",
  "robbb_commands",
  "robbb_db",
  "robbb_util",
@@ -2763,7 +2763,7 @@ dependencies = [
  "parking_lot",
  "poise",
  "regex",
- "reqwest 0.13.2",
+ "reqwest 0.13.3",
  "robbb_db",
  "robbb_util",
  "serde",
@@ -2813,7 +2813,7 @@ dependencies = [
  "poise",
  "rand 0.10.1",
  "regex",
- "reqwest 0.13.2",
+ "reqwest 0.13.3",
  "robbb_db",
  "serde",
  "serde_json",
