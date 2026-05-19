@@ -1,8 +1,5 @@
 use chrono::Utc;
-use robbb_commands::{
-    checks::{self, PermissionLevel},
-    commands::blocklist::SHOULD_NEVER_TRIGGER_BLOCKLIST,
-};
+use robbb_commands::checks::{self, PermissionLevel};
 use robbb_db::mod_action::ModActionKind;
 use robbb_util::util::{generate_message_link, time_to_discord_snowflake};
 use serenity::{
@@ -23,15 +20,9 @@ pub async fn handle_blocklist(ctx: &client::Context, msg: &Message) -> Result<bo
 
     // remove invisible characters
     let normalized_msg = msg.content.replace(INVISIBLE_CHARS, "");
-    let blocklist_regex = db.get_combined_blocklist_regex().await?;
-    if SHOULD_NEVER_TRIGGER_BLOCKLIST.iter().any(|x| blocklist_regex.is_match(x)) {
-        tracing::error!(
-            "Blocklist regex matches one of the sanity check patterns. Make sure none of the blocklist entries match the empty string."
-        );
-        return Ok(false);
-    }
+    let blocklist = db.get_blocklist().await?;
 
-    if let Some(word) = blocklist_regex.find(&normalized_msg) {
+    if let Some(word) = blocklist.regex.find(&normalized_msg) {
         if checks::get_permission_level(&ctx, &msg.author).await? == PermissionLevel::Mod {
             return Ok(false);
         }
@@ -102,10 +93,10 @@ pub async fn handle_blocklist_in_command_interaction(
     }
 
     let db = ctx.get_db().await;
-    let blocklist_regex = db.get_combined_blocklist_regex().await?;
+    let blocklist = db.get_blocklist().await?;
     for value in &values.values {
         let normalized = value.replace(INVISIBLE_CHARS, "");
-        if let Some(word) = blocklist_regex.find(&normalized) {
+        if let Some(word) = blocklist.regex.find(&normalized) {
             handle_blocked_word_in_interaction(ctx, interaction, word.as_str(), values).await;
             return Ok(true);
         }

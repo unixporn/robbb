@@ -2,6 +2,7 @@ use super::*;
 
 use itertools::Itertools;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 fn combine_multitrigger_regex<'a, I: IntoIterator<Item = &'a str>>(
     words: I,
@@ -97,22 +98,28 @@ impl HighlightsData {
 
 impl Db {
     #[tracing::instrument(skip_all)]
-    pub async fn get_highlights(&self) -> Result<HighlightsData> {
-        let mut cache = self.highlight_cache.write().await;
-        if let Some(cache) = cache.as_ref() {
-            Ok(cache.clone())
-        } else {
-            let entries = sqlx::query!("select * from highlights")
-                .fetch_all(&self.pool)
-                .await?
-                .into_iter()
-                .map(|x| (x.word, UserId::from(x.usr as u64)))
-                .into_group_map();
-
-            let highlight_data = HighlightsData::from_entries(entries.into_iter().collect())?;
-            cache.replace(highlight_data.clone());
-            Ok(highlight_data)
+    pub async fn get_highlights(&self) -> Result<Arc<HighlightsData>> {
+        {
+            let cache = self.highlight_cache.read().await;
+            if let Some(data) = cache.as_ref() {
+                return Ok(data.clone());
+            }
         }
+
+        let mut cache = self.highlight_cache.write().await;
+        if let Some(data) = cache.as_ref() {
+            return Ok(data.clone());
+        }
+        let entries = sqlx::query!("select * from highlights")
+            .fetch_all(&self.pool)
+            .await?
+            .into_iter()
+            .map(|x| (x.word, UserId::from(x.usr as u64)))
+            .into_group_map();
+
+        let data = Arc::new(HighlightsData::from_entries(entries.into_iter().collect())?);
+        *cache = Some(data.clone());
+        Ok(data)
     }
 
     #[tracing::instrument(skip_all)]
@@ -124,8 +131,8 @@ impl Db {
                 .await?;
         }
         let mut cache = self.highlight_cache.write().await;
-        if let Some(ref mut cache) = cache.as_mut() {
-            cache.remove_entry(&trigger, user)?;
+        if let Some(arc) = cache.as_mut() {
+            Arc::make_mut(arc).remove_entry(&trigger, user)?;
         }
         Ok(())
     }
@@ -146,8 +153,8 @@ impl Db {
                 .await?;
         }
         let mut cache = self.highlight_cache.write().await;
-        if let Some(ref mut cache) = cache.as_mut() {
-            cache.add_entry(word, user)?;
+        if let Some(arc) = cache.as_mut() {
+            Arc::make_mut(arc).add_entry(word, user)?;
         }
 
         Ok(())
@@ -161,8 +168,8 @@ impl Db {
         }
 
         let mut cache = self.highlight_cache.write().await;
-        if let Some(ref mut cache) = cache.as_mut() {
-            cache.remove_entries_of(user)?;
+        if let Some(arc) = cache.as_mut() {
+            Arc::make_mut(arc).remove_entries_of(user)?;
         }
         Ok(())
     }

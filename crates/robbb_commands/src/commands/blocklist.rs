@@ -1,13 +1,8 @@
 use regex::Regex;
+use robbb_db::blocklist::SHOULD_NEVER_TRIGGER_BLOCKLIST;
 use robbb_util::embeds;
 
 use super::*;
-
-pub static SHOULD_NEVER_TRIGGER_BLOCKLIST: &[&str] = &[
-    "",
-    "Hello, I am new to linux, and I'd love to get some help with my GNOME installation.",
-    "I use Arch with GNOME, but for some reason, my backspace key doesn't work properly. Someone please help",
-];
 
 /// Control the blocklist
 #[poise::command(
@@ -80,12 +75,12 @@ pub async fn blocklist_list(ctx: Ctx<'_>) -> Res<()> {
     let config = ctx.get_config();
 
     let db = ctx.get_db();
-    let entries = db.get_blocklist().await?;
+    let blocklist = db.get_blocklist().await?;
 
     let is_in_mod_bot_stuff = ctx.channel_id() == config.channel_mod_bot_stuff;
     let embed = embeds::base_embed(&ctx)
         .title("Blocklist")
-        .description(entries.iter().map(|x| format!("`{x}`")).join("\n"));
+        .description(blocklist.patterns.iter().map(|x| format!("`{x}`")).join("\n"));
     if is_in_mod_bot_stuff {
         ctx.reply_embed(embed).await?;
     } else {
@@ -97,7 +92,12 @@ pub async fn blocklist_list(ctx: Ctx<'_>) -> Res<()> {
 async fn autocomplete_blocklist_entry(ctx: Ctx<'_>, partial: &str) -> Vec<String> {
     let db = ctx.get_db();
     if let Ok(blocklist) = db.get_blocklist().await {
-        blocklist.iter().filter(|x| x.contains(partial)).map(|x| x.to_string()).collect_vec()
+        blocklist
+            .patterns
+            .iter()
+            .filter(|x| x.contains(partial))
+            .map(|x| x.to_string())
+            .collect_vec()
     } else {
         Vec::new()
     }

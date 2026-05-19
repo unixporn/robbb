@@ -112,7 +112,16 @@ async fn setup_discord_client() -> eyre::Result<serenity::Client> {
         ..Default::default()
     };
 
-    let gateway_intents = GatewayIntents::all();
+    let gateway_intents = GatewayIntents::GUILDS
+        | GatewayIntents::GUILD_MEMBERS
+        | GatewayIntents::GUILD_MODERATION
+        | GatewayIntents::GUILD_EMOJIS_AND_STICKERS
+        | GatewayIntents::GUILD_MESSAGES
+        | GatewayIntents::GUILD_MESSAGE_REACTIONS
+        | GatewayIntents::DIRECT_MESSAGES
+        | GatewayIntents::DIRECT_MESSAGE_REACTIONS
+        | GatewayIntents::MESSAGE_CONTENT
+        | GatewayIntents::AUTO_MODERATION_EXECUTION;
 
     let config = Arc::new(config);
     let db = Arc::new(db);

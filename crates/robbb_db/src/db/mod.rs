@@ -22,8 +22,8 @@ pub mod tag;
 #[derive(Debug)]
 pub struct Db {
     pool: SqlitePool,
-    blocklist_cache: Arc<RwLock<Option<Vec<String>>>>,
-    highlight_cache: RwLock<Option<highlights::HighlightsData>>,
+    blocklist_cache: RwLock<Option<Arc<blocklist::BlocklistData>>>,
+    highlight_cache: RwLock<Option<Arc<highlights::HighlightsData>>>,
     tag_name_cache: RwLock<Option<HashSet<String>>>,
 }
 
@@ -36,7 +36,7 @@ impl Db {
         let pool = SqlitePool::connect(&std::env::var("DATABASE_URL")?).await?;
         Ok(Self {
             pool,
-            blocklist_cache: Arc::new(RwLock::new(None)),
+            blocklist_cache: RwLock::new(None),
             highlight_cache: RwLock::new(None),
             tag_name_cache: RwLock::new(None),
         })
