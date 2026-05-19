@@ -28,9 +28,14 @@ pub async fn guild_member_removal(
 
         if roles.iter().any(|x| x.id == config.role_htm) && !is_htm {
             // add htm if not in db already
+            tracing::info!("Setting HTM flag about leaving user {} in database", member.user.tag());
             log_error!(db.add_htm(member.user.id).await);
         } else {
             // remove htm from db if user doesn't have htm anymore
+            tracing::info!(
+                "removing HTM flag about leaving user {} in database",
+                member.user.tag()
+            );
             log_error!(db.remove_htm(member.user.id).await);
         }
     }

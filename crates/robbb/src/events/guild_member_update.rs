@@ -17,6 +17,7 @@ pub async fn guild_member_update(
     }
 
     if event.roles.iter().any(|x| *x == config.role_htm) {
+        tracing::info!("Storing htm state of user {} in DB", event.user.tag());
         log_error!(db.add_htm(event.user.id).await);
     }
 
