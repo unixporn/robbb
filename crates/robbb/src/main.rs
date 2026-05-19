@@ -121,7 +121,11 @@ async fn setup_discord_client() -> eyre::Result<serenity::Client> {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::DIRECT_MESSAGE_REACTIONS
         | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::AUTO_MODERATION_EXECUTION;
+        | GatewayIntents::AUTO_MODERATION_EXECUTION
+        // these are probably not necessary, but kept just to be sure
+        | GatewayIntents::GUILD_WEBHOOKS
+        | GatewayIntents::AUTO_MODERATION_CONFIGURATION
+        | GatewayIntents::GUILD_INTEGRATIONS;
 
     let config = Arc::new(config);
     let db = Arc::new(db);
