@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use eyre::{Context, Result};
 
@@ -31,8 +31,8 @@ pub mod ready;
 
 pub struct Handler {
     pub options: poise::FrameworkOptions<UserData, Error>,
-    pub shard_manager: parking_lot::RwLock<Option<Arc<ShardManager>>>,
-    pub bot_id: parking_lot::RwLock<Option<UserId>>,
+    pub shard_manager: OnceLock<Arc<ShardManager>>,
+    pub bot_id: OnceLock<UserId>,
     pub user_data: UserData,
 }
 
@@ -41,23 +41,23 @@ impl Handler {
         Self {
             options,
             user_data,
-            shard_manager: parking_lot::RwLock::new(None),
-            bot_id: parking_lot::RwLock::new(None),
+            shard_manager: OnceLock::new(),
+            bot_id: OnceLock::new(),
         }
     }
 
     pub fn set_shard_manager(&self, manager: Arc<ShardManager>) {
-        *self.shard_manager.write() = Some(manager);
+        let _ = self.shard_manager.set(manager);
     }
 
     async fn update_emojis(&self, ctx: &client::Context, up_emotes: UpEmotes) {
         let up_emotes = Arc::new(up_emotes);
-        *self.user_data.up_emotes.write() = Some(up_emotes.clone());
+        self.user_data.up_emotes.store(Some(up_emotes.clone()));
         ctx.data.write().await.insert::<UpEmotes>(up_emotes);
     }
 
     async fn init_ready_data(&self, ctx: &client::Context, user_id: UserId) {
-        *self.bot_id.write() = Some(user_id);
+        let _ = self.bot_id.set(user_id);
 
         match robbb_util::load_up_emotes(&ctx, self.user_data.config.guild).await {
             Ok(up_emotes) => {
@@ -79,9 +79,9 @@ impl Handler {
         msg.channel,
     ))]
     async fn dispatch_poise_event(&self, ctx: &client::Context, event: serenity::all::FullEvent) {
-        let shard_manager = (*self.shard_manager.read()).clone().unwrap();
+        let shard_manager = self.shard_manager.get().expect("shard manager not set").clone();
         let framework_data = poise::FrameworkContext {
-            bot_id: self.bot_id.read().unwrap_or_else(|| UserId::new(0)),
+            bot_id: self.bot_id.get().copied().unwrap_or_else(|| UserId::new(0)),
             options: &self.options,
             user_data: &self.user_data,
             shard_manager: &shard_manager,

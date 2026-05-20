@@ -74,6 +74,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
+name = "arc-swap"
+version = "1.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a3a1fd6f75306b68087b831f025c712524bcb19aad54e557b1129cfa0a2b207"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2705,6 +2714,7 @@ checksum = "3582f63211428f83597b51b2ddb88e2a91a9d52d12831f9d08f5e624e8977422"
 name = "robbb"
 version = "0.1.0"
 dependencies = [
+ "arc-swap",
  "byte-unit",
  "chrono",
  "chrono-humanize",
@@ -2719,7 +2729,6 @@ dependencies = [
  "opentelemetry 0.31.0",
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.31.0",
- "parking_lot",
  "poise",
  "pyroscope",
  "rand 0.10.1",
@@ -2760,7 +2769,6 @@ dependencies = [
  "itertools",
  "lazy_static",
  "maplit",
- "parking_lot",
  "poise",
  "regex",
  "reqwest 0.13.2",
@@ -2801,6 +2809,7 @@ dependencies = [
 name = "robbb_util"
 version = "0.1.0"
 dependencies = [
+ "arc-swap",
  "chrono",
  "chrono-humanize",
  "color-eyre",
@@ -2809,7 +2818,6 @@ dependencies = [
  "futures",
  "itertools",
  "lazy_static",
- "parking_lot",
  "poise",
  "rand 0.10.1",
  "regex",

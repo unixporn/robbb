@@ -32,7 +32,7 @@ futures.workspace = true
 
 unicase.workspace = true
 
-parking_lot.workspace = true
+arc-swap.workspace = true
 
 tracing.workspace = true
 tracing-log.workspace = true

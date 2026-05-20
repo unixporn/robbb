@@ -36,7 +36,7 @@ pub impl<'a> Ctx<'a> {
     }
 
     fn get_up_emotes(&self) -> Option<Arc<UpEmotes>> {
-        self.data().up_emotes.read().clone()
+        self.data().up_emotes.load_full()
     }
 
     fn is_prefix(&self) -> bool {
@@ -136,7 +136,7 @@ pub impl<'a> Ctx<'a> {
     }
 
     fn get_random_stare(&self) -> Option<Emoji> {
-        self.data().up_emotes.read().clone().and_then(|x| x.random_stare())
+        self.data().up_emotes.load_full().and_then(|x| x.random_stare())
     }
 }
 

@@ -135,7 +135,7 @@ async fn setup_discord_client() -> eyre::Result<serenity::Client> {
         UserData {
             config: config.clone(),
             db: db.clone(),
-            up_emotes: Arc::new(parking_lot::RwLock::new(None)),
+            up_emotes: Arc::new(arc_swap::ArcSwapOption::empty()),
         },
     ));
 

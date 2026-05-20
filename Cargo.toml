@@ -53,7 +53,7 @@ futures = "0.3.30"
 
 unicase = "2.6.0"
 
-parking_lot = "0.12.2"
+arc-swap = "1.7"
 
 tracing = "0.1.40"
 tracing-log = "0.2.0"

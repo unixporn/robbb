@@ -27,7 +27,7 @@ tracing-futures.workspace = true
 rand.workspace = true
 regex.workspace = true
 url.workspace = true
-parking_lot.workspace = true
+arc-swap.workspace = true
 extend.workspace = true
 
 robbb_db.workspace = true

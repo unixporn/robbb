@@ -30,7 +30,6 @@ unicase.workspace = true
 
 tracing.workspace = true
 tracing-futures.workspace = true
-parking_lot.workspace = true
 
 robbb_db.workspace = true
 robbb_util.workspace = true
