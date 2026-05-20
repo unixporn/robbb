@@ -18,7 +18,7 @@ mod logging;
 
 use crate::logging::*;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
     let honeycomb_api_key = std::env::var("HONEYCOMB_API_KEY").ok();
