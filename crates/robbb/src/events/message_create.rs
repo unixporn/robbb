@@ -23,6 +23,10 @@ use super::*;
 /// the message should _not_ be forwarded to the command framework.
 /// Otherwise, it should be forwarded.
 pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> {
+    // Compute how long the message spent in transit before the bot started processing it.
+    // `msg.id.created_at()` derives the send timestamp from the Discord snowflake (ms precision).
+    let receive_latency_ms = (Utc::now() - *msg.id.created_at()).num_milliseconds();
+
     let config = ctx.get_config().await;
 
     if msg.author.bot {
@@ -38,12 +42,11 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         msg.id = %msg.id,
         msg.channel = %channel_name,
         msg.channel_id = %msg.channel_id,
+        msg.receive_latency_ms = receive_latency_ms,
         "new message from {}: {}",
         msg.author.tag(),
         msg.content
     );
-
-    handle_attachment_logging(&ctx, &msg).await;
 
     if msg.channel_id == config.channel_honeypot {
         log_error!(handle_honeypot_post(&ctx, &msg).await);
@@ -52,6 +55,7 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
     } else if msg.channel_id == config.channel_feedback {
         log_error!(handle_feedback_post(&ctx, &msg).await);
     }
+    handle_attachment_logging(&ctx, &msg).await;
 
     if msg.guild_id.is_some() && msg.channel_id != config.channel_bot_messages {
         match handle_msg_emoji_logging(&ctx, &msg).await {
