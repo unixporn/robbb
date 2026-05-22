@@ -33,6 +33,9 @@ pub async fn message_create(ctx: client::Context, msg: Message) -> Result<bool> 
         return Ok(true);
     }
 
+    metrics::histogram!(crate::monitoring::MESSAGE_RECEIVE_LATENCY_MS)
+        .record(receive_latency_ms as f64);
+
     let channel_name = msg.channel_id.name(&ctx).await?;
 
     tracing::debug!(

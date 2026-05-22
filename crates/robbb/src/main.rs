@@ -15,6 +15,7 @@ pub mod attachment_logging;
 mod error_handling;
 pub mod events;
 mod logging;
+mod monitoring;
 
 use crate::logging::*;
 
@@ -29,6 +30,7 @@ async fn main() -> eyre::Result<()> {
     let pyroscope_password = std::env::var("PYROSCOPE_PASSWORD").ok();
 
     init_tracing();
+    monitoring::init_metrics().context("Failed to initialise Prometheus metrics")?;
     if let Some(honeycomb_api_key) = honeycomb_api_key {
         send_honeycomb_deploy_marker(&honeycomb_api_key).await;
     }
@@ -194,6 +196,8 @@ async fn pre_command(ctx: Ctx<'_>) {
         ctx.command().name,
         ctx.author().tag()
     );
+    metrics::counter!(crate::monitoring::COMMANDS_TOTAL, "command" => ctx.command().qualified_name.clone())
+        .increment(1);
 }
 
 fn is_autocomplete_interaction(ctx: &Ctx<'_>) -> bool {

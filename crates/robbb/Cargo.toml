@@ -61,3 +61,5 @@ tracing-opentelemetry.workspace = true
 
 
 pyroscope.workspace = true
+metrics.workspace = true
+metrics-exporter-prometheus.workspace = true

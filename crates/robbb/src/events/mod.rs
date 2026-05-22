@@ -79,6 +79,8 @@ impl Handler {
         msg.channel,
     ))]
     async fn dispatch_poise_event(&self, ctx: &client::Context, event: serenity::all::FullEvent) {
+        metrics::counter!(crate::monitoring::EVENTS_TOTAL, "event" => event.snake_case_name())
+            .increment(1);
         let shard_manager = self.shard_manager.get().expect("shard manager not set").clone();
         let framework_data = poise::FrameworkContext {
             bot_id: self.bot_id.get().copied().unwrap_or_else(|| UserId::new(0)),
@@ -100,8 +102,11 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn cache_ready(&self, _ctx: client::Context, _guilds: Vec<GuildId>) {
+    async fn cache_ready(&self, ctx: client::Context, _guilds: Vec<GuildId>) {
         tracing::info!("Cache ready");
+        if let Some(shard_manager) = self.shard_manager.get() {
+            crate::monitoring::start_cache_stats_task(ctx, shard_manager.clone());
+        }
     }
 
     #[tracing::instrument(skip_all, fields(total_shards))]
@@ -126,6 +131,9 @@ impl client::EventHandler for Handler {
         let channel_name =
             msg.channel_id.name(&ctx).await.unwrap_or_else(|_| "unknown-name".to_string());
         tracing::Span::current().record("msg.channel", channel_name);
+        if !msg.author.bot {
+            metrics::counter!(crate::monitoring::MESSAGES_TOTAL).increment(1);
+        }
 
         match message_create::message_create(ctx.clone(), msg.clone()).await {
             Ok(stop_event_handler) if stop_event_handler => return,
@@ -243,6 +251,7 @@ impl client::EventHandler for Handler {
             "Error while handling message_delete event",
             message_delete::message_delete(&ctx, channel_id, deleted_message_id, guild_id).await
         );
+        metrics::counter!(crate::monitoring::MESSAGES_DELETED_TOTAL).increment(1);
         self.dispatch_poise_event(
             &ctx,
             FullEvent::MessageDelete { channel_id, deleted_message_id, guild_id },
@@ -258,6 +267,7 @@ impl client::EventHandler for Handler {
         multiple_deleted_messages_ids: Vec<MessageId>,
         guild_id: Option<GuildId>,
     ) {
+        let deleted_count = multiple_deleted_messages_ids.len() as u64;
         log_error!(
             "Error while handling message_delete event",
             message_delete::message_delete_bulk(
@@ -268,6 +278,7 @@ impl client::EventHandler for Handler {
             )
             .await
         );
+        metrics::counter!(crate::monitoring::MESSAGES_DELETED_TOTAL).increment(deleted_count);
     }
 
     #[tracing::instrument(skip_all, fields(user = %new_member.user.tag()))]
@@ -371,5 +382,11 @@ impl client::EventHandler for Handler {
             ratelimit.global = ?data.global,
             "Encountered ratelimit"
         );
+        metrics::counter!(
+            crate::monitoring::RATELIMITS_TOTAL,
+            "path" => data.path.clone(),
+            "global" => data.global.to_string()
+        )
+        .increment(1);
     }
 }

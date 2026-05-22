@@ -81,6 +81,8 @@ tracing-opentelemetry = "0.32.1"
 
 
 pyroscope = { version = "2.0.1", features = ["backend-pprof-rs"] }
+metrics = "0.24"
+metrics-exporter-prometheus = { version = "0.16", default-features = false, features = ["http-listener"] }
 
 
 
