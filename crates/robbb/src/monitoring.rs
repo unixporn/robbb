@@ -3,35 +3,18 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use serenity::{client, gateway::ConnectionStage};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
-/// Counter – total poise/serenity events dispatched, labelled by `event`.
 pub const EVENTS_TOTAL: &str = "robbb_events_total";
-
-/// Counter – total non-bot messages received.
 pub const MESSAGES_TOTAL: &str = "robbb_messages_total";
-
-/// Counter – total messages deleted (single + bulk).
 pub const MESSAGES_DELETED_TOTAL: &str = "robbb_messages_deleted_total";
-
-/// Counter – total commands invoked, labelled by `command`.
 pub const COMMANDS_TOTAL: &str = "robbb_commands_total";
-
-/// Histogram – time in milliseconds between a message being created on Discord
-/// and the bot beginning to process it (derived from the snowflake timestamp).
 pub const MESSAGE_RECEIVE_LATENCY_MS: &str = "robbb_message_receive_latency_ms";
 
-/// Gauge – number of guilds currently in the serenity cache.
 pub const CACHE_GUILDS: &str = "robbb_cache_guilds";
-
-/// Gauge – number of users currently in the serenity cache.
 pub const CACHE_USERS: &str = "robbb_cache_users";
+pub const CACHE_CHANNELS: &str = "robbb_cache_channels";
 
-/// Gauge – last observed heartbeat latency per shard, in milliseconds.
 pub const SHARD_LATENCY_MS: &str = "robbb_shard_latency_ms";
-
-/// Gauge – 1.0 if the shard is `Connected`, 0.0 otherwise.
 pub const SHARD_CONNECTED: &str = "robbb_shard_connected";
-
-/// Counter – Discord HTTP rate-limits encountered, labelled by `path` and `global`.
 pub const RATELIMITS_TOTAL: &str = "robbb_ratelimits_total";
 
 /// Install the Prometheus metrics recorder and start the HTTP scrape endpoint.
@@ -87,6 +70,7 @@ async fn collect_cache_and_shard_stats(
 ) {
     metrics::gauge!(CACHE_GUILDS).set(ctx.cache.guild_count() as f64);
     metrics::gauge!(CACHE_USERS).set(ctx.cache.user_count() as f64);
+    metrics::gauge!(CACHE_CHANNELS).set(ctx.cache.guild_channel_count() as f64);
 
     let runners = shard_manager.runners.lock().await;
     for (shard_id, info) in runners.iter() {
