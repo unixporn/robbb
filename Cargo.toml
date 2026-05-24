@@ -72,7 +72,7 @@ robbb_db = { path = "crates/robbb_db" }
 robbb_util = { path = "crates/robbb_util" }
 robbb_commands = { path = "crates/robbb_commands" }
 # tracing-logfmt = "0.3.3"
-tracing-logfmt-otel = { version = "0.4.0" }
+tracing-logfmt-otel = { version = "0.4.2" }
 
 opentelemetry = { version = "0.31.0", features = ["trace", "logs"] }
 opentelemetry-appender-tracing = { version = "0.31.0", features = ["experimental_metadata_attributes"] }
