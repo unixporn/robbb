@@ -1,4 +1,4 @@
-use std::{borrow::Cow, str::FromStr};
+use std::{borrow::Cow, str::FromStr, time::Instant};
 
 use eyre::{Context, ContextCompat as _};
 use regex::Regex;
@@ -9,6 +9,12 @@ use serenity::{
 };
 
 use crate::extensions::ClientContextExt;
+
+pub const FAKE_CDN_UPLOADS_TOTAL: &str = "robbb_fake_cdn_uploads_total";
+pub const FAKE_CDN_BYTES_UPLOADED_TOTAL: &str = "robbb_fake_cdn_bytes_uploaded_total";
+pub const FAKE_CDN_UPLOAD_SIZE_BYTES: &str = "robbb_fake_cdn_upload_size_bytes";
+pub const FAKE_CDN_UPLOAD_DURATION_MS: &str = "robbb_fake_cdn_upload_duration_ms";
+pub const FAKE_CDN_RESOLUTIONS_TOTAL: &str = "robbb_fake_cdn_resolutions_total";
 
 lazy_static::lazy_static! {
     pub static ref CDN_LINK_PATTERN: Regex = Regex::new(
@@ -65,13 +71,16 @@ impl FakeCdnId {
     #[tracing::instrument(skip_all, fields(fake_cdn_id = %self))]
     pub async fn resolve(&self, ctx: impl CacheHttp) -> eyre::Result<String> {
         let message = self.channel_id.message(&ctx, self.message_id).await?;
-        message.attachments.get(self.nth_attachment).map(|x| x.url.clone()).ok_or_else(|| {
+        let attachment_url = message.attachments.get(self.nth_attachment).map(|x| x.url.clone()).ok_or_else(|| {
             eyre::eyre!(
                 "No {}th attachments found in message {}",
                 self.nth_attachment,
                 self.message_id
             )
-        })
+        })?;
+
+        metrics::counter!(FAKE_CDN_RESOLUTIONS_TOTAL).increment(1);
+        Ok(attachment_url)
     }
 }
 
@@ -106,6 +115,7 @@ pub async fn persist_attachment(
     attachment_url: &str,
     mut metadata: serde_json::Value,
 ) -> eyre::Result<FakeCdnId> {
+    let started_at = Instant::now();
     let config = ctx.get_config().await;
 
     tracing::info!(%attachment_url, "Persisting attachment in fake cdn: {attachment_url}");
@@ -113,6 +123,7 @@ pub async fn persist_attachment(
         .parse::<reqwest::Url>()
         .with_context(|| format!("Failed to parse attachment URL: `{attachment_url}`"))?;
     let bytes = request_bytes(attachment_url.clone()).await?;
+    let attachment_size_bytes = bytes.len() as u64;
     let attachment_name = attachment_url
         .path_segments()
         .context("Couldn't get path segments from URL")?
@@ -133,6 +144,12 @@ pub async fn persist_attachment(
         )
         .await?;
     let fake_cdn_id = FakeCdnId::from_message(&message, 0);
+
+    metrics::counter!(FAKE_CDN_UPLOADS_TOTAL).increment(1);
+    metrics::counter!(FAKE_CDN_BYTES_UPLOADED_TOTAL).increment(attachment_size_bytes);
+    metrics::histogram!(FAKE_CDN_UPLOAD_SIZE_BYTES).record(attachment_size_bytes as f64);
+    metrics::histogram!(FAKE_CDN_UPLOAD_DURATION_MS)
+        .record(started_at.elapsed().as_secs_f64() * 1000.0);
 
     tracing::info!(
         fake_cdn_id = %fake_cdn_id,

@@ -13,29 +13,71 @@ pub const CACHE_GUILDS: &str = "robbb_cache_guilds";
 pub const CACHE_USERS: &str = "robbb_cache_users";
 pub const CACHE_CHANNELS: &str = "robbb_cache_channels";
 
+pub const ATTACHMENT_CACHE_FILES_STORED_TOTAL: &str = "robbb_attachment_cache_files_stored_total";
+pub const ATTACHMENT_CACHE_BYTES_STORED_TOTAL: &str = "robbb_attachment_cache_bytes_stored_total";
+pub const ATTACHMENT_CACHE_STORE_SIZE_BYTES: &str = "robbb_attachment_cache_store_size_bytes";
+pub const ATTACHMENT_CACHE_STORE_DURATION_MS: &str = "robbb_attachment_cache_store_duration_ms";
+pub const ATTACHMENT_CACHE_DISK_USAGE_BYTES: &str = "robbb_attachment_cache_disk_usage_bytes";
+pub const ATTACHMENT_CACHE_FILES: &str = "robbb_attachment_cache_files";
+
 pub const SHARD_LATENCY_MS: &str = "robbb_shard_latency_ms";
 pub const SHARD_CONNECTED: &str = "robbb_shard_connected";
 pub const RATELIMITS_TOTAL: &str = "robbb_ratelimits_total";
+
+#[allow(unused_imports)]
+pub use robbb_util::cdn_hack::{
+    FAKE_CDN_BYTES_UPLOADED_TOTAL, FAKE_CDN_RESOLUTIONS_TOTAL, FAKE_CDN_UPLOAD_DURATION_MS,
+    FAKE_CDN_UPLOAD_SIZE_BYTES, FAKE_CDN_UPLOADS_TOTAL,
+};
 
 /// Install the Prometheus metrics recorder and start the HTTP scrape endpoint.
 ///
 /// The port is taken from the `METRICS_PORT` environment variable; it defaults
 /// to `9090`.  The endpoint is served on `0.0.0.0:<port>/metrics`.
 pub fn init_metrics() -> eyre::Result<()> {
-    let port: u16 = std::env::var("METRICS_PORT")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(9090);
+    let port: u16 = std::env::var("METRICS_PORT").ok().and_then(|s| s.parse().ok()).unwrap_or(9090);
 
     let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
+
+    let latency_buckets =
+        &[5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0, 10000.0];
+    let size_buckets = &[
+        1024.0,
+        4.0 * 1024.0,
+        16.0 * 1024.0,
+        64.0 * 1024.0,
+        256.0 * 1024.0,
+        1024.0 * 1024.0,
+        4.0 * 1024.0 * 1024.0,
+        16.0 * 1024.0 * 1024.0,
+        64.0 * 1024.0 * 1024.0,
+        256.0 * 1024.0 * 1024.0,
+    ];
 
     PrometheusBuilder::new()
         // Millisecond-resolution buckets suitable for Discord message latency.
         .set_buckets_for_metric(
             Matcher::Full(MESSAGE_RECEIVE_LATENCY_MS.to_string()),
-            &[5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0, 10000.0],
+            latency_buckets,
         )
         .wrap_err("Failed to configure histogram buckets for message receive latency")?
+        .set_buckets_for_metric(
+            Matcher::Full(ATTACHMENT_CACHE_STORE_DURATION_MS.to_string()),
+            latency_buckets,
+        )
+        .wrap_err("Failed to configure histogram buckets for attachment cache store duration")?
+        .set_buckets_for_metric(
+            Matcher::Full(FAKE_CDN_UPLOAD_DURATION_MS.to_string()),
+            latency_buckets,
+        )
+        .wrap_err("Failed to configure histogram buckets for fake CDN upload duration")?
+        .set_buckets_for_metric(
+            Matcher::Full(ATTACHMENT_CACHE_STORE_SIZE_BYTES.to_string()),
+            size_buckets,
+        )
+        .wrap_err("Failed to configure histogram buckets for attachment cache store size")?
+        .set_buckets_for_metric(Matcher::Full(FAKE_CDN_UPLOAD_SIZE_BYTES.to_string()), size_buckets)
+        .wrap_err("Failed to configure histogram buckets for fake CDN upload size")?
         .with_http_listener(addr)
         .install()
         .map_err(|e| eyre::eyre!("Failed to install Prometheus metrics exporter: {e}"))?;
@@ -82,7 +124,10 @@ async fn collect_cache_and_shard_stats(
         }
 
         let connected = matches!(info.stage, ConnectionStage::Connected);
-        metrics::gauge!(SHARD_CONNECTED, "shard_id" => shard_label)
-            .set(if connected { 1.0 } else { 0.0 });
+        metrics::gauge!(SHARD_CONNECTED, "shard_id" => shard_label).set(if connected {
+            1.0
+        } else {
+            0.0
+        });
     }
 }

@@ -29,5 +29,6 @@ regex.workspace = true
 url.workspace = true
 arc-swap.workspace = true
 extend.workspace = true
+metrics.workspace = true
 
 robbb_db.workspace = true

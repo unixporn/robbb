@@ -2902,6 +2902,7 @@ dependencies = [
  "futures",
  "itertools",
  "lazy_static",
+ "metrics",
  "poise",
  "rand 0.10.1",
  "regex",
