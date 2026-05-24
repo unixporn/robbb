@@ -147,6 +147,7 @@ async fn setup_discord_client() -> eyre::Result<serenity::Client> {
         .activity(serenity::gateway::ActivityData::listening("/help"))
         .status(OnlineStatus::Online)
         .event_handler_arc(event_handler.clone())
+        .raw_event_handler(events::MetricsRawEventHandler)
         .cache_settings({
             let mut settings = serenity::cache::Settings::default();
             settings.max_messages = 500;

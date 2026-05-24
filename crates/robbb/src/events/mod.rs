@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock};
 
 use eyre::{Context, Result};
@@ -34,6 +35,7 @@ pub struct Handler {
     pub shard_manager: OnceLock<Arc<ShardManager>>,
     pub bot_id: OnceLock<UserId>,
     pub user_data: UserData,
+    pub was_ready_called: AtomicBool,
 }
 
 impl Handler {
@@ -43,6 +45,7 @@ impl Handler {
             user_data,
             shard_manager: OnceLock::new(),
             bot_id: OnceLock::new(),
+            was_ready_called: AtomicBool::new(false),
         }
     }
 
@@ -79,8 +82,6 @@ impl Handler {
         msg.channel,
     ))]
     async fn dispatch_poise_event(&self, ctx: &client::Context, event: serenity::all::FullEvent) {
-        metrics::counter!(crate::monitoring::EVENTS_TOTAL, "event" => event.snake_case_name())
-            .increment(1);
         let shard_manager = self.shard_manager.get().expect("shard manager not set").clone();
         let framework_data = poise::FrameworkContext {
             bot_id: self.bot_id.get().copied().unwrap_or_else(|| UserId::new(0)),
@@ -96,6 +97,15 @@ impl Handler {
 impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all)]
     async fn ready(&self, ctx: client::Context, data_about_bot: Ready) {
+        let was_already_ready =
+            self.was_ready_called.swap(true, std::sync::atomic::Ordering::SeqCst);
+        if was_already_ready {
+            tracing::warn!(
+                "Received ready event, but bot was already marked ready. Assuming this was a reconnect, skipping initialization steps."
+            );
+            return;
+        }
+
         self.init_ready_data(&ctx, data_about_bot.user.id).await;
 
         log_error!("Error while handling ready event", ready::ready(ctx, data_about_bot).await);
@@ -115,8 +125,14 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(event))]
-    async fn resume(&self, _ctx: client::Context, _event: ResumedEvent) {
+    async fn resume(&self, ctx: client::Context, _event: ResumedEvent) {
         tracing::info!("Bot connection resumed");
+        let config = ctx.get_config().await;
+
+        let _ = config
+            .channel_mod_bot_stuff
+            .send_embed_builder(&ctx, |e| e.title("Discord connection resumed"))
+            .await;
     }
 
     #[tracing::instrument(
@@ -388,5 +404,17 @@ impl client::EventHandler for Handler {
             "global" => data.global.to_string()
         )
         .increment(1);
+    }
+}
+
+/// Simple [`client::RawEventHandler`] just used for logging and metrics.
+pub struct MetricsRawEventHandler;
+
+#[async_trait]
+impl client::RawEventHandler for MetricsRawEventHandler {
+    async fn raw_event(&self, _ctx: client::Context, event: serenity::all::Event) {
+        let event_name = event.name().unwrap_or_else(|| "Unknown".to_string());
+        tracing::trace!(event.name = %event_name, "Received raw event");
+        metrics::counter!(crate::monitoring::EVENTS_TOTAL, "event" => event_name).increment(1);
     }
 }
