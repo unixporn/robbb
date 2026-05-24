@@ -32,8 +32,7 @@ pub fn init_tracing() {
         .unwrap_or_else(|_| {
             EnvFilter::try_new("info,robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off")
                 .unwrap()
-        })
-        .add_directive("robbb=trace".parse().unwrap());
+        });
     let remove_presence_update_filter = FilterFn::new(|m| {
         !(m.target() == "serenity::gateway::shard"
             && m.name() == "handle_gateway_dispatch"
