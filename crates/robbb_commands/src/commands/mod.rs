@@ -8,6 +8,7 @@ use robbb_util::prelude::*;
 use robbb_util::util;
 
 pub mod errors;
+pub mod pin;
 pub use errors::*;
 
 use crate::checks::PermissionLevel;
@@ -49,6 +50,7 @@ pub fn all_commands() -> Vec<poise::Command<UserData, Error>> {
         highlights::highlights(),
         small::latency(),
         small::uptime(),
+        pin::pin_message(),
         small::repo(),
         small::invite(),
         small::description(),
