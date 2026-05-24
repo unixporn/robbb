@@ -75,8 +75,9 @@ robbb_commands = { path = "crates/robbb_commands" }
 tracing-logfmt-otel = { version = "0.4.0" }
 
 opentelemetry = { version = "0.31.0", features = ["trace", "logs"] }
-opentelemetry-otlp = { version = "0.31.1", features = ["http-proto", "reqwest-client", "grpc-tonic"] }
-opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
+opentelemetry-appender-tracing = { version = "0.31.0", features = ["experimental_metadata_attributes"] }
+opentelemetry-otlp = { version = "0.31.1", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic", "logs"] }
+opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio", "logs"] }
 tracing-opentelemetry = "0.32.1"
 
 

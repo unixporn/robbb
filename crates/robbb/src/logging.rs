@@ -1,4 +1,5 @@
 use opentelemetry::trace::TracerProvider as _;
+use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_sdk::trace::{RandomIdGenerator, Sampler, SdkTracerProvider};
 use robbb_util::log_error;
 use tracing_error::ErrorLayer;
@@ -14,13 +15,22 @@ where
     tracing_subscriber::fmt::layer().with_ansi(true).with_level(true).with_target(true)
 }
 
+fn make_log_filter() -> EnvFilter {
+    EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        EnvFilter::try_new(
+            "info,robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off",
+        )
+        .unwrap()
+    })
+}
+
 /// Initializes tracing and logging configuration.
 /// To configure tracing, set up the Opentelemetry tracing environment variables:
 ///
 /// ```sh
 /// export OTEL_SERVICE_NAME=robbb
 /// export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
-/// export OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp-gateway-prod-us-east-0.grafana.net/otlp"
+/// export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
 /// export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <basic auth>"
 /// ```
 ///
@@ -28,11 +38,7 @@ where
 pub fn init_tracing() {
     let format_pretty = std::env::var("ROBBB_LOG_PRETTY").is_ok();
 
-    let log_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| {
-            EnvFilter::try_new("info,robbb=trace,serenity=debug,serenity::http::ratelimiting=off,serenity::http::request=off")
-                .unwrap()
-        });
+    let log_filter = make_log_filter();
     let remove_presence_update_filter = FilterFn::new(|m| {
         !(m.target() == "serenity::gateway::shard"
             && m.name() == "handle_gateway_dispatch"
@@ -108,11 +114,47 @@ pub fn init_tracing() {
             .with_filter(remove_update_manager_filter)
             .with_filter(traces_extra_filter);
 
+        // Build the OTLP log exporter and bridge it into the tracing subscriber.
+        // The same log-level filter and noisy-event filters used for stdout are
+        // applied as explicit per-layer filters so that the appender honours them
+        // independently of the global subscriber stack.
+        let otel_log_layer = match opentelemetry_otlp::LogExporter::builder().with_http().build() {
+            Ok(log_exporter) => {
+                let logger_provider = opentelemetry_sdk::logs::SdkLoggerProvider::builder()
+                    .with_batch_exporter(log_exporter)
+                    .build();
+                let layer = OpenTelemetryTracingBridge::new(&logger_provider)
+                    // Mirror the env-filter used for stdout/logfmt output.
+                    .with_filter(make_log_filter())
+                    // Drop high-volume PresenceUpdate gateway dispatches.
+                    .with_filter(FilterFn::new(|m| {
+                        !(m.target() == "serenity::gateway::shard"
+                            && m.name() == "handle_gateway_dispatch"
+                            && m.fields()
+                                .field("event")
+                                .is_some_and(|e| e.as_ref().starts_with("PresenceUpdate")))
+                    }))
+                    // Drop noisy shard-runner recv/recv_event spans.
+                    .with_filter(FilterFn::new(|m| {
+                        !((m.target() == "serenity::gateway::bridge::shard_runner"
+                            && m.name() == "recv")
+                            || (m.target() == "serenity::gateway::bridge::shard_runner"
+                                && m.name() == "recv_event"))
+                    }));
+
+                Some(layer)
+            }
+            Err(err) => {
+                eprintln!("failed to initialize otel log export: {err}");
+                None
+            }
+        };
+
         println!("OTEL_EXPORTER_OTLP_ENDPOINT is set, initializing tracing layer");
         if format_pretty {
-            sub.with(telemetry).with(make_pretty_formatter()).init();
+            sub.with(telemetry).with(otel_log_layer).with(make_pretty_formatter()).init();
         } else {
-            sub.with(telemetry).with(logfmt_builder.layer()).init();
+            sub.with(telemetry).with(otel_log_layer).with(logfmt_builder.layer()).init();
         }
     } else {
         println!("No OTEL_EXPORTER_OTLP_ENDPOINT is set, only initializing logging");

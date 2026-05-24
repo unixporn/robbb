@@ -51,9 +51,10 @@ robbb_commands.workspace = true
 tracing-logfmt-otel.workspace = true
 
 opentelemetry = { workspace = true, features = ["trace", "logs"] }
+opentelemetry-appender-tracing.workspace = true
 opentelemetry-otlp = { workspace = true, features = [
     "http-proto",
-    "reqwest-client",
+    "reqwest-blocking-client",
     "grpc-tonic",
 ] }
 opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
