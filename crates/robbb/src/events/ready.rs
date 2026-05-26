@@ -24,7 +24,7 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
         })
         .await;
 
-    dehoist_everyone(ctx.clone(), config.guild).await;
+    tokio::spawn(dehoist_everyone(ctx.clone(), config.guild));
 
     start_mute_handler(ctx.clone()).await;
     start_attachment_log_handler(ctx).await;
@@ -33,10 +33,13 @@ pub async fn ready(ctx: client::Context, _data_about_bot: Ready) -> Result<()> {
 
 #[tracing::instrument(skip_all)]
 async fn dehoist_everyone(ctx: client::Context, guild_id: GuildId) {
+    // Process members with low concurrency so nickname-edit requests are issued one at a
+    // time. This keeps us well within Discord's PATCH-member rate limit (~10/10s)
+    // instead of firing potentially thousands of concurrent requests on startup.
     guild_id
         .members_iter(&ctx)
         .filter_map(|x| async { x.ok() })
-        .for_each_concurrent(None, |member| async {
+        .for_each_concurrent(Some(4), |member| async {
             log_error!(
                 "Error while dehoisting a member",
                 guild_member_update::dehoist_member(ctx.clone(), member).await

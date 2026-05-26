@@ -168,7 +168,7 @@ async fn handle_highlighting(ctx: &client::Context, msg: &Message) -> Result<usi
 
         let create_message = embed.into_create_message();
         for user_id in users {
-            let member = channel.guild_id.member(&ctx, msg.author.id).await?;
+            let member = channel.guild_id.member(&ctx, user_id).await?;
             let user_can_see_channel = channel
                 .guild_id
                 .to_partial_guild(&ctx)

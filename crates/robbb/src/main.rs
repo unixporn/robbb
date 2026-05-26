@@ -7,7 +7,7 @@ use pyroscope::pyroscope::PyroscopeAgentBuilder;
 use robbb_commands::{checks, commands};
 use robbb_db::Db;
 
-use robbb_util::{UserData, config::Config, prelude::Ctx};
+use robbb_util::{DeletionAuditCache, UserData, config::Config, prelude::Ctx};
 use serenity::all::OnlineStatus;
 use std::sync::Arc;
 
@@ -160,6 +160,7 @@ async fn setup_discord_client() -> eyre::Result<serenity::Client> {
         let mut client_data = client.data.write().await;
         client_data.insert::<Config>(config);
         client_data.insert::<Db>(db);
+        client_data.insert::<DeletionAuditCache>(Arc::new(DeletionAuditCache::new()));
     }
 
     event_handler.set_shard_manager(client.shard_manager.clone());

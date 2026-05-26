@@ -1,7 +1,9 @@
+use std::time::Duration;
+
 use eyre::ContextCompat as _;
 use futures::StreamExt;
 use itertools::Itertools;
-use poise::serenity_prelude::{AuditLogEntry, MessageAction};
+use poise::serenity_prelude::MessageAction;
 use robbb_util::embeds;
 use serenity::{
     all::audit_log,
@@ -145,45 +147,45 @@ pub async fn message_delete_bulk(
     Ok(())
 }
 
-/// Polls the audit log a few times, trying to figure out who deleted the given message
+/// Looks up who deleted `msg` by first checking the short-lived audit-log cache
+/// (populated reactively via `guild_audit_log_entry_create`) and, only if that
+/// misses, falling back to a single REST poll. This replaces a previous design
+/// that polled up to three times and suffered from a wrong filter (comparing
+/// `entry.target_id` / the author's UserId against `msg.id` / the MessageId).
 async fn find_deletor(
     ctx: &client::Context,
     config: &Config,
     msg: &Message,
 ) -> Result<Option<User>> {
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    let result = await_audit_log(
-        ctx,
-        &config.guild,
-        audit_log::Action::Message(MessageAction::Delete),
-        None,
-        |entry| {
-            entry.target_id.map(|x| x.get()) == Some(msg.id.get())
-                && entry.options.as_ref().is_some_and(|opt| opt.channel_id == Some(msg.channel_id))
-        },
-    )
-    .await?;
-    if let Some((entry, users)) = result {
-        Ok(users.get(&entry.user_id).cloned())
-    } else {
-        Ok(None)
-    }
-}
+    let cache = ctx.get_deletion_audit_cache().await;
 
-async fn await_audit_log(
-    ctx: &client::Context,
-    guild: &GuildId,
-    action_type: audit_log::Action,
-    user_id: Option<UserId>,
-    filter: impl Fn(&AuditLogEntry) -> bool,
-) -> Result<Option<(AuditLogEntry, std::collections::HashMap<UserId, User>)>> {
-    for _ in 0..3 {
-        let results = guild.audit_logs(&ctx, Some(action_type), user_id, None, None).await?;
-        let matching_value = results.entries.into_iter().find(|x| filter(x));
-        if let Some(matching_value) = matching_value {
-            return Ok(Some((matching_value, results.users)));
-        }
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    // Give the GUILD_AUDIT_LOG_ENTRY_CREATE gateway event time to arrive
+    // and be processed before we check the cache.
+    tokio::time::sleep(Duration::from_secs(5)).await;
+
+    if let Some(deleter_id) = cache.get(msg.channel_id, msg.author.id) {
+        return Ok(Some(deleter_id.to_user(ctx).await?));
     }
-    Ok(None)
+
+    // Fallback: one direct audit-log REST call for cases where the gateway
+    // event is delayed or never arrives (e.g. older Discord clients).
+    tracing::debug!(
+        msg.channel_id = %msg.channel_id,
+        msg.author = %msg.author.id,
+        "Deletion not in audit cache, falling back to single audit log poll"
+    );
+    let results = config
+        .guild
+        .audit_logs(ctx, Some(audit_log::Action::Message(MessageAction::Delete)), None, None, None)
+        .await?;
+
+    let entries = results.entries;
+    let users = results.users;
+    let matching = entries.into_iter().find(|entry| {
+        // target_id for MESSAGE_DELETE is the author's UserId, not the MessageId.
+        entry.target_id.map(|x| x.get()) == Some(msg.author.id.get())
+            && entry.options.as_ref().is_some_and(|opt| opt.channel_id == Some(msg.channel_id))
+    });
+
+    Ok(matching.and_then(|entry| users.get(&entry.user_id).cloned()))
 }

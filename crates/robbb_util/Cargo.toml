@@ -32,3 +32,4 @@ extend.workspace = true
 metrics.workspace = true
 
 robbb_db.workspace = true
+dashmap.workspace = true

@@ -1,4 +1,4 @@
-use crate::{UpEmotes, config::Config, embeds, log_error, prelude::Ctx};
+use crate::{DeletionAuditCache, UpEmotes, config::Config, embeds, log_error, prelude::Ctx};
 
 use eyre::{Context, ContextCompat as _, Result};
 use itertools::Itertools;
@@ -165,6 +165,10 @@ pub impl client::Context {
     }
     async fn get_db(&self) -> Arc<Db> {
         self.data.read().await.get::<Db>().cloned().unwrap()
+    }
+
+    async fn get_deletion_audit_cache(&self) -> Arc<DeletionAuditCache> {
+        self.data.read().await.get::<DeletionAuditCache>().cloned().unwrap()
     }
 
     async fn log_bot_action(
