@@ -101,7 +101,7 @@ impl client::EventHandler for Handler {
         let was_already_ready =
             self.was_ready_called.swap(true, std::sync::atomic::Ordering::SeqCst);
         if was_already_ready {
-            tracing::warn!(
+            tracing::info!(
                 "Received ready event, but bot was already marked ready. Assuming this was a reconnect, skipping initialization steps."
             );
             return;
