@@ -3,6 +3,7 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use serenity::{client, gateway::ConnectionStage};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
+pub const RECONNECTS_TOTAL: &str = "robbb_reconnects_total";
 pub const EVENTS_TOTAL: &str = "robbb_events_total";
 pub const MESSAGES_TOTAL: &str = "robbb_messages_total";
 pub const MESSAGES_DELETED_TOTAL: &str = "robbb_messages_deleted_total";

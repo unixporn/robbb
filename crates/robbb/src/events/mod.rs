@@ -15,6 +15,7 @@ use robbb_util::{UserData, config::Config, log_error, prelude::Error, util};
 use serenity::all::{
     ActionExecution, Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction, ResumedEvent,
 };
+use serenity::builder::CreateMessage;
 use serenity::client;
 
 mod auto_moderation_action;
@@ -127,11 +128,13 @@ impl client::EventHandler for Handler {
     #[tracing::instrument(skip_all, fields(event))]
     async fn resume(&self, ctx: client::Context, _event: ResumedEvent) {
         tracing::info!("Bot connection resumed");
+        metrics::counter!(crate::monitoring::RECONNECTS_TOTAL).increment(1);
+        
         let config = ctx.get_config().await;
 
         let _ = config
             .channel_mod_bot_stuff
-            .send_embed_builder(&ctx, |e| e.title("Discord connection resumed"))
+            .send_message(&ctx, CreateMessage::default().content("Discord connection resumed"))
             .await;
     }
 
@@ -413,7 +416,11 @@ pub struct MetricsRawEventHandler;
 #[async_trait]
 impl client::RawEventHandler for MetricsRawEventHandler {
     async fn raw_event(&self, _ctx: client::Context, event: serenity::all::Event) {
-        let event_name = event.name().unwrap_or_else(|| "Unknown".to_string());
+        let event_name = match event {
+            serenity::all::Event::Unknown(unknown) => format!("Unknown-{}", unknown.kind),
+            other => other.name().unwrap_or_else(|| "Unknown".to_string()),
+
+        };
         tracing::trace!(event.name = %event_name, "Received raw event");
         metrics::counter!(crate::monitoring::EVENTS_TOTAL, "event" => event_name).increment(1);
     }
