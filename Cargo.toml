@@ -65,7 +65,7 @@ tracing-subscriber = { version = "0.3.18", features = [
 ] }
 
 
-sqlx = "0.8.6"
+sqlx = "0.9.0"
 extend = "1.2"
 
 robbb_db = { path = "crates/robbb_db" }
@@ -74,16 +74,16 @@ robbb_commands = { path = "crates/robbb_commands" }
 # tracing-logfmt = "0.3.3"
 tracing-logfmt-otel = { version = "0.4.2" }
 
-opentelemetry = { version = "0.31.0", features = ["trace", "logs"] }
-opentelemetry-appender-tracing = { version = "0.31.0", features = ["experimental_metadata_attributes"] }
-opentelemetry-otlp = { version = "0.31.1", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic", "logs"] }
-opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio", "logs"] }
-tracing-opentelemetry = "0.32.1"
+opentelemetry = { version = "0.32.0", features = ["trace", "logs"] }
+opentelemetry-appender-tracing = { version = "0.32.0", features = ["experimental_metadata_attributes"] }
+opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["http-proto", "reqwest-blocking-client", "grpc-tonic", "logs"] }
+opentelemetry_sdk = { version = "0.32.0", features = ["rt-tokio", "logs"] }
+tracing-opentelemetry = "0.33.0"
 
 
 pyroscope = { version = "2.0.1", features = ["backend-pprof-rs"] }
 metrics = "0.24"
-metrics-exporter-prometheus = { version = "0.16", default-features = false, features = ["http-listener"] }
+metrics-exporter-prometheus = { version = "0.18", default-features = false, features = ["http-listener"] }
 
 dashmap = "6.2.1"
 
