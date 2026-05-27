@@ -401,9 +401,12 @@ impl client::EventHandler for Handler {
             ratelimit.global = ?data.global,
             "Encountered ratelimit"
         );
+
+        let path_re = regex::Regex::new(r"/\d+/").unwrap();
+
         metrics::counter!(
             crate::monitoring::RATELIMITS_TOTAL,
-            "path" => data.path.clone(),
+            "path" => path_re.replace_all(&data.path, "/{id}/").to_string(),
             "global" => data.global.to_string()
         )
         .increment(1);
