@@ -71,13 +71,16 @@ impl FakeCdnId {
     #[tracing::instrument(skip_all, fields(fake_cdn_id = %self))]
     pub async fn resolve(&self, ctx: impl CacheHttp) -> eyre::Result<String> {
         let message = self.channel_id.message(&ctx, self.message_id).await?;
-        let attachment_url = message.attachments.get(self.nth_attachment).map(|x| x.url.clone()).ok_or_else(|| {
-            eyre::eyre!(
-                "No {}th attachments found in message {}",
-                self.nth_attachment,
-                self.message_id
-            )
-        })?;
+        let attachment_url =
+            message.attachments.get(self.nth_attachment).map(|x| x.url.clone()).ok_or_else(
+                || {
+                    eyre::eyre!(
+                        "No {}th attachments found in message {}",
+                        self.nth_attachment,
+                        self.message_id
+                    )
+                },
+            )?;
 
         metrics::counter!(FAKE_CDN_RESOLUTIONS_TOTAL).increment(1);
         Ok(attachment_url)

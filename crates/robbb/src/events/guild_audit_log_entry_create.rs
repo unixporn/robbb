@@ -89,17 +89,18 @@ pub async fn guild_audit_log_entry_create(
         audit_log::Action::Message(audit_log::MessageAction::Delete) => {
             // Cache the deleter so message_delete can look it up without polling.
             if let Some(options) = &entry.options
-                && let Some(channel_id) = options.channel_id {
-                    let target_user_id = UserId::new(target_id.get());
-                    let cache = ctx.get_deletion_audit_cache().await;
-                    cache.insert(channel_id, target_user_id, entry.user_id);
-                    tracing::debug!(
-                        audit_log.channel_id = %channel_id,
-                        audit_log.target_user = %target_user_id,
-                        audit_log.deleter = %entry.user_id,
-                        "Cached message-deletion audit log entry"
-                    );
-                }
+                && let Some(channel_id) = options.channel_id
+            {
+                let target_user_id = UserId::new(target_id.get());
+                let cache = ctx.get_deletion_audit_cache().await;
+                cache.insert(channel_id, target_user_id, entry.user_id);
+                tracing::debug!(
+                    audit_log.channel_id = %channel_id,
+                    audit_log.target_user = %target_user_id,
+                    audit_log.deleter = %entry.user_id,
+                    "Cached message-deletion audit log entry"
+                );
+            }
         }
         _ => {}
     }

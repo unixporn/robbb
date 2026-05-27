@@ -6,7 +6,7 @@ pub mod extensions;
 pub mod prelude;
 pub mod util;
 
-use std::{collections::HashMap, sync::{Arc}, time::Instant};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use dashmap::DashMap;
 use eyre::ContextCompat as _;
@@ -65,13 +65,13 @@ impl TypeMapKey for UpEmotes {
 /// Short-lived cache of who deleted a message, populated reactively from
 /// `GUILD_AUDIT_LOG_ENTRY_CREATE` gateway events so that `message_delete`
 /// handling can look up the deleter without polling the audit-log REST endpoint.
-/// 
-/// Our approach here is that we store a map of 
+///
+/// Our approach here is that we store a map of
 /// `(message-channel, message-author)` to `(deletor, deletion-timestamp)`.
 /// Whenever a message gets deleted, we can then look up the last deletion of messages from that user in that channel,
 /// and compare the timestamps. If the timestamp is close enough,
 /// we assume that the event we got relates to the audit-log entry we found.
-/// 
+///
 /// This isn't perfect, and MAY yield false positives, but should be close enough.
 pub struct DeletionAuditCache {
     inner: DashMap<(ChannelId, UserId), (UserId, Instant)>,
@@ -95,7 +95,8 @@ impl DeletionAuditCache {
     /// Look up who deleted a message from `target_user_id` in `channel_id`, if known.
     pub fn get(&self, channel_id: ChannelId, target_user_id: UserId) -> Option<UserId> {
         let now = Instant::now();
-        self.inner.get(&(channel_id, target_user_id))
+        self.inner
+            .get(&(channel_id, target_user_id))
             .filter(|entry| now.duration_since(entry.value().1).as_secs() < DELETION_CACHE_TTL_SECS)
             .map(|entry| entry.value().0)
     }

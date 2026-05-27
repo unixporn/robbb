@@ -129,7 +129,7 @@ impl client::EventHandler for Handler {
     async fn resume(&self, ctx: client::Context, _event: ResumedEvent) {
         tracing::info!("Bot connection resumed");
         metrics::counter!(crate::monitoring::RECONNECTS_TOTAL).increment(1);
-        
+
         let config = ctx.get_config().await;
 
         let _ = config
@@ -419,7 +419,6 @@ impl client::RawEventHandler for MetricsRawEventHandler {
         let event_name = match event {
             serenity::all::Event::Unknown(unknown) => format!("Unknown-{}", unknown.kind),
             other => other.name().unwrap_or_else(|| "Unknown".to_string()),
-
         };
         tracing::trace!(event.name = %event_name, "Received raw event");
         metrics::counter!(crate::monitoring::EVENTS_TOTAL, "event" => event_name).increment(1);
