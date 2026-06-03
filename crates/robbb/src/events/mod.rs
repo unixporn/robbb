@@ -126,16 +126,15 @@ impl client::EventHandler for Handler {
     }
 
     #[tracing::instrument(skip_all, fields(event))]
-    async fn resume(&self, ctx: client::Context, _event: ResumedEvent) {
+    async fn resume(&self, _ctx: client::Context, _event: ResumedEvent) {
         tracing::info!("Bot connection resumed");
         metrics::counter!(crate::monitoring::RECONNECTS_TOTAL).increment(1);
-
-        let config = ctx.get_config().await;
-
-        let _ = config
-            .channel_mod_bot_stuff
-            .send_message(&ctx, CreateMessage::default().content("Discord connection resumed"))
-            .await;
+        // This is too spammy right now...
+        // let config = ctx.get_config().await;
+        // let _ = config
+        //     .channel_mod_bot_stuff
+        //     .send_message(&ctx, CreateMessage::default().content("Discord connection resumed"))
+        //     .await;
     }
 
     #[tracing::instrument(
