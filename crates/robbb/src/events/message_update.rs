@@ -2,6 +2,8 @@ use poise::serenity_prelude::MessageUpdateEvent;
 
 use super::*;
 
+const MAX_EMBED_DESCRIPTION_LENGTH: usize = 4096;
+
 pub async fn message_update(
     ctx: &client::Context,
     old_if_available: Option<Message>,
@@ -50,26 +52,37 @@ pub async fn message_update(
     let channel_name =
         util::channel_name(&ctx, event.channel_id).await.unwrap_or_else(|_| "unknown".to_string());
 
+    let description = indoc::formatdoc!(
+        "
+            **Before:**
+            {}
+
+            **Now:**
+            {}
+
+            {}
+        ",
+        old_content,
+        event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
+        msg.to_context_link()
+    );
+    let description = if description.len() > MAX_EMBED_DESCRIPTION_LENGTH {
+        format!(
+            "**Before:**\n{}\n\n**Now:**\n{}",
+            util::truncate_str(&old_content, MAX_EMBED_DESCRIPTION_LENGTH - 200),
+            msg.to_context_link()
+        )
+    } else {
+        description
+    };
+
     config
         .guild
         .send_embed(&ctx, config.channel_bot_messages, |e| {
             e.timestamp_opt(event.edited_timestamp)
                 .author_icon("Message Edit", msg.author.face())
                 .title(msg.author.name_with_disc_and_id())
-                .description(indoc::formatdoc!(
-                    "
-                        **Before:**
-                        {}
-
-                        **Now:**
-                        {}
-
-                        {}
-                    ",
-                    old_content,
-                    event.content.clone().unwrap_or_else(|| "<Unavailable>".to_string()),
-                    msg.to_context_link()
-                ))
+                .description(description)
                 .footer_str(format!("#{channel_name}"))
         })
         .await?;

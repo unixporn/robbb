@@ -220,3 +220,11 @@ pub fn generate_message_link(
         None => format!("https://discord.com/channels/@me/{}/{}", channel_id, message_id),
     }
 }
+
+/// Truncate a string to a maximum of a given length of characters.
+pub fn truncate_str(s: &str, max_len: usize) -> &str {
+    match s.char_indices().nth(max_len) {
+        Some((offset, _)) => &s[..offset],
+        None => s,
+    }
+}

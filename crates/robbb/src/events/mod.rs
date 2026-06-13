@@ -15,7 +15,6 @@ use robbb_util::{UserData, config::Config, log_error, prelude::Error, util};
 use serenity::all::{
     ActionExecution, Emoji, EmojiId, FullEvent, GuildMemberUpdateEvent, Interaction, ResumedEvent,
 };
-use serenity::builder::CreateMessage;
 use serenity::client;
 
 mod auto_moderation_action;
