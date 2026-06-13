@@ -6,7 +6,7 @@ use robbb_util::{
 use serenity::client;
 
 /// Check if the channel allows the use of the given command.
-pub async fn check_channel_allows_commands(ctx: Ctx<'_>) -> Res<bool> {
+pub fn check_channel_allows_commands(ctx: Ctx<'_>) -> Res<bool> {
     let config = ctx.get_config();
     let channel_id = ctx.channel_id();
     Ok(!(channel_id == config.channel_showcase

@@ -9,6 +9,7 @@ use super::*;
 
 /// Fetch a users system information.
 #[poise::command(slash_command, guild_only, rename = "fetch")]
+#[tracing::instrument(name = "run command fetch", fields(skip_all))]
 pub async fn fetch(
     ctx: Ctx<'_>,
     #[description = "The user"] user: Option<User>,

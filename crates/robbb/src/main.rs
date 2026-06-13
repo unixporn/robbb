@@ -10,6 +10,8 @@ use robbb_db::Db;
 use robbb_util::{DeletionAuditCache, UserData, config::Config, prelude::Ctx};
 use serenity::all::OnlineStatus;
 use std::sync::Arc;
+use tracing::info_span;
+use tracing_futures::Instrument as _;
 
 pub mod attachment_logging;
 mod error_handling;
@@ -95,11 +97,17 @@ async fn setup_discord_client() -> eyre::Result<serenity::Client> {
         pre_command: |ctx| Box::pin(pre_command(ctx)),
         owners: config.owners.clone(),
         command_check: Some(|ctx| {
-            Box::pin(async move {
-                Ok(is_autocomplete_interaction(&ctx)
-                    || (checks::check_channel_allows_commands(ctx).await?
-                        && checks::check_is_not_muted(ctx).await?))
-            })
+            Box::pin(
+                async move {
+                    if is_autocomplete_interaction(&ctx) {
+                        Ok(true)
+                    } else {
+                        Ok(checks::check_channel_allows_commands(ctx)?
+                            && checks::check_is_not_muted(ctx).await?)
+                    }
+                }
+                .instrument(info_span!("pre_command_check")),
+            )
         }),
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("!".into()),

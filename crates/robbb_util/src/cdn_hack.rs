@@ -68,7 +68,7 @@ impl FakeCdnId {
     }
 
     /// Resolve a [`FakeCdnId`] to a valid attachment url by fetching the mentioned message and getting the first attachment.
-    #[tracing::instrument(skip_all, fields(fake_cdn_id = %self))]
+    #[tracing::instrument(skip_all, name = "FakeCdnId::resolve", fields(fake_cdn_id = %self))]
     pub async fn resolve(&self, ctx: impl CacheHttp) -> eyre::Result<String> {
         let message = self
             .channel_id
