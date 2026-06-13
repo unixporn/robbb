@@ -1,9 +1,12 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use eyre::ContextCompat as _;
 use robbb_db::{fetch::Fetch, fetch_field::FetchField};
 use robbb_util::{cdn_hack::FakeCdnId, embeds};
-use serenity::{all::User, builder::CreateEmbedAuthor};
+use serenity::{
+    all::{User, prelude::CacheHttp},
+    builder::CreateEmbedAuthor,
+};
 
 use super::*;
 
@@ -48,8 +51,9 @@ pub async fn fetch(
                 .color_opt(color)
                 .timestamp_opt(create_date);
             if desired_field == FetchField::Image {
-                let new_link = FakeCdnId::from_str(&value)?.resolve(&ctx).await?;
-                embed = embed.image(new_link);
+                if let Some(link) = try_load_image_link_from_fakecdn(ctx, value.parse()?).await {
+                    embed = embed.image(link);
+                }
             } else if let Some(value) = format_fetch_field_value(&field_name, value) {
                 embed = embed.description(value);
             } else {
@@ -67,8 +71,10 @@ pub async fn fetch(
 
             for (key, value) in fetch_data {
                 if key == FetchField::Image {
-                    let new_link = FakeCdnId::from_str(&value)?.resolve(&ctx).await?;
-                    embed = embed.image(new_link);
+                    if let Some(link) = try_load_image_link_from_fakecdn(ctx, value.parse()?).await
+                    {
+                        embed = embed.image(link);
+                    }
                 } else {
                     if key == FetchField::Distro
                         && let Some(url) = find_distro_image(&value)
@@ -87,4 +93,23 @@ pub async fn fetch(
     }
 
     Ok(())
+}
+
+/// Try loading an image link from the fake-cdn. On failure, log a warning and return `None`.
+async fn try_load_image_link_from_fakecdn(
+    ctx: impl CacheHttp,
+    cdn_str: FakeCdnId,
+) -> Option<String> {
+    match cdn_str.resolve(&ctx).await {
+        Ok(link) => Some(link),
+        Err(err) => {
+            tracing::warn!(
+                error.message = %&err,
+                error.details = format!("{err:#}"),
+                error.root_cause = %err.root_cause(),
+                "Failed to load image from fake cdn. Omitting image from result."
+            );
+            None
+        }
+    }
 }
