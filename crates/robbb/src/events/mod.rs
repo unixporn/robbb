@@ -71,6 +71,7 @@ impl Handler {
     }
 
     #[tracing::instrument(skip_all, fields(
+        otel.name = format!("dispatch_poise_event {}", event.snake_case_name()),
         event.name = %event.snake_case_name(),
         command_name,
         invocation,
