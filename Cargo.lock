@@ -3217,7 +3217,7 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.12.5"
-source = "git+https://github.com/elkowar/serenity?branch=current-better-logs#077a1bd4906dd634d8ca630286a60dc25f5e75d5"
+source = "git+https://github.com/elkowar/serenity?branch=current-better-logs#aa661407102363688942eecbf73ba1eef8471696"
 dependencies = [
  "arrayvec",
  "async-trait",
