@@ -8,6 +8,7 @@ authors.workspace = true
 [dependencies]
 tracing-error.workspace = true
 eyre.workspace = true
+colorchoice.workspace = true
 color-eyre.workspace = true
 serenity.workspace = true
 poise.workspace = true

@@ -38,6 +38,10 @@ fn make_log_filter() -> EnvFilter {
 pub fn init_tracing() {
     let format_pretty = std::env::var("ROBBB_LOG_PRETTY").is_ok();
 
+    if !format_pretty {
+        colorchoice::ColorChoice::Never.write_global();
+    }
+
     let log_filter = make_log_filter();
     let remove_presence_update_filter = FilterFn::new(|m| {
         !(m.target() == "serenity::gateway::shard"

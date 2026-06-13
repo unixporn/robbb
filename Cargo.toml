@@ -40,6 +40,7 @@ poise = {
 
 eyre = "0.6.12"
 color-eyre = "0.6.5"
+colorchoice = "1.0.5"
 tracing-error = "0.2.1"
 chrono = "0.4.38"
 chrono-humanize = "0.2.3"
